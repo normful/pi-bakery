@@ -29,8 +29,8 @@ A modal will appear showing each file that has been read, along with its size (e
 
 ### Command reference
 
-| Command | Description |
-|---|---|
+| Command            | Description                                                   |
+| ------------------ | ------------------------------------------------------------- |
 | `/show-files-read` | Display a modal listing all files read in the current session |
 
 ## How it works

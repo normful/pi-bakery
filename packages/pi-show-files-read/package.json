@@ -11,7 +11,7 @@
   "author": "Norman Sue",
   "type": "module",
   "dependencies": {
-    "@spences10/pi-tui-modal": "^0.0.22"
+    "@spences10/pi-tui-modal": "0.0.22"
   },
   "devDependencies": {
     "typescript": "7.0.2",

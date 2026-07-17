@@ -67,9 +67,7 @@ export default function (pi: ExtensionAPI) {
       const lines: string[] = [];
       for (const f of filesRead) {
         const kb = (f.size / 1024).toFixed(1);
-        const display = f.path.startsWith(cwdSlash)
-          ? `./${f.path.slice(cwdSlash.length)}`
-          : f.path;
+        const display = f.path.startsWith(cwdSlash) ? `./${f.path.slice(cwdSlash.length)}` : f.path;
         lines.push(`${display} (${kb}kB)`);
       }
 

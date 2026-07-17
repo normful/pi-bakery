@@ -1,5 +1,6 @@
 {
   "name": "pi-bakery",
+  "version": "0.1.0",
   "private": true,
   "description": "Pi extensions monorepo",
   "license": "MIT",
@@ -29,6 +30,5 @@
       "name": "node",
       "onFail": "error"
     }
-  },
-  "version": "0.1.0"
+  }
 }
