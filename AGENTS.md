@@ -54,15 +54,32 @@ npm run lint:fix
 
 ## How-To: Publish one package
 
-1. `cd` into the package dir and run `npm version <major|minor|patch>`.
-2. Do a dry-run to confirm that only intended files are included: `npm publish --access public --dry-run`.
+1. **Bump the version** — edit the `"version"` field in `packages/pi-<name>/package.json` directly, then run:
+
+       npm install
+
+   (This keeps the lockfile in sync.)
+
+2. **Dry-run** to confirm only intended files are included:
+
+       npm publish --workspace=@normful/pi-<name> --access public --dry-run
+
 3. Confirm with user that they want to proceed.
-4. Only after explicitly confirms, then run `npm publish --access public`.
+4. **Publish** — ask the user to run this themselves (npm 2FA requires their session):
+
+       npm publish --workspace=@normful/pi-<name> --access public
 
 ## How-To: Publish all packages
 
-1. For each package in `packages`, `cd` into the package dir and run `npm version <major|minor|patch>`
-2. Switch back into root workpsace: `cd pi-bakery`
-3. Do a dry-run to confirm that only intended files are included: `npm publish --access public --workspaces --dry-run`
-4. Confirm with user that they want to proceed.
-5. Only after explicitly confirms, then run `npm publish --access public --workspaces`.
+1. **Bump versions** — edit the `"version"` field in each package's `packages/pi-<name>/package.json`, then run:
+
+       npm install
+
+2. **Dry-run** to confirm:
+
+       npm publish --workspaces --access public --dry-run
+
+3. Confirm with user that they want to proceed.
+4. **Publish all** — ask the user to run this themselves (npm 2FA requires their session):
+
+       npm publish --workspaces --access public
