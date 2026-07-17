@@ -7,24 +7,25 @@ For maintenance simplicity, DO NOT duplicate configuration across packages.
 ## Each Package Workspace
 
 In each package directory under `packages/`:
+
 - Do not create a tsconfig.json
 - Do not create a vite.config.json
 - Do not add any `scripts` in the package.json files of each package.
 - `package.json` should contain:
-    - `"pi": { ... }` object property that declares Pi extension entry points.
-    - `"peerDependencies"` for:
-        - `@earendil-works/pi-coding-agent` at a `"*"` semver range
-        - `@earendil-works/pi-tui` at a `"*"` semver range
-        - `@earendil-works/pi-ai` at a `"*"` semver range
+  - `"pi": { ... }` object property that declares Pi extension entry points.
+  - `"peerDependencies"` for:
+    - `@earendil-works/pi-coding-agent` at a `"*"` semver range
+    - `@earendil-works/pi-tui` at a `"*"` semver range
+    - `@earendil-works/pi-ai` at a `"*"` semver range
 - Must contain extension code as TypeScript files in a `packages/pi-<package-name-slug>/src/` directory.
 - Must contain extension unit tests as TypeScript files in a `packages/pi-<package-name-slug>/test/` directory.
 
 ## Root Workspace
 
 - The root workspace is named `pi-bakery`.
-    - Keep tsconfig.json, vite.config.ts (configuration file for Vite Plus -- `vp`) in the root workspace `pi-bakery`.
-    - Only add scripts to the `scripts` property of the root workspace's package.json file.
-    - The `pi-bakery/.npmrc` in the root workspace configures flags to be passed to `npm` such that you only need to run the common commands below.
+  - Keep tsconfig.json, vite.config.ts (configuration file for Vite Plus -- `vp`) in the root workspace `pi-bakery`.
+  - Only add scripts to the `scripts` property of the root workspace's package.json file.
+  - The `pi-bakery/.npmrc` in the root workspace configures flags to be passed to `npm` such that you only need to run the common commands below.
 
 ## How extensions are loaded by Pi
 
@@ -38,19 +39,44 @@ npm run lint
 npm run lint:fix
 ```
 
+## Testing
+
+Tests are written with [vitest](https://vitest.dev) and run via [Vite Plus](https://github.com/nicholasgriffintn/vite-plus) (`vp`). No additional setup is needed — `vp` wraps vitest and is already in the root workspace.
+
+```bash
+# Run all tests across all packages
+npx vp test
+
+# Run tests for a specific package (project filter)
+npx vp test --project pi-show-theme-colors
+
+# Run tests matching a file pattern
+npx vp test packages/pi-show-theme-colors/
+```
+
+### Writing tests
+
+- Place test files in `packages/pi-<name>/test/` with a `.test.ts` extension.
+- Use standard vitest APIs (`describe`, `it`, `expect`, `vi`).
+- Import the source from the compiled output path: `import { … } from "../src/index.js"` (TypeScript files, but use the `.js` extension for the npm package's `"type": "module"` resolution).
+- Mock external dependencies (like `@spences10/pi-tui-modal`) with `vi.mock(...)` at the top of the test file — vitest hoists these before imports.
+
 ## How-To: Create a new extension package
 
 1. Create `packages/pi-<package-name-slug>/` with AT LEAST: `package.json`, `README.md`, `LICENSE`, `.npmignore` symlink that points to repo root's `.npmignore` file, `src/index.ts` file, `test/` dir.
 2. Use `@normful/pi-<package-name-slug>` as the npm package name
 3. In the new package.json, include:
-  ```json
-  "pi": {
-    "extensions": [
-      "./src/index.ts"
-    ],
-    "video": "https://www.github.com/normful/pi-bakery/packages/pi-<package-name-slug>/demo.mp4"
-  }
-  ```
+
+```json
+"pi": {
+  "extensions": [
+    "./src/index.ts"
+  ],
+  "video": "https://www.github.com/normful/pi-bakery/packages/pi-<package-name-slug>/demo.mp4"
+}
+```
+
+4. Run `npm run lint:fix`
 
 ## How-To: Publish one package
 
