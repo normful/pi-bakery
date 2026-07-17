@@ -1,0 +1,34 @@
+{
+  "name": "pi-bakery",
+  "private": true,
+  "description": "Pi extensions monorepo",
+  "license": "MIT",
+  "author": "Norman Sue",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/normful/pi-bakery.git"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "typecheck": "tsc",
+    "lint": "vp check",
+    "lint:fix": "vp check --fix"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2",
+    "vite-plus": "^0.2.5"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "npm",
+      "onFail": "error"
+    },
+    "runtime": {
+      "name": "node",
+      "onFail": "error"
+    }
+  },
+  "version": "0.1.0"
+}

@@ -1,0 +1,29 @@
+{
+  "name": "@normful/pi-statusline",
+  "version": "0.1.0",
+  "private": false,
+  "description": "Opinionated footers",
+  "keywords": [
+    "pi-extension",
+    "pi-package"
+  ],
+  "license": "MIT",
+  "author": "Norman Sue",
+  "type": "module",
+  "devDependencies": {
+    "typescript": "7.0.2",
+    "vite-plus": "^0.2.5"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-agent-core": "*",
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*"
+  },
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ],
+    "video": "https://www.github.com/normful/pi-bakery/packages/pi-statusline/demo.mp4"
+  }
+}
