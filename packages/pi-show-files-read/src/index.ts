@@ -1,6 +1,7 @@
 import type {
   ExtensionAPI,
   ExtensionCommandContext,
+  ToolResultEvent,
 } from "@earendil-works/pi-coding-agent";
 import { isReadToolResult } from "@earendil-works/pi-coding-agent";
 import { show_text_modal } from "@spences10/pi-tui-modal";
@@ -12,15 +13,26 @@ type ReadFileEntry = {
 
 let filesRead: ReadFileEntry[] = [];
 
+function didCallAReadTool(event: ToolResultEvent) {
+  return (
+    isReadToolResult(event) ||
+    /* For any other custom read-like tools with 'read' in their name */
+    event.toolName.includes("read")
+  );
+}
+
 export default function (pi: ExtensionAPI) {
   pi.on("session_start", () => {
     filesRead = [];
   });
 
-  pi.on("tool_result", (event) => {
-    if (!isReadToolResult(event)) return;
-    const path = event.input.path as string;
-    if (!path) return;
+  pi.on("tool_result", (event: ToolResultEvent) => {
+    if (!didCallAReadTool(event)) {
+      return;
+    }
+
+    const filepath = event.input.path as string;
+    if (!filepath) return;
 
     let size = 0;
     for (const part of event.content) {
@@ -30,11 +42,11 @@ export default function (pi: ExtensionAPI) {
     }
 
     // Deduplicate by path: update size if already present
-    const existing = filesRead.find((f) => f.path === path);
+    const existing = filesRead.find((f) => f.path === filepath);
     if (existing) {
       existing.size = size;
     } else {
-      filesRead.push({ path, size });
+      filesRead.push({ path: filepath, size });
     }
   });
 
