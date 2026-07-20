@@ -117,7 +117,9 @@ npx vp test packages/pi-show-theme-colors/
 
 2. **Dry-run** to confirm only intended files are included:
 
-       npm publish --workspace=@normful/pi-<name> --access public --dry-run
+       npm publish --workspace=@normful/pi-<name> --access public --dry-run --loglevel=info
+
+   (The root `.npmrc` silences npm output, so pass `--loglevel=info` explicitly or the tarball listing won't print.)
 
 3. Confirm with user that they want to proceed.
 4. **Publish** — ask the user to run this themselves (npm 2FA requires their session):
@@ -132,7 +134,9 @@ npx vp test packages/pi-show-theme-colors/
 
 2. **Dry-run** to confirm:
 
-       npm publish --workspaces --access public --dry-run
+       npm publish --workspaces --access public --dry-run --loglevel=info
+
+   (The root `.npmrc` silences npm output, so pass `--loglevel=info` explicitly or the tarball listing won't print.)
 
 3. Confirm with user that they want to proceed.
 4. **Publish all** — ask the user to run this themselves (npm 2FA requires their session):
