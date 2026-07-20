@@ -52,15 +52,20 @@ npm run lint        # lint (vp check)
 npm run lint:fix    # lint + autofix (vp check --fix)
 ```
 
+`test`, `lint`, and `lint:fix` are wrapped by `./run-silent`, which suppresses stdout/stderr on success and prints only a `✔` line. On failure it prints the captured output and exits non-zero.
+
 ## Pre-commit hooks (prek)
 
 This repo uses prek (a pre-commit-compatible hook runner) configured in `prek.toml`. On every commit it runs:
 
 - **Builtin hygiene hooks** — trailing-whitespace, end-of-file-fixer, check-json / check-json5 / check-toml, check-symlinks, check-merge-conflict, detect-private-key, check-added-large-files, and friends.
-- **`npx vp test`** — the full test suite.
-- **`npx vp check`** — the linter.
+- **`npm run typecheck`** — type-checks the whole repo (`tsc`).
+- **`npm run lint`** — the linter (`vp check`).
+- **`npm run test`** — the full test suite (`vp test`).
 
-A commit fails if tests or lint fail, so run `npm test` and `npm run lint` before committing. Note `check-symlinks` is active — keep the per-package `.npmignore` symlinks valid.
+All three local hooks use `pass_filenames = false` so they run project-wide regardless of which files are staged.
+
+A commit fails if typecheck, lint, or tests fail, so run `npm run typecheck`, `npm test`, and `npm run lint` before committing. Note `check-symlinks` is active — keep the per-package `.npmignore` symlinks valid.
 
 ## Testing
 
