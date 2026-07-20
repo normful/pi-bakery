@@ -2,6 +2,10 @@
 
 Pi extensions and maintained forks.
 
+<p align="center">
+  <img src="https://media.githubusercontent.com/media/normful/pi-bakery/refs/heads/main/logo.png" alt="pi-bakery" width="800">
+</p>
+
 | Package                                                        | Description                                                                            |
 | -------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | [`@normful/pi-show-files-read`](./packages/pi-show-files-read) | `/show-files-read` command — shows every file the agent has read this session          |

@@ -12,13 +12,23 @@ In each package directory under `packages/`:
 - Do not create a vite.config.json
 - Do not add any `scripts` in the package.json files of each package.
 - `package.json` should contain:
+  - `"name"` scoped as `@normful/pi-<package-name-slug>`.
+  - `"version"` (semver). Bump it in the package's own `package.json` (see the publish how-tos).
+  - `"private": false` (these packages are published).
+  - `"type": "module"`.
+  - `"description"`, `"keywords"`, `"license": "MIT"`, and `"author"`.
+  - `"repository"` with `"directory": "packages/pi-<package-name-slug>"`, plus `"bugs"` pointing at the repo issues URL.
   - `"pi": { ... }` object property that declares Pi extension entry points.
   - `"peerDependencies"` for:
+    - `@earendil-works/pi-agent-core` at a `"*"` semver range
     - `@earendil-works/pi-coding-agent` at a `"*"` semver range
     - `@earendil-works/pi-tui` at a `"*"` semver range
     - `@earendil-works/pi-ai` at a `"*"` semver range
+  - `"devDependencies"` for the build/test toolchain (`typescript`, `vite-plus`). This is the **one accepted exception** to the "DO NOT duplicate configuration across packages" rule: the toolchain is repeated per package so each workspace stays self-contained (local `npx` / editor resolution), while all _config files_ (`tsconfig.json`, `vite.config.ts`) and _scripts_ remain root-only.
+  - `"dependencies"` only when the extension genuinely needs a runtime library. Pin runtime deps to an **exact** version (e.g. `@spences10/pi-tui-modal` at `0.0.22`) so a published extension installs reproducibly.
+- Must contain a `.npmignore` symlink pointing to the repo root's `.npmignore` (`ln -s ../../.npmignore packages/pi-<package-name-slug>/.npmignore`). The root `.npmignore` keeps `test/` and `AGENTS.md` out of the published tarball; npm only honors a `.npmignore` _inside_ the package being published, so the symlink is required.
 - Must contain extension code as TypeScript files in a `packages/pi-<package-name-slug>/src/` directory.
-- Must contain extension unit tests as TypeScript files in a `packages/pi-<package-name-slug>/test/` directory.
+- Must contain extension unit tests as TypeScript files in a `packages/pi-<package-name-slug>/test/` directory. If a package has no tests yet, include an empty `test/.gitkeep` so the directory still exists.
 
 ## Root Workspace
 
@@ -26,6 +36,7 @@ In each package directory under `packages/`:
   - Keep tsconfig.json, vite.config.ts (configuration file for Vite Plus -- `vp`) in the root workspace `pi-bakery`.
   - Only add scripts to the `scripts` property of the root workspace's package.json file.
   - The `pi-bakery/.npmrc` in the root workspace configures flags to be passed to `npm` such that you only need to run the common commands below.
+  - The root `package.json` declares `"workspaces": ["packages/*"]` and a `devEngines` block enforcing `packageManager: npm` and `runtime: node` (both `onFail: error`). Use **npm** in this repo — not pnpm/yarn.
 
 ## How extensions are loaded by Pi
 
@@ -35,9 +46,21 @@ TypeScript is configured in `tsconfig.json` to NOT transpile to JavaScript, with
 ## Common commands
 
 ```bash
-npm run lint
-npm run lint:fix
+npm test            # run all tests across packages (vp test)
+npm run typecheck   # type-check without emitting (tsc)
+npm run lint        # lint (vp check)
+npm run lint:fix    # lint + autofix (vp check --fix)
 ```
+
+## Pre-commit hooks (prek)
+
+This repo uses prek (a pre-commit-compatible hook runner) configured in `prek.toml`. On every commit it runs:
+
+- **Builtin hygiene hooks** — trailing-whitespace, end-of-file-fixer, check-json / check-json5 / check-toml, check-symlinks, check-merge-conflict, detect-private-key, check-added-large-files, and friends.
+- **`npx vp test`** — the full test suite.
+- **`npx vp check`** — the linter.
+
+A commit fails if tests or lint fail, so run `npm test` and `npm run lint` before committing. Note `check-symlinks` is active — keep the per-package `.npmignore` symlinks valid.
 
 ## Testing
 
@@ -76,7 +99,8 @@ npx vp test packages/pi-show-theme-colors/
 }
 ```
 
-4. Run `npm run lint:fix`
+4. The `pi.video` URL points to a `demo.mp4` in the package directory. Add a short `demo.mp4` there so the link resolves; if you don't have one yet, treat the field as a placeholder and add the video later.
+5. Run `npm run lint:fix`
 
 ## How-To: Publish one package
 

@@ -2,8 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { buildColorDisplayLines, ALL_COLORS } from "../src/index.js";
 
 const mockTheme = {
-  getFgAnsi: (color: string) =>
-    color === "accent" ? "\x1b[38;5;2m" : "\x1b[38;5;7m",
+  getFgAnsi: (color: string) => (color === "accent" ? "\x1b[38;5;2m" : "\x1b[38;5;7m"),
 };
 
 describe("buildColorDisplayLines", () => {
@@ -19,9 +18,7 @@ describe("buildColorDisplayLines", () => {
 
   it("wraps sample text in ANSI color codes", () => {
     const lines = buildColorDisplayLines(mockTheme, ["accent"]);
-    expect(lines[0]).toContain(
-      "\x1b[38;5;2mThe quick brown fox\x1b[0m",
-    );
+    expect(lines[0]).toContain("\x1b[38;5;2mThe quick brown fox\x1b[0m");
   });
 
   it("uses a custom sample text when provided", () => {
@@ -32,8 +29,9 @@ describe("buildColorDisplayLines", () => {
 
   it("ends every line with the ANSI reset code", () => {
     const lines = buildColorDisplayLines(mockTheme, ALL_COLORS);
+    const resetCode = "\x1b[0m";
     for (const line of lines) {
-      expect(line).toMatch(/\x1b\[0m$/);
+      expect(line.endsWith(resetCode)).toBe(true);
     }
   });
 
@@ -52,7 +50,6 @@ describe("buildColorDisplayLines", () => {
 
   it("calls getFgAnsi for each color in order", () => {
     const getFgAnsi = (color: string) => `\x1b[38;5;${color === "success" ? "2" : "1"}m`;
-    const theme = { getFgAnsi };
     const spy = vi.fn(getFgAnsi);
     buildColorDisplayLines({ getFgAnsi: spy }, ["success", "error"]);
     expect(spy).toHaveBeenCalledTimes(2);

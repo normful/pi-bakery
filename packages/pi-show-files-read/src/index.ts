@@ -50,7 +50,7 @@ export default function (pi: ExtensionAPI) {
     }
   });
 
-  pi.registerCommand("show-files-read", {
+  pi.registerCommand("files-read", {
     description: "List files read in the current conversation so far",
     handler: async (_args: string, ctx: ExtensionCommandContext) => {
       if (filesRead.length === 0) {

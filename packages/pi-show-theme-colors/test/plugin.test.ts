@@ -10,10 +10,7 @@ describe("theme-colors command registration", () => {
   it("registers a command named 'theme-colors'", () => {
     const registerCommand = vi.fn();
     extension({ registerCommand } as any);
-    expect(registerCommand).toHaveBeenCalledWith(
-      "theme-colors",
-      expect.any(Object),
-    );
+    expect(registerCommand).toHaveBeenCalledWith("theme-colors", expect.any(Object));
   });
 });
 
@@ -84,14 +81,12 @@ describe("theme-colors handler", () => {
     await handler("", ctx as any);
 
     const [, options] = show_text_modal.mock.calls[0];
-    const expectedText = buildColorDisplayLines(ctx.ui.theme, ALL_COLORS).join(
-      "\n",
-    );
+    const expectedText = buildColorDisplayLines(ctx.ui.theme, ALL_COLORS).join("\n");
     expect(options.text).toBe(expectedText);
   });
 
   it("calls getFgAnsi for every color in ALL_COLORS", async () => {
-    const { show_text_modal } = await import("@spences10/pi-tui-modal");
+    await import("@spences10/pi-tui-modal");
     const getFgAnsi = vi.fn(() => "\x1b[38;5;2m");
     const handler = makeHandler();
 

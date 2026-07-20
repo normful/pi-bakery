@@ -1,0 +1,35 @@
+exclude = "^(node_modules/)"
+
+[[repos]]
+repo = "builtin"
+hooks = [
+  { id = "trailing-whitespace" },
+  { id = "check-added-large-files" },
+  { id = "check-case-conflict" },
+  { id = "end-of-file-fixer" },
+  { id = "fix-byte-order-marker" },
+  { id = "check-json" },
+  { id = "check-json5" },
+  { id = "check-toml" },
+  { id = "mixed-line-ending" },
+  { id = "check-symlinks" },
+  { id = "check-merge-conflict" },
+  { id = "detect-private-key" },
+  { id = "check-executables-have-shebangs" },
+]
+
+[[repos]]
+repo = "local"
+[[repos.hooks]]
+id = "npx vp test"
+name = "npx vp test"
+entry = "npx vp test"
+language = "system"
+
+[[repos]]
+repo = "local"
+[[repos.hooks]]
+id = "npx vp check"
+name = "npx vp check"
+entry = "npx vp check --no-error-on-unmatched-pattern"
+language = "system"

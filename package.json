@@ -13,9 +13,10 @@
     "packages/*"
   ],
   "scripts": {
+    "test": "./run-silent 'vp test (vitest)' ./node_modules/.bin/vp test",
     "typecheck": "tsc",
-    "lint": "vp check",
-    "lint:fix": "vp check --fix"
+    "lint": "./run-silent 'vp check' ./node_modules/.bin/vp check",
+    "lint:fix": "./run-silent 'vp check --fix' ./node_modules/.bin/vp check --fix"
   },
   "devDependencies": {
     "typescript": "7.0.2",

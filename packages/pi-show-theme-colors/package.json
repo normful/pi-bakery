@@ -4,11 +4,21 @@
   "private": false,
   "description": "Pi extension that shows available theme colors",
   "keywords": [
+    "pi",
+    "pi-coding-agent",
     "pi-extension",
     "pi-package"
   ],
+  "bugs": {
+    "url": "https://github.com/normful/pi-bakery/issues"
+  },
   "license": "MIT",
   "author": "Norman Sue",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/normful/pi-bakery.git",
+    "directory": "packages/pi-show-theme-colors"
+  },
   "type": "module",
   "dependencies": {
     "@spences10/pi-tui-modal": "0.0.22"
