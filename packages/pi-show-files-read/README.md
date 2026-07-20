@@ -4,10 +4,10 @@ In-session file-read tracker for Pi coding agents. Monitors the agent's `read` t
 
 ## Features
 
-- **Automatic tracking** — Listens to `tool_result` events and captures any tool result matching the `read` pattern, recording the file path and byte size.
-- **Deduplication** — If a file is read multiple times, only the latest entry is kept (with an updated size).
+- **Automatic tracking** — Listens to `tool_result` events and captures any tool result matching the `read` pattern, recording the file path.
+- **Deduplication** — If a file is read multiple times, only the first entry is kept.
 - **Session-scoped** — Tracks are reset on each new session (`session_start`), so you always get a clean slate.
-- **`/show-files-read` command** — Opens a modal listing every file read so far along with its on-disk size, sorted in read order. Paths are displayed relative to the working directory (prefixed with `./`) where possible.
+- **`/show-files-read` command** — Opens a modal listing every file read so far in read order. Paths are displayed relative to the working directory (prefixed with `./`) where possible.
 
 ## Installation
 
@@ -25,7 +25,7 @@ Once installed, Pi will track all `read` tool invocations in the background. At 
 /show-files-read
 ```
 
-A modal will appear showing each file that has been read, along with its size (e.g., `./src/index.ts (4.2kB)`). If no files have been read, the modal will display a "No files have been read yet" message.
+A modal will appear showing each file that has been read (e.g., `./src/index.ts`). If no files have been read, the modal will display a "No files have been read yet" message.
 
 ### Command reference
 
@@ -35,7 +35,7 @@ A modal will appear showing each file that has been read, along with its size (e
 
 ## How it works
 
-The extension registers a `tool_result` listener that checks every tool result with `isReadToolResult()`. When a match is found, it extracts the file `path` from the original input and calculates the total text size (in bytes) from the result content. Results are stored in an in-memory array that persists for the duration of the session.
+The extension registers a `tool_result` listener that checks every tool result with `isReadToolResult()`. When a match is found, it extracts the file `path` from the original input. Paths are stored in an in-memory array that persists for the duration of the session.
 
 The `/show-files-read` command simply formats this array and presents it via `show_text_modal()`.
 

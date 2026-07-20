@@ -6,12 +6,7 @@ import type {
 import { isReadToolResult } from "@earendil-works/pi-coding-agent";
 import { show_text_modal } from "@spences10/pi-tui-modal";
 
-type ReadFileEntry = {
-  path: string;
-  size: number;
-};
-
-let filesRead: ReadFileEntry[] = [];
+let filesRead: string[] = [];
 
 function didCallAReadTool(event: ToolResultEvent) {
   return (
@@ -34,19 +29,9 @@ export default function (pi: ExtensionAPI) {
     const filepath = event.input.path as string;
     if (!filepath) return;
 
-    let size = 0;
-    for (const part of event.content) {
-      if (part.type === "text") {
-        size += new TextEncoder().encode(part.text).length;
-      }
-    }
-
-    // Deduplicate by path: update size if already present
-    const existing = filesRead.find((f) => f.path === filepath);
-    if (existing) {
-      existing.size = size;
-    } else {
-      filesRead.push({ path: filepath, size });
+    // Deduplicate by path
+    if (!filesRead.includes(filepath)) {
+      filesRead.push(filepath);
     }
   });
 
@@ -64,12 +49,9 @@ export default function (pi: ExtensionAPI) {
       const cwd = ctx.cwd;
       const cwdSlash = `${cwd}/`;
 
-      const lines: string[] = [];
-      for (const f of filesRead) {
-        const kb = (f.size / 1024).toFixed(1);
-        const display = f.path.startsWith(cwdSlash) ? `./${f.path.slice(cwdSlash.length)}` : f.path;
-        lines.push(`${display} (${kb}kB)`);
-      }
+      const lines = filesRead.map((p) =>
+        p.startsWith(cwdSlash) ? `./${p.slice(cwdSlash.length)}` : p,
+      );
 
       await show_text_modal(ctx, {
         title: `Files Read (${filesRead.length})`,
