@@ -1,0 +1,39 @@
+{
+  "name": "@normful/pi-stop-secrets-leaks",
+  "version": "0.1.0",
+  "private": false,
+  "description": "Pi extension that helps prevent secrets from leaking",
+  "keywords": [
+    "pi",
+    "pi-coding-agent",
+    "pi-extension",
+    "pi-package"
+  ],
+  "bugs": {
+    "url": "https://github.com/normful/pi-bakery/issues"
+  },
+  "license": "MIT",
+  "author": "Norman Sue",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/normful/pi-bakery.git",
+    "directory": "packages/pi-stop-secrets-leaks"
+  },
+  "type": "module",
+  "devDependencies": {
+    "typescript": "7.0.2",
+    "vite-plus": "^0.2.5"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-agent-core": "*",
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*"
+  },
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ],
+    "video": "https://www.github.com/normful/pi-bakery/packages/pi-stop-secrets-leaks/demo.mp4"
+  }
+}
