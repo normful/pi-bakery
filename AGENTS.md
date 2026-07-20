@@ -27,6 +27,7 @@ In each package directory under `packages/`:
   - `"devDependencies"` for the build/test toolchain (`typescript`, `vite-plus`). This is the **one accepted exception** to the "DO NOT duplicate configuration across packages" rule: the toolchain is repeated per package so each workspace stays self-contained (local `npx` / editor resolution), while all _config files_ (`tsconfig.json`, `vite.config.ts`) and _scripts_ remain root-only.
   - `"dependencies"` only when the extension genuinely needs a runtime library. Pin runtime deps to an **exact** version (e.g. `@spences10/pi-tui-modal` at `0.0.22`) so a published extension installs reproducibly.
 - Must contain a `.npmignore` symlink pointing to the repo root's `.npmignore` (`ln -s ../../.npmignore packages/pi-<package-name-slug>/.npmignore`). The root `.npmignore` keeps `test/` and `AGENTS.md` out of the published tarball; npm only honors a `.npmignore` _inside_ the package being published, so the symlink is required.
+- Must contain a `LICENSE` that is an exact copy of the repo root's `LICENSE` (`cp LICENSE packages/pi-<package-name-slug>/LICENSE`). **Never write a LICENSE by hand** — the root file is the single source of truth (including the copyright year), so always copy it from there.
 - Must contain extension code as TypeScript files in a `packages/pi-<package-name-slug>/src/` directory.
 - Must contain extension unit tests as TypeScript files in a `packages/pi-<package-name-slug>/test/` directory. If a package has no tests yet, include an empty `test/.gitkeep` so the directory still exists.
 
@@ -67,6 +68,13 @@ All three local hooks use `pass_filenames = false` so they run project-wide rega
 
 A commit fails if typecheck, lint, or tests fail, so run `npm run typecheck`, `npm test`, and `npm run lint` before committing. Note `check-symlinks` is active — keep the per-package `.npmignore` symlinks valid.
 
+## Committing
+
+- After you finish each batch of related changes (one logical unit of work), **commit proactively — do not wait to be asked**. A "batch" is a cohesive set of edits toward one purpose (e.g. scaffolding a new package, fixing license years, updating docs).
+- Split logically distinct batches into **separate, focused commits** rather than one lump commit. Stage only the files relevant to each commit.
+- Use Conventional Commits with an optional scope, matching the existing history: `feat`, `fix`, `chore`, `docs`, `refactor`, `test` (e.g. `feat(pi-stop-secrets-leaks): scaffold new extension`, `docs(AGENTS): note committing practice`).
+- The prek hooks run typecheck/lint/test on every commit, so make sure those pass before committing.
+
 ## Testing
 
 Tests are written with [vitest](https://vitest.dev) and run via [Vite Plus](https://github.com/nicholasgriffintn/vite-plus) (`vp`). No additional setup is needed — `vp` wraps vitest and is already in the root workspace.
@@ -91,7 +99,7 @@ npx vp test packages/pi-show-theme-colors/
 
 ## How-To: Create a new extension package
 
-1. Create `packages/pi-<package-name-slug>/` with AT LEAST: `package.json`, `README.md`, `LICENSE`, `.npmignore` symlink that points to repo root's `.npmignore` file, `src/index.ts` file, `test/` dir.
+1. Create `packages/pi-<package-name-slug>/` with AT LEAST: `package.json`, `README.md`, `LICENSE` (copied from the repo root `LICENSE` via `cp LICENSE packages/pi-<package-name-slug>/LICENSE` — never hand-written), `.npmignore` symlink that points to repo root's `.npmignore` file, `src/index.ts` file, `test/` dir.
 2. Use `@normful/pi-<package-name-slug>` as the npm package name
 3. In the new package.json, include:
 
