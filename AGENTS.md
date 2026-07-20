@@ -44,6 +44,15 @@ In each package directory under `packages/`:
 Extensions are loaded by pi using [jiti](https://github.com/unjs/jiti).
 TypeScript is configured in `tsconfig.json` to NOT transpile to JavaScript, with `"noEmit": true`.
 
+Because jiti resolves imports as ESM, **relative import specifiers must use a `.js` extension** even though the actual files on disk are `.ts`. For example, in `src/index.ts`:
+
+```ts
+import { ScanCache } from "./cache.js"; // resolves to src/cache.ts
+import type { BetterleaksFinding } from "./types.js"; // resolves to src/types.ts
+```
+
+This applies to all relative imports in both `src/` and `test/` files. Do not use extensionless imports (`"./cache"`) — they will fail at runtime under jiti.
+
 ## Common commands
 
 ```bash
@@ -94,7 +103,7 @@ npx vp test packages/pi-show-theme-colors/
 
 - Place test files in `packages/pi-<name>/test/` with a `.test.ts` extension.
 - Use standard vitest APIs (`describe`, `it`, `expect`, `vi`).
-- Import the source from the compiled output path: `import { … } from "../src/index.js"` (TypeScript files, but use the `.js` extension for the npm package's `"type": "module"` resolution).
+- Import the source using `.js` extensions: `import { … } from "../src/index.js"` (the files are TypeScript, but jiti resolves ESM imports with `.js` specifiers to the corresponding `.ts` files — see "How extensions are loaded by Pi").
 - Mock external dependencies (like `@spences10/pi-tui-modal`) with `vi.mock(...)` at the top of the test file — vitest hoists these before imports.
 
 ## How-To: Create a new extension package
@@ -114,6 +123,13 @@ npx vp test packages/pi-show-theme-colors/
 
 4. The `pi.video` URL points to a `demo.mp4` in the package directory. Add a short `demo.mp4` there so the link resolves; if you don't have one yet, treat the field as a placeholder and add the video later.
 5. Run `npm run lint:fix`
+
+### README conventions
+
+- **Installation** — show `pi install npm:@normful/pi-<name>` (not `npm install`).
+- **Commands** — document with a leading slash: `/command-name`.
+- **No Keywords section** — keywords belong in `package.json` only.
+- **No filler** — don't state the obvious (e.g., "the extension loads automatically when declared in your Pi configuration"). Keep it terse.
 
 ## How-To: Publish one package
 

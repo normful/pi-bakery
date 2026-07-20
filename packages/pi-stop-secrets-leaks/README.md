@@ -13,21 +13,23 @@ Redacted spans are replaced with opaque `«🔒 $S_NN»` placeholders.
 
 ## Installation
 
+Install [betterleaks](https://github.com/betterleaks/betterleaks). Then:
+
 ```bash
-npm install @normful/pi-stop-secrets-leaks
+pi install npm:@normful/pi-stop-secrets-leaks
 ```
 
-The extension is loaded automatically by Pi when declared in your Pi configuration.
 
 ## Commands
 
-| Command                     | Description                              |
-| --------------------------- | ---------------------------------------- |
-| `stop-secrets-leaks-status` | Show extension status and finding counts |
-| `stop-secrets-leaks-toggle` | Enable or disable redaction              |
-| `stop-secrets-leaks-rescan` | Re-scan project and environment          |
-| `stop-secrets-leaks-config` | Set the betterleaks scan timeout         |
+| Command                      | Description                              |
+| ---------------------------- | ---------------------------------------- |
+| `/stop-secrets-leaks-status` | Show extension status and finding counts |
+| `/stop-secrets-leaks-toggle` | Enable or disable redaction              |
+| `/stop-secrets-leaks-rescan` | Re-scan project and environment          |
+| `/stop-secrets-leaks-config` | Set the betterleaks scan timeout         |
 
-## Keywords
+## Warning
 
-`pi-extension` `pi-package` `secrets` `security` `betterleaks`
+This isn't a 100% guaranteed way of preventing all secrets from leaking to the LLM.
+Stack this with other countermeasures and secrets management tools to further reduce likelihood of leaked secrets.

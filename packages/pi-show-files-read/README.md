@@ -12,14 +12,12 @@ In-session file-read tracker for Pi coding agents. Monitors the agent's `read` t
 ## Installation
 
 ```bash
-npm install @normful/pi-show-files-read
+pi install npm:@normful/pi-show-files-read
 ```
-
-The extension is loaded automatically by Pi when declared in your Pi configuration.
 
 ## Usage
 
-Once installed, Pi will track all `read` tool invocations in the background. At any point during a session, run:
+Pi tracks all `read` tool invocations in the background. At any point during a session, run:
 
 ```
 /files-read
@@ -38,7 +36,3 @@ A modal will appear showing each file that has been read (e.g., `./src/index.ts`
 The extension registers a `tool_result` listener that checks every tool result with `isReadToolResult()`. When a match is found, it extracts the file `path` from the original input. Paths are stored in an in-memory array that persists for the duration of the session.
 
 The `/files-read` command simply formats this array and presents it via `show_text_modal()`.
-
-## Keywords
-
-`pi-extension` `pi-package` `developer-tools` `file-tracking`

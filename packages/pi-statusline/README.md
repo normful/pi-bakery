@@ -40,14 +40,12 @@ Every directory and git branch suffix gets a deterministic color derived from a 
 ## Installation
 
 ```bash
-npm install @normful/pi-statusline
+pi install npm:@normful/pi-statusline
 ```
-
-The extension is loaded automatically by Pi when declared in your Pi configuration.
 
 ## Usage
 
-Once installed, the header and footer appear automatically when Pi is running in TUI mode (`ctx.hasUI`). No commands to remember — the information is always visible.
+The header and footer appear automatically in TUI mode (`ctx.hasUI`). No commands to remember — the information is always visible.
 
 The extension:
 
@@ -69,7 +67,3 @@ The extension hooks into Pi's lifecycle events:
 - **`session_shutdown`** — Cleans up timers and widget subscriptions.
 
 The footer's git branch reacts to branch changes via `footerData.onBranchChange()`.
-
-## Keywords
-
-`pi-extension` `pi-package` `statusline` `tui` `developer-tools`
