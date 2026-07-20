@@ -15,7 +15,7 @@ The extension is loaded automatically by Pi when declared in your Pi configurati
 Once installed, run:
 
 ```
-/show-theme-colors
+/theme-colors
 ```
 
 A display of all theme colors available in the current theme will be shown.

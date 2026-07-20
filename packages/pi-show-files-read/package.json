@@ -2,7 +2,7 @@
   "name": "@normful/pi-show-files-read",
   "version": "0.4.0",
   "private": false,
-  "description": "Pi extension that shows files the agent `read` already",
+  "description": "Track and display every file the agent has read in the current Pi session via a /files-read modal",
   "keywords": [
     "pi",
     "pi-coding-agent",
