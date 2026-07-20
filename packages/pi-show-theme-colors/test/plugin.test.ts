@@ -80,7 +80,7 @@ describe("theme-colors handler", () => {
     };
     await handler("", ctx as any);
 
-    const [, options] = show_text_modal.mock.calls[0];
+    const [, options] = vi.mocked(show_text_modal).mock.calls[0];
     const expectedText = buildColorDisplayLines(ctx.ui.theme, ALL_COLORS).join("\n");
     expect(options.text).toBe(expectedText);
   });

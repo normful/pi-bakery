@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
+import type { ThemeColor } from "@earendil-works/pi-coding-agent";
 import { buildColorDisplayLines, ALL_COLORS } from "../src/index.js";
 
 const mockTheme = {
@@ -41,7 +42,7 @@ describe("buildColorDisplayLines", () => {
   });
 
   it("prepends each color name at the start of each line", () => {
-    const colors = ["accent", "border", "error"];
+    const colors: ThemeColor[] = ["accent", "border", "error"];
     const lines = buildColorDisplayLines(mockTheme, colors);
     expect(lines[0]).toMatch(/^accent\s{2,}/);
     expect(lines[1]).toMatch(/^border\s{2,}/);

@@ -21,15 +21,22 @@ hooks = [
 [[repos]]
 repo = "local"
 [[repos.hooks]]
-id = "npx vp test"
-name = "npx vp test"
-entry = "npx vp test"
+id = "npm run typecheck"
+name = "npm run typecheck"
+entry = "npm run typecheck"
 language = "system"
+pass_filenames = false
 
-[[repos]]
-repo = "local"
 [[repos.hooks]]
-id = "npx vp check"
-name = "npx vp check"
-entry = "npx vp check --no-error-on-unmatched-pattern"
+id = "npm run lint"
+name = "npm run lint"
+entry = "npm run lint"
 language = "system"
+pass_filenames = false
+
+[[repos.hooks]]
+id = "npm run test"
+name = "npm run test"
+entry = "npm run test"
+language = "system"
+pass_filenames = false
