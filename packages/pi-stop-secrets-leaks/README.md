@@ -1,6 +1,15 @@
 # @normful/pi-stop-secrets-leaks
 
-Pi extension that helps prevent secrets from leaking.
+Pi extension that detects secrets using [betterleaks](https://github.com/normful/betterleaks)
+and redacts them by position before they reach the LLM.
+
+- **Project files** — scanned at session start via `betterleaks dir`
+- **Environment variables** — scanned at session start via `betterleaks stdin`
+- **Tool result text** — scanned reactively on each tool call
+
+Secret values are never stored or logged. All betterleaks invocations use
+`--redact=100`; only metadata (positions, rule IDs, fingerprints) is kept.
+Redacted spans are replaced with opaque `«🔒 $S_NN»` placeholders.
 
 ## Installation
 
@@ -10,11 +19,15 @@ npm install @normful/pi-stop-secrets-leaks
 
 The extension is loaded automatically by Pi when declared in your Pi configuration.
 
-## Usage
+## Commands
 
-This extension is currently a scaffold. Commands and hooks will be added in a
-future release.
+| Command                     | Description                              |
+| --------------------------- | ---------------------------------------- |
+| `stop-secrets-leaks-status` | Show extension status and finding counts |
+| `stop-secrets-leaks-toggle` | Enable or disable redaction              |
+| `stop-secrets-leaks-rescan` | Re-scan project and environment          |
+| `stop-secrets-leaks-config` | Set the betterleaks scan timeout         |
 
 ## Keywords
 
-`pi-extension` `pi-package` `secrets` `security`
+`pi-extension` `pi-package` `secrets` `security` `betterleaks`
