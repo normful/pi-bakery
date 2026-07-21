@@ -167,4 +167,4 @@ npx vp test packages/pi-show-theme-colors/
 4. **Login** — if the user isn't already logged into npm, ask them to run `npm login` first.
 5. **Publish all** — ask the user to run this themselves (npm 2FA requires their session):
 
-       npm publish --workspaces --access public
+       npm publish --workspaces --access public --loglevel=info
