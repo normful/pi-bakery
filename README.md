@@ -10,26 +10,28 @@ Extensions for the [Pi coding agent](https://pi.dev).
 
 In-session file-read tracker. The `/files-read` command shows every file the agent has read this session.
 
-![pi-show-files-read screenshot](./screenshots/files-read.png)
+[![pi-show-files-read screenshot](./screenshots/files-read.png)](https://github.com/normful/pi-bakery/tree/main/packages/pi-show-files-read)
 
 ## [`@normful/pi-show-theme-colors`](./packages/pi-show-theme-colors)
 
 The `/theme-colors` command shows all colors available in the current Pi theme.
 
-![pi-show-theme-colors screenshot](./screenshots/theme-colors.png)
+[![pi-show-theme-colors screenshot](./screenshots/theme-colors.png)](https://github.com/normful/pi-bakery/tree/main/packages/pi-show-theme-colors)
 
 ## [`@normful/pi-statusline`](./packages/pi-statusline)
 
 Info-rich TUI header/footer: context %, tokens, streaming CPS, cost, model, git branch.
 
-![pi-statusline screenshot](./screenshots/statusline.png)
+[![pi-statusline screenshot](./screenshots/statusline.png)](https://github.com/normful/pi-bakery/tree/main/packages/pi-statusline)
 
 ## [`@normful/pi-stop-secrets-leaks`](./packages/pi-stop-secrets-leaks)
 
 Detects secrets via [betterleaks](https://github.com/betterleaks/betterleaks) and redacts them before they reach the LLM.
 
 <p align="center">
-  <img src="./videos/stop-secrets-leaks-demo.gif" alt="pi-stop-secrets-leaks demo" width="800">
+  <a href="https://github.com/normful/pi-bakery/tree/main/packages/pi-stop-secrets-leaks">
+    <img src="./videos/stop-secrets-leaks-demo.gif" alt="pi-stop-secrets-leaks demo" width="800">
+  </a>
 </p>
 
 ```bash
