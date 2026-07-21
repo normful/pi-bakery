@@ -2,6 +2,10 @@
 
 Pi extension that shows available theme colors in the current Pi theme.
 
+<p align="center">
+  <img src="https://media.githubusercontent.com/media/normful/pi-bakery/main/screenshots/theme-colors.png" alt="pi-show-theme-colors screenshot" width="800">
+</p>
+
 ## Installation
 
 ```bash

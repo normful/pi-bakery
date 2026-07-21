@@ -2,6 +2,10 @@
 
 In-session file-read tracker for Pi coding agents. Monitors the agent's `read` tool activity and surfaces a convenient `/files-read` command so you can see exactly what files have been read in the current conversation.
 
+<p align="center">
+  <img src="https://media.githubusercontent.com/media/normful/pi-bakery/main/screenshots/files-read.png" alt="pi-show-files-read screenshot" width="800">
+</p>
+
 ## Features
 
 - **Automatic tracking** — Listens to `tool_result` events and captures any tool result matching the `read` pattern, recording the file path.

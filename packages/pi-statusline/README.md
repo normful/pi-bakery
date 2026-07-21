@@ -2,6 +2,10 @@
 
 Opinionated, information-rich status line widgets for the Pi TUI. Replaces the built-in footer and adds an above-editor widget that surfaces context usage, live streaming metrics, cost, model info, and more — all in real time.
 
+<p align="center">
+  <img src="https://media.githubusercontent.com/media/normful/pi-bakery/main/screenshots/statusline.png" alt="pi-statusline screenshot" width="800">
+</p>
+
 ## Features
 
 ### Above-editor widget (two-line header)
