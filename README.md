@@ -26,7 +26,7 @@ Info-rich TUI header/footer: context %, tokens, streaming CPS, cost, model, git 
 
 ## [`@normful/pi-stop-secrets-leaks`](./packages/pi-stop-secrets-leaks)
 
-Detects secrets via [betterleaks](https://github.com/normful/betterleaks) and redacts them before they reach the LLM.
+Detects secrets via [betterleaks](https://github.com/betterleaks/betterleaks) and redacts them before they reach the LLM.
 
 <p align="center">
   <video src="https://github.com/normful/pi-bakery/raw/refs/heads/main/videos/stop-secrets-leaks-demo.mp4" controls width="800"></video>

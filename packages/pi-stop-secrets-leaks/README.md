@@ -1,6 +1,6 @@
 # @normful/pi-stop-secrets-leaks
 
-Pi extension that detects secrets using [betterleaks](https://github.com/normful/betterleaks)
+Pi extension that detects secrets using [betterleaks](https://github.com/betterleaks/betterleaks)
 and redacts them by position before they reach the LLM.
 
 <p align="center">
