@@ -151,6 +151,10 @@ npx vp test packages/pi-show-theme-colors/
 
        npm publish --workspace=@normful/pi-<name> --access public
 
+6. **Verify** — confirm it's on the registry (note: `npm view` may return false 404 — fall back to `curl`):
+
+       curl -s https://registry.npmjs.org/@normful%2fpi-<name> | grep -o '"latest":"[^"]*"'
+
 ## How-To: Publish all packages
 
 1. **Bump versions** — edit the `"version"` field in each package's `packages/pi-<name>/package.json`, then run:
@@ -168,3 +172,12 @@ npx vp test packages/pi-show-theme-colors/
 5. **Publish all** — ask the user to run this themselves (npm 2FA requires their session):
 
        npm publish --workspaces --access public --loglevel=info
+
+6. **Verify** — for each package, confirm the published latest tag. `npm view` may return a false 404 — fall back to `curl`:
+
+       for pkg in packages/pi-*/; do
+         name=$(grep '"name"' "$pkg/package.json" | sed 's/.*"name": "\(.*\)".*/\1/')
+         encoded=$(echo "$name" | sed 's|/|%2f|g')
+         ver=$(curl -s "https://registry.npmjs.org/$encoded" | grep -o '"latest":"[^"]*"')
+         echo "$name → $ver"
+       done
