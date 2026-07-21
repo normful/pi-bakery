@@ -58,16 +58,3 @@ The extension:
 - Adds a two-line widget above the editor
 
 All timers and meters reset cleanly on session start, reload, fork, and shutdown.
-
-## How it works
-
-The extension hooks into Pi's lifecycle events:
-
-- **`session_start`** — Registers the above-editor widget and footer; initialises git branch, cwd, model, and thinking level state.
-- **`turn_start` / `turn_end`** — Starts/stops the live elapsed timer, updates context usage stats.
-- **`before_agent_start` / `agent_end`** — Tracks agent-level timing.
-- **`message_start` / `message_update` / `message_end`** — Tracks streaming CPS per phase (thinking, text, toolcall) using delta character counts.
-- **`model_select` / `thinking_level_select`** — Updates the header display when model or thinking level changes.
-- **`session_shutdown`** — Cleans up timers and widget subscriptions.
-
-The footer's git branch reacts to branch changes via `footerData.onBranchChange()`.

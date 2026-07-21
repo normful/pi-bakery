@@ -14,8 +14,6 @@ pi install npm:@normful/pi-show-theme-colors
 
 ## Usage
 
-Run:
-
 ```
 /theme-colors
 ```

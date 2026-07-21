@@ -34,6 +34,6 @@
     "extensions": [
       "./src/index.ts"
     ],
-    "video": "https://www.github.com/normful/pi-bakery/packages/pi-stop-secrets-leaks/demo.mp4"
+    "video": "https://github.com/normful/pi-bakery/raw/refs/heads/main/videos/stop-secrets-leaks-demo.mp4"
   }
 }

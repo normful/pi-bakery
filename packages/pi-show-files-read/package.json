@@ -37,6 +37,6 @@
     "extensions": [
       "./src/index.ts"
     ],
-    "video": "https://www.github.com/normful/pi-bakery/packages/pi-show-files-read/demo.mp4"
+    "image": "https://media.githubusercontent.com/media/normful/pi-bakery/main/screenshots/files-read.png"
   }
 }

@@ -34,9 +34,3 @@ A modal will appear showing each file that has been read (e.g., `./src/index.ts`
 | Command       | Description                                                   |
 | ------------- | ------------------------------------------------------------- |
 | `/files-read` | Display a modal listing all files read in the current session |
-
-## How it works
-
-The extension registers a `tool_result` listener that checks every tool result with `isReadToolResult()`. When a match is found, it extracts the file `path` from the original input. Paths are stored in an in-memory array that persists for the duration of the session.
-
-The `/files-read` command simply formats this array and presents it via `show_text_modal()`.
