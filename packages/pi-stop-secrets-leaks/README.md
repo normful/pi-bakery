@@ -4,7 +4,7 @@ Pi extension that detects secrets using [betterleaks](https://github.com/betterl
 and redacts them by position before they reach the LLM.
 
 <p align="center">
-  <video src="https://github.com/normful/pi-bakery/raw/refs/heads/main/videos/stop-secrets-leaks-demo.mp4" controls width="800"></video>
+  <img src="https://github.com/normful/pi-bakery/raw/refs/heads/main/videos/stop-secrets-leaks-demo.gif" alt="pi-stop-secrets-leaks demo" width="800">
 </p>
 
 - **Project files** — scanned at session start via `betterleaks dir`

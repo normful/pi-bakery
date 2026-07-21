@@ -29,7 +29,7 @@ Info-rich TUI header/footer: context %, tokens, streaming CPS, cost, model, git 
 Detects secrets via [betterleaks](https://github.com/betterleaks/betterleaks) and redacts them before they reach the LLM.
 
 <p align="center">
-  <video src="https://github.com/normful/pi-bakery/raw/refs/heads/main/videos/stop-secrets-leaks-demo.mp4" controls width="800"></video>
+  <img src="./videos/stop-secrets-leaks-demo.gif" alt="pi-stop-secrets-leaks demo" width="800">
 </p>
 
 ```bash
