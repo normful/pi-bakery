@@ -146,7 +146,8 @@ npx vp test packages/pi-show-theme-colors/
    (The root `.npmrc` silences npm output, so pass `--loglevel=info` explicitly or the tarball listing won't print.)
 
 3. Confirm with user that they want to proceed.
-4. **Publish** — ask the user to run this themselves (npm 2FA requires their session):
+4. **Login** — if the user isn't already logged into npm, ask them to run `npm login` first.
+5. **Publish** — ask the user to run this themselves (npm 2FA requires their session):
 
        npm publish --workspace=@normful/pi-<name> --access public
 
@@ -163,6 +164,7 @@ npx vp test packages/pi-show-theme-colors/
    (The root `.npmrc` silences npm output, so pass `--loglevel=info` explicitly or the tarball listing won't print.)
 
 3. Confirm with user that they want to proceed.
-4. **Publish all** — ask the user to run this themselves (npm 2FA requires their session):
+4. **Login** — if the user isn't already logged into npm, ask them to run `npm login` first.
+5. **Publish all** — ask the user to run this themselves (npm 2FA requires their session):
 
        npm publish --workspaces --access public
