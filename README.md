@@ -1,6 +1,6 @@
 # pi-bakery
 
-Pi extensions and maintained forks.
+Extensions for the [Pi coding agent](https://pi.dev).
 
 <p align="center">
   <img src="https://media.githubusercontent.com/media/normful/pi-bakery/refs/heads/main/pi-bakery.png" alt="pi-bakery" width="800">
@@ -36,4 +36,6 @@ Detects secrets via [betterleaks](https://github.com/betterleaks/betterleaks) an
 pi install npm:@normful/pi-<name>
 ```
 
-See each package's README for details.
+---
+
+See each package's README for more details.
