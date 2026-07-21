@@ -1,6 +1,6 @@
 {
   "name": "@normful/pi-stop-secrets-leaks",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": false,
   "description": "Pi extension that helps prevent secrets from leaking",
   "keywords": [

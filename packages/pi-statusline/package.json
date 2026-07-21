@@ -1,6 +1,6 @@
 {
   "name": "@normful/pi-statusline",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": false,
   "description": "Information-rich status line for the Pi TUI — context usage, live streaming CPS, cost, model info, git branch, and hash-colored working directory",
   "keywords": [

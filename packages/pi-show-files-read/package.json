@@ -1,6 +1,6 @@
 {
   "name": "@normful/pi-show-files-read",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": false,
   "description": "Track and display every file the agent has read in the current Pi session via a /files-read modal",
   "keywords": [
