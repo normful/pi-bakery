@@ -3,7 +3,7 @@
 Pi extensions and maintained forks.
 
 <p align="center">
-  <img src="https://media.githubusercontent.com/media/normful/pi-bakery/refs/heads/main/logo.png" alt="pi-bakery" width="800">
+  <img src="https://media.githubusercontent.com/media/normful/pi-bakery/refs/heads/main/pi-bakery.png" alt="pi-bakery" width="800">
 </p>
 
 ## [`@normful/pi-show-files-read`](./packages/pi-show-files-read)
