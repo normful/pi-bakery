@@ -110,10 +110,10 @@ export function createStopSecretsLeaks(deps: StopSecretsDeps) {
       });
     });
 
-    pi.on("before_agent_start", async (event: BeforeAgentStartEvent) => {
+    pi.on("before_agent_start", async (event: BeforeAgentStartEvent, ctx: ExtensionContext) => {
       await waitForScan();
       if (!enabled || !binaryOk) return undefined;
-      const guidance = buildGuidance(registry);
+      const guidance = buildGuidance(registry, ctx.cwd);
       if (!guidance) return undefined;
       return { systemPrompt: `${event.systemPrompt}\n\n${guidance}` };
     });

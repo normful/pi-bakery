@@ -3,6 +3,8 @@ import { buildGuidance } from "../src/guidance.js";
 import { FindingRegistry } from "../src/registry.js";
 import type { BetterleaksFinding } from "../src/types.js";
 
+const CWD = "/home/user/project";
+
 function finding(over: Partial<BetterleaksFinding>): BetterleaksFinding {
   return {
     source: "file",
@@ -20,75 +22,85 @@ function finding(over: Partial<BetterleaksFinding>): BetterleaksFinding {
 }
 
 describe("buildGuidance — empty registry", () => {
-  it("returns undefined (or empty) when no findings", () => {
+  it("returns undefined when no findings", () => {
     const reg = new FindingRegistry();
-    const g = buildGuidance(reg);
-    expect(g == null || g === "").toBe(true);
+    const g = buildGuidance(reg, CWD);
+    expect(g).toBeUndefined();
   });
 });
 
-describe("buildGuidance — file-only findings", () => {
-  it("still returns guidance", () => {
-    const reg = new FindingRegistry();
-    reg.addFindings([finding({ source: "file", fingerprint: "f1" })]);
-    const g = buildGuidance(reg) ?? "";
-    expect(g.length).toBeGreaterThan(0);
-    // Header should reference the extension name (distinct from secret-firewall).
-    expect(g).toContain("Secrets Redaction");
-    // No env-list line because no env findings.
-    expect(g).not.toContain("Currently available secret env vars:");
-  });
-});
-
-describe("buildGuidance — env findings", () => {
-  it("does not include env list (removed for conciseness)", () => {
-    const reg = new FindingRegistry();
-    reg.addFindings([
-      finding({ source: "env", fingerprint: "e1", envName: "FOO_TOKEN" }),
-      finding({ source: "env", fingerprint: "e2", envName: "BAR_KEY" }),
-    ]);
-    const g = buildGuidance(reg) ?? "";
-    expect(g).not.toContain("Currently available secret env vars:");
-    expect(g).not.toContain("$FOO_TOKEN");
-  });
-
-  it("does not embed any long raw secret-looking tokens", () => {
-    const reg = new FindingRegistry();
-    reg.addFindings([
-      finding({
-        source: "env",
-        fingerprint: "e1",
-        envName: "REAL_LOOKING_TOKEN",
-      }),
-    ]);
-    const g = buildGuidance(reg) ?? "";
-    // Should NOT contain common long-token patterns.
-    expect(g).not.toMatch(/\b[A-Za-z0-9_-]{40,}\b/);
-  });
-});
-
-describe("buildGuidance — placeholder explanation", () => {
-  it("describes the placeholder format", () => {
+describe("buildGuidance — static text", () => {
+  it("includes the auto-redaction description", () => {
     const reg = new FindingRegistry();
     reg.addFindings([finding({ fingerprint: "f1" })]);
-    const g = buildGuidance(reg) ?? "";
-    expect(g).toContain("$S_NN");
-    expect(g).toContain("🔒");
+    const g = buildGuidance(reg, CWD) ?? "";
+    expect(g).toContain("auto-redacted from env vars, file reads, shell command outputs");
+  });
+
+  it("uses the placeholder format with emoji", () => {
+    const reg = new FindingRegistry();
+    reg.addFindings([finding({ fingerprint: "f1" })]);
+    const g = buildGuidance(reg, CWD) ?? "";
+    expect(g).toContain("🔒 $S_NN");
   });
 
   it("states placeholders are not real values", () => {
     const reg = new FindingRegistry();
     reg.addFindings([finding({ fingerprint: "f1" })]);
-    const g = buildGuidance(reg) ?? "";
+    const g = buildGuidance(reg, CWD) ?? "";
     expect(g).toMatch(/NOT\s+the\s+real/i);
   });
 });
 
-describe("buildGuidance — do not echo secrets", () => {
-  it("warns against outputting secrets", () => {
+describe("buildGuidance — file-sourced findings", () => {
+  it("produces a relative path in the guidance", () => {
     const reg = new FindingRegistry();
-    reg.addFindings([finding({ fingerprint: "f1" })]);
-    const g = buildGuidance(reg) ?? "";
-    expect(g).toMatch(/never\s+output|re-redacted/i);
+    reg.addFindings([
+      finding({ source: "file", file: "/home/user/project/.env", fingerprint: "f1" }),
+    ]);
+    const g = buildGuidance(reg, CWD) ?? "";
+    expect(g).toContain(".env");
+    expect(g).not.toContain("/home/user/project/.env");
+  });
+
+  it("includes the DO NOT read directive", () => {
+    const reg = new FindingRegistry();
+    reg.addFindings([
+      finding({ source: "file", file: "/home/user/project/.env", fingerprint: "f1" }),
+    ]);
+    const g = buildGuidance(reg, CWD) ?? "";
+    expect(g).toContain("DO NOT read");
+  });
+
+  it("does not include a file list for env-only findings", () => {
+    const reg = new FindingRegistry();
+    reg.addFindings([finding({ source: "env", fingerprint: "e1", envName: "FOO_TOKEN" })]);
+    const g = buildGuidance(reg, CWD) ?? "";
+    expect(g).not.toContain("DO NOT read");
+    expect(g).not.toContain("- ");
+  });
+});
+
+describe("buildGuidance — deduplication", () => {
+  it("deduplicates paths when multiple findings reference the same file", () => {
+    const reg = new FindingRegistry();
+    reg.addFindings([
+      finding({ source: "file", file: "/home/user/project/.env", fingerprint: "f1" }),
+      finding({ source: "file", file: "/home/user/project/.env", fingerprint: "f2" }),
+    ]);
+    const g = buildGuidance(reg, CWD) ?? "";
+    const occurrences = (g.match(/- \.env/g) ?? []).length;
+    expect(occurrences).toBe(1);
+  });
+});
+
+describe("buildGuidance — absolute to relative path conversion", () => {
+  it("converts absolute registry paths to cwd-relative paths", () => {
+    const reg = new FindingRegistry();
+    reg.addFindings([
+      finding({ source: "file", file: "/home/user/project/config.py", fingerprint: "f1" }),
+    ]);
+    const g = buildGuidance(reg, CWD) ?? "";
+    expect(g).toContain("config.py");
   });
 });

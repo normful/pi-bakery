@@ -1,20 +1,33 @@
-// stop-secrets-leaks: build the system-prompt guidance injected at
-// before_agent_start. Mirrors the tone of secret-firewall but uses the
-// $S_NN placeholder family and is distinct in its heading so the two
-// extensions can coexist without confusing the LLM.
-
+import { relative } from "node:path";
 import type { FindingRegistry } from "./registry.js";
 
-export function buildGuidance(registry: FindingRegistry): string | undefined {
+export function buildGuidance(registry: FindingRegistry, cwd: string): string | undefined {
   const all = registry.getAll();
   if (all.length === 0) return undefined;
 
   const lines: string[] = [
     "# Secrets Redaction",
     "",
-    "\u00AB\u{1F512} $S_NN\u00BB replaces secrets. NOT the real value.",
-    "Use `$VAR` in bash for env secrets; re-read files for file secrets.",
-    "Never output a secret \u2014 re-redacted if you do.",
+    "Secrets are auto-redacted from env vars, file reads, shell command outputs.",
+    "🔒 $S_NN replaces secrets. NOT the real value.",
   ];
+
+  const fileFindings = all.filter((f) => f.source === "file" && f.file && f.file !== "(env)");
+  if (fileFindings.length > 0) {
+    const relPaths = new Set<string>();
+    for (const f of fileFindings) {
+      relPaths.add(relative(cwd, f.file));
+    }
+    if (relPaths.size > 0) {
+      lines.push(
+        "",
+        "DO NOT read or view (by echo, print, etc) the following files, which contain secrets:",
+      );
+      for (const p of [...relPaths].sort()) {
+        lines.push(`- ${p}`);
+      }
+    }
+  }
+
   return lines.join("\n");
 }
