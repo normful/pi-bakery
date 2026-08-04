@@ -1,9 +1,37 @@
 # pi-bakery
 
-Extensions for the [Pi coding agent](https://pi.dev).
+Extensions for the [Pi coding agent](https://pi.dev). See each package's README for more details.
 
 <p align="center">
   <img src="https://media.githubusercontent.com/media/normful/pi-bakery/refs/heads/main/pi-bakery.png" alt="pi-bakery" width="800">
+</p>
+
+## [`@normful/pi-auto-name`](./packages/pi-auto-name)
+
+Automatically renames Pi sessions and terminal surfaces (herdr/tmux/zellij) from the conversation.
+
+Renames the herdr pane and tab automatically.
+
+<p align="center">
+  <img src="https://media.githubusercontent.com/media/normful/pi-bakery/main/screenshots/auto-name.png" alt="pi-auto-name herdr screenshot" width="800">
+</p>
+
+Renames the tmux window automatically.
+
+<p align="center">
+  <img src="https://media.githubusercontent.com/media/normful/pi-bakery/main/screenshots/pi-auto-name_tmux.png" alt="pi-auto-name tmux screenshot" width="800">
+</p>
+
+Renames the zellij pane and tab automatically.
+
+<p align="center">
+  <img src="https://media.githubusercontent.com/media/normful/pi-bakery/main/screenshots/pi-auto-name_zellij.png" alt="pi-auto-name zellij screenshot" width="800">
+</p>
+
+Japanese-language session naming in action.
+
+<p align="center">
+  <img src="https://media.githubusercontent.com/media/normful/pi-bakery/main/screenshots/pi-auto-rename_japanese.png" alt="pi-auto-name Japanese renaming screenshot" width="800">
 </p>
 
 ## [`@normful/pi-show-files-read`](./packages/pi-show-files-read)
@@ -33,11 +61,3 @@ Detects secrets via [betterleaks](https://github.com/betterleaks/betterleaks) an
     <img src="./videos/stop-secrets-leaks-demo.gif" alt="pi-stop-secrets-leaks demo" width="800">
   </a>
 </p>
-
-```bash
-pi install npm:@normful/pi-<name>
-```
-
----
-
-See each package's README for more details.

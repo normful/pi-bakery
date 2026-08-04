@@ -117,11 +117,11 @@ npx vp test packages/pi-show-theme-colors/
   "extensions": [
     "./src/index.ts"
   ],
-  "video": "https://www.github.com/normful/pi-bakery/packages/pi-<package-name-slug>/demo.mp4"
+  "image": "https://media.githubusercontent.com/media/normful/pi-bakery/main/screenshots/<package-name-slug>.png"
 }
 ```
 
-4. The `pi.video` URL points to a `demo.mp4` in the package directory. Add a short `demo.mp4` there so the link resolves; if you don't have one yet, treat the field as a placeholder and add the video later.
+4. The `pi.image` URL points to `screenshots/<package-name-slug>.png` in the repo root `screenshots/` directory, matching the convention used by every existing package. If you don't have a screenshot yet, keep the field as a placeholder and add the PNG later.
 5. Run `npm run lint:fix`
 
 ### README conventions

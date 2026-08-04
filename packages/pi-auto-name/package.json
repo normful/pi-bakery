@@ -1,0 +1,48 @@
+{
+  "name": "@normful/pi-auto-name",
+  "version": "0.2.0",
+  "private": false,
+  "description": "Auto-generates names in your language for Pi sessions, tmux windows, herder panes/tabs, zellij panes/tabs so you can easily view what each Pi is doing",
+  "keywords": [
+    "auto-rename",
+    "herdr",
+    "pi",
+    "pi-coding-agent",
+    "pi-extension",
+    "pi-package",
+    "session-names",
+    "tmux",
+    "zellij"
+  ],
+  "bugs": {
+    "url": "https://github.com/normful/pi-bakery/issues"
+  },
+  "license": "MIT",
+  "author": "Norman Sue",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/normful/pi-bakery.git",
+    "directory": "packages/pi-auto-name"
+  },
+  "type": "module",
+  "dependencies": {
+    "@juicesharp/rpiv-config": "2.3.1",
+    "typebox": "1.1.38"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2",
+    "vite-plus": "^0.2.5"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-agent-core": "*",
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*"
+  },
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ],
+    "image": "https://media.githubusercontent.com/media/normful/pi-bakery/main/screenshots/auto-name.png"
+  }
+}
