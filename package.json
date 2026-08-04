@@ -19,6 +19,10 @@
     "lint:fix": "./run-silent 'vp check --fix' ./node_modules/.bin/vp check --fix"
   },
   "devDependencies": {
+    "@earendil-works/pi-agent-core": "0.83.0",
+    "@earendil-works/pi-ai": "0.83.0",
+    "@earendil-works/pi-coding-agent": "0.83.0",
+    "@earendil-works/pi-tui": "0.83.0",
     "typescript": "7.0.2",
     "vite-plus": "^0.2.5"
   },
