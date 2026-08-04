@@ -8,7 +8,7 @@ Extensions for the [Pi coding agent](https://pi.dev). See each package's README 
 
 ## [`@normful/pi-auto-name`](./packages/pi-auto-name)
 
-Automatically renames Pi sessions and terminal surfaces (herdr/tmux/zellij) from the conversation.
+Automatically renames Pi sessions and terminal multiplexer surfaces (herdr/tmux/zellij) from the conversation.
 
 Supports renaming a herdr pane or herdr tab containing Pi:
 

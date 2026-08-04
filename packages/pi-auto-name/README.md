@@ -1,5 +1,8 @@
 # @normful/pi-auto-name
 
+> [!TIP]
+> Documentation in: [简体中文](./README.zh.md) · [繁體中文](./README.zh-hant.md) · [日本語](./README.ja.md) · [한국어](./README.ko.md) · [Português](./README.pt-br.md) · [Español](./README.es.md) · [Deutsch](./README.de.md) · [Français](./README.fr.md) · [Bahasa Indonesia](./README.id.md) · [Tiếng Việt](./README.vi.md) · [Türkçe](./README.tr.md) · [Polski](./README.pl.md) · [Українська](./README.uk.md) · [فارسی](./README.fa.md) · [العربية](./README.ar.md) · [हिन्दी](./README.hi.md) · [Italiano](./README.it.md) · [Nederlands](./README.nl.md) · [ไทย](./README.th.md)
+
 Automatically names your Pi session and terminal multiplexer surfaces from the conversation.
 
 Supports renaming a herdr pane or herdr tab containing Pi:
@@ -25,10 +28,6 @@ Various languages are supported too, such as Japanese:
 <p align="center">
   <img src="https://media.githubusercontent.com/media/normful/pi-bakery/main/screenshots/pi-auto-rename_japanese.png" alt="pi-auto-name Japanese renaming screenshot" width="800">
 </p>
-
-List of all supported human languages: English, Español, Deutsch, Français, Italiano,
-Nederlands, Português, Bahasa Indonesia, Tiếng Việt, Türkçe, Polski,
-Українська, فارسی, العربية, हिन्दी, 简体中文, 繁體中文, 日本語, 한국어, ไทย
 
 ## Installation
 
@@ -95,7 +94,7 @@ Every configuration key is optional.
 | --------------------------- | --------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `enabled`                   | `boolean` | `true`                   | `false` disables this extension entirely.                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `initialRenameTrigger`      | `string`  | `"first-input"`          | When the first rename fires:<br><ul><li><code>"first-input"</code> — after you send first prompt</li><li><code>"first-agent-settled"</code> — after the first LLM run finishes (after the first `agent_settled` event).</li></ul>                                                                                                                                                                                                                         |
-| `language`                  | `string`  | `"en"`                   | One of: `en`, `es`, `de`, `fr`, `it`, `nl`, `pt`/`pt-BR`/`pt-PT`, `id`, `vi`, `tr`, `pl`, `uk`, `fa`, `ar`, `hi`, `zh`/`zh-CN`/`zh-Hans`, `zh-Hant`/`zh-TW`/`zh-HK`, `ja`, `ko`, `th`                                                                                                                                                                                                                                                                     |
+| `language`                  | `string`  | `"en"`                   | One of: `"en"`, `"es"`, `"de"`, `"fr"`, `"it"`, `"nl"`, `"pt"`, `"pt-BR"`, `"pt-PT"`, `"id"`, `"vi"`, `"tr"`, `"pl"`, `"uk"`, `"fa"`, `"ar"`, `"hi"`, `"zh"`, `"zh-CN"`, `"zh-Hans"`, `"zh-Hant"`, `"zh-TW"`, `"zh-HK"`, `"ja"`, `"ko"`, `"th"`                                                                                                                                                                                                           |
 | `namingContextDepth`        | `string`  | `"recent-user-messages"` | How much of the conversation to send to LLM in each renaming prompt:<br><ul><li><code>"first-user-message"</code> — only the first user message</li><li><code>"recent-user-messages"</code> — first user message plus the last 3 user messages</li><li><code>"full-conversation"</code> — the whole conversation (users, assistants, tool calls &amp; results), capped to ~60k chars keeping both the opening (core intent) and the latest tail</li></ul> |
 | `namingModel`               | `string`  | `""`                     | `provider/modelId` override for the naming LLM call. Example: `"openrouter/nvidia/nemotron-3-nano-30b-a3b:free"`. Leave empty to use your configured Pi default model and provider.                                                                                                                                                                                                                                                                       |
 | `namingStyle`               | `string`  | `"natural"`              | The naming style used for both names:<br><ul><li><code>"natural"</code> — free-form sentence</li><li><code>"slug"</code> — lowercase kebab-case.</li><li><code>"topic-project"</code> — <code>&lt;topic&gt;｜&lt;project&gt;</code>, project derived from current working directory</li></ul>                                                                                                                                                             |
