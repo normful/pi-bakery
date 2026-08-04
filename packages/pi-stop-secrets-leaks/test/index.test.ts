@@ -104,6 +104,7 @@ function createMockPi(): MockPi {
       sessionManager: {} as ExtensionContext["sessionManager"],
       modelRegistry: {} as ExtensionContext["modelRegistry"],
       model: undefined,
+      scopedModels: [],
       isIdle: () => true,
       isProjectTrusted: () => true,
       signal: undefined,
