@@ -1,6 +1,6 @@
 {
   "name": "@normful/pi-auto-name",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "private": false,
   "description": "Auto-generates names in your language for Pi sessions, tmux windows, herder panes/tabs, zellij panes/tabs so you can easily view what each Pi is doing",
   "keywords": [
