@@ -10,25 +10,25 @@ Extensions for the [Pi coding agent](https://pi.dev). See each package's README 
 
 Automatically renames Pi sessions and terminal surfaces (herdr/tmux/zellij) from the conversation.
 
-Renames the herdr pane and tab automatically.
+Supports renaming a herdr pane or herdr tab containing Pi:
 
 <p align="center">
   <img src="https://media.githubusercontent.com/media/normful/pi-bakery/main/screenshots/auto-name.png" alt="pi-auto-name herdr screenshot" width="800">
 </p>
 
-Renames the tmux window automatically.
+Also supports renaming a tmux window containing Pi:
 
 <p align="center">
   <img src="https://media.githubusercontent.com/media/normful/pi-bakery/main/screenshots/pi-auto-name_tmux.png" alt="pi-auto-name tmux screenshot" width="800">
 </p>
 
-Renames the zellij pane and tab automatically.
+And supports renaming a zellij pane or zellij tab containing Pi:
 
 <p align="center">
   <img src="https://media.githubusercontent.com/media/normful/pi-bakery/main/screenshots/pi-auto-name_zellij.png" alt="pi-auto-name zellij screenshot" width="800">
 </p>
 
-Japanese-language session naming in action.
+Various languages are supported too, such as Japanese:
 
 <p align="center">
   <img src="https://media.githubusercontent.com/media/normful/pi-bakery/main/screenshots/pi-auto-rename_japanese.png" alt="pi-auto-name Japanese renaming screenshot" width="800">

@@ -1,37 +1,32 @@
 # @normful/pi-auto-name
 
-Automatically names your Pi session and terminal surfaces from the
-conversation.
+Automatically names your Pi session and terminal multiplexer surfaces from the conversation.
 
-Configure once, and stop worrying about it.
-
-Supports renaming the Pi session, tmux window, herdr pane, herdr tab, zellij pane, and zellij tab that Pi is running in.
-
-Renames the herdr pane and tab automatically.
+Supports renaming a herdr pane or herdr tab containing Pi:
 
 <p align="center">
   <img src="https://media.githubusercontent.com/media/normful/pi-bakery/main/screenshots/auto-name.png" alt="pi-auto-name herdr screenshot" width="800">
 </p>
 
-Renames the tmux window automatically.
+Also supports renaming a tmux window containing Pi:
 
 <p align="center">
   <img src="https://media.githubusercontent.com/media/normful/pi-bakery/main/screenshots/pi-auto-name_tmux.png" alt="pi-auto-name tmux screenshot" width="800">
 </p>
 
-Renames the zellij pane and tab automatically.
+And supports renaming a zellij pane or zellij tab containing Pi:
 
 <p align="center">
   <img src="https://media.githubusercontent.com/media/normful/pi-bakery/main/screenshots/pi-auto-name_zellij.png" alt="pi-auto-name zellij screenshot" width="800">
 </p>
 
-Japanese-language session naming in action.
+Various languages are supported too, such as Japanese:
 
 <p align="center">
   <img src="https://media.githubusercontent.com/media/normful/pi-bakery/main/screenshots/pi-auto-rename_japanese.png" alt="pi-auto-name Japanese renaming screenshot" width="800">
 </p>
 
-Supported human languages: English, Español, Deutsch, Français, Italiano,
+List of all supported human languages: English, Español, Deutsch, Français, Italiano,
 Nederlands, Português, Bahasa Indonesia, Tiếng Việt, Türkçe, Polski,
 Українська, فارسی, العربية, हिन्दी, 简体中文, 繁體中文, 日本語, 한국어, ไทย
 
@@ -45,14 +40,18 @@ pi install npm:@normful/pi-auto-name
 
 The extension is fully automatic; there is nothing to run.
 
+Configure it once, and that's it. Set it and forget it.
+
+## How It Works
+
 After the first user input (or the first `agent_settled` event — see config
-below), it renames the Pi session and renames:
+below), it renames the Pi session and renames the containing:
 
-- tmux window (if you're running Pi in tmux)
-- herdr pane and herdr tab (if you're running Pi in herdr)
-- zellij pane and zellij tab (if you're running Pi in zellij)
+- tmux window
+- herdr pane and herdr tab
+- zellij pane and zellij tab
 
-Additionally, you can also configure the extension to continually rename as the conversation evolves, by configuring `reRenameEveryNTurns`.
+Additionally, you can also configure it to continually rename as the conversation evolves, by configuring `reRenameEveryNTurns`.
 
 ## Configuration
 
