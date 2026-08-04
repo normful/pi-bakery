@@ -90,12 +90,12 @@ pi install npm:@normful/pi-auto-name
 
 | Key | Type | Default | Meaning |
 | `enabled` | `boolean` | `true` | `false` はこの拡張機能を完全に無効にします。 |
-| `initialRenameTrigger` | `string` | `"first-input"` | 最初のリネームが発火するタイミング：<br><ul><li>`"first-input"` — 最初のプロンプトを送信した後</li><li>`"first-agent-settled"` — 最初の LLM 実行が完了した後（最初の `agent_settled` イベントの後）。</li></ul> |
-| `language` | `string` | `"en"` | 以下のいずれか：`en`、`es`、`de`、`fr`、`it`、`nl`、`pt`/`pt-BR`/`pt-PT`、`id`、`vi`、`tr`、`pl`、`uk`、`fa`、`ar`、`hi`、`zh`/`zh-CN`/`zh-Hans`、`zh-Hant`/`zh-TW`/`zh-HK`、`ja`、`ko`、`th` |
-| `namingContextDepth` | `string` | `"recent-user-messages"` | 各リネームプロンプトで LLM に送信する会話の量：<br><ul><li>`"first-user-message"` — 最初のユーザーメッセージのみ</li><li>`"recent-user-messages"` — 最初のユーザーメッセージと最後の 3 件のユーザーメッセージ</li><li>`"full-conversation"` — 会話全体（ユーザー、アシスタント、ツール呼び出しと結果）、約 60k 文字に制限し、冒頭（コア意図）と最新の末尾の両方を保持</li></ul> |
-| `namingModel` | `string` | `""` | リネーム LLM 呼び出しの `provider/modelId` オーバーライド。例：`"openrouter/nvidia/nemotron-3-nano-30b-a3b:free"`。空のままにして、構成済みの Pi デフォルトモデルとプロバイダーを使用してください。 |
-| `namingStyle` | `string` | `"natural"` | 両方の名前に使用される命名スタイル：<br><ul><li>`"natural"` — 自由形式の文</li><li>`"slug"` — 小文字のハイフン区切り。</li><li>`"topic-project"` — `<topic>｜<project>`、現在の作業ディレクトリから派生したプロジェクト</li></ul> |
-| `replaceExistingName` | `string` | `"always"` | 既存の Pi セッション名、tmux ウィンドウ名、herdr パネル/タブ名、zellij パネル/タブ名をいつ上書きするか：<br><ul><li>`"always"` — 常に上書き</li><li>`"never"` — 上書きしない</li></ul> |
+| `initialRenameTrigger` | `string` | <code>"first-input"</code> | 最初のリネームが発火するタイミング：<br><ul><li><code>"first-input"</code> — 最初のプロンプトを送信した後</li><li><code>"first-agent-settled"</code> — 最初の LLM 実行が完了した後（最初の `agent_settled` イベントの後）。</li></ul> |
+| `language` | `string` | `"en"` | 以下のいずれか：<code>en</code>、<code>es</code>、<code>de</code>、<code>fr</code>、<code>it</code>、<code>nl</code>、<code>pt</code>/<code>pt-BR</code>/<code>pt-PT</code>、<code>id</code>、<code>vi</code>、<code>tr</code>、<code>pl</code>、<code>uk</code>、<code>fa</code>、<code>ar</code>、<code>hi</code>、<code>zh</code>/<code>zh-CN</code>/<code>zh-Hans</code>、<code>zh-Hant</code>/<code>zh-TW</code>/<code>zh-HK</code>、<code>ja</code>、<code>ko</code>、<code>th</code> |
+| `namingContextDepth` | `string` | <code>"recent-user-messages"</code> | 各リネームプロンプトで LLM に送信する会話の量：<br><ul><li><code>"first-user-message"</code> — 最初のユーザーメッセージのみ</li><li><code>"recent-user-messages"</code> — 最初のユーザーメッセージと最後の 3 件のユーザーメッセージ</li><li><code>"full-conversation"</code> — 会話全体（ユーザー、アシスタント、ツール呼び出しと結果）、約 60k 文字に制限し、冒頭（コア意図）と最新の末尾の両方を保持</li></ul> |
+| `namingModel` | `string` | <code>""</code> | リネーム LLM 呼び出しの <code>provider/modelId</code> オーバーライド。例：<code>"openrouter/nvidia/nemotron-3-nano-30b-a3b:free"</code>。空のままにして、構成済みの Pi デフォルトモデルとプロバイダーを使用してください。 |
+| `namingStyle` | `string` | <code>"natural"</code> | 両方の名前に使用される命名スタイル：<br><ul><li><code>"natural"</code> — 自由形式の文</li><li><code>"slug"</code> — 小文字のハイフン区切り。</li><li><code>"topic-project"</code> — `<topic>｜<project>`、現在の作業ディレクトリから派生したプロジェクト</li></ul> |
+| `replaceExistingName` | `string` | <code>"always"</code> | 既存の Pi セッション名、tmux ウィンドウ名、herdr パネル/タブ名、zellij パネル/タブ名をいつ上書きするか：<br><ul><li><code>"always"</code> — 常に上書き</li><li><code>"never"</code> — 上書きしない</li></ul> |
 | `reRenameEveryNTurns` | `integer` | `0` | N 回ごとにリネーム（各 `agent_settled` イベント）。`0` はリネームしません。 |
 | `respectExternalRenames` | `boolean` | `true` | `true` の場合、外部リネームが検出された後にこの拡張機能のリネームを無効にします（例：手動で `/name` を実行した後）。 |
 | `sessionNameMaxLength` | `integer` | `200` | Pi セッション名の最大文字数制限。 |

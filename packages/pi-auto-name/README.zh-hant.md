@@ -90,12 +90,12 @@ pi install npm:@normful/pi-auto-name
 
 | Key | Type | Default | Meaning |
 | `enabled` | `boolean` | `true` | `false` 完全禁用此擴展。 |
-| `initialRenameTrigger` | `string` | `"first-input"` | 第一次重命名觸發時：<br><ul><li>`"first-input"` — 發送第一個提示後</li><li>`"first-agent-settled"` — 第一次 LLM 運行完成後（在第一個 `agent_settled` 事件之後）。</li></ul> |
-| `language` | `string` | `"en"` | 可選值：`en`、`es`、`de`、`fr`、`it`、`nl`、`pt`/`pt-BR`/`pt-PT`、`id`、`vi`、`tr`、`pl`、`uk`、`fa`、`ar`、`hi`、`zh`/`zh-CN`/`zh-Hans`、`zh-Hant`/`zh-TW`/`zh-HK`、`ja`、`ko`、`th` |
-| `namingContextDepth` | `string` | `"recent-user-messages"` | 每次重命名提示發送給 LLM 的對話量：<br><ul><li>`"first-user-message"` — 僅第一條用戶消息</li><li>`"recent-user-messages"` — 第一條用戶消息加最後 3 條用戶消息</li><li>`"full-conversation"` — 完整對話（用戶、助手、工具調用和結果），限制約 60k 字符，保留開頭（核心意圖）和最新尾部</li></ul> |
-| `namingModel` | `string` | `""` | 重命名 LLM 調用的 `provider/modelId` 覆蓋。示例：`"openrouter/nvidia/nemotron-3-nano-30b-a3b:free"`。留空以使用配置的 Pi 默認模型和提供者。 |
-| `namingStyle` | `string` | `"natural"` | 兩種名稱使用的命名風格：<br><ul><li>`"natural"` — 自由形式句子</li><li>`"slug"` — 小寫連字符格式。</li><li>`"topic-project"` — `<topic>｜<project>`，項目從當前工作目錄派生</li></ul> |
-| `replaceExistingName` | `string` | `"always"` | 何時覆蓋現有 Pi 会話名稱、tmux 窗口名稱、herdr 面板/標籤名稱、zellij 面板/標籤名稱：<br><ul><li>`"always"` — 始終覆蓋</li><li>`"never"` — 從不覆蓋</li></ul> |
+| `initialRenameTrigger` | `string` | <code>"first-input"</code> | 第一次重命名觸發時：<br><ul><li><code>"first-input"</code> — 發送第一個提示後</li><li><code>"first-agent-settled"</code> — 第一次 LLM 運行完成後（在第一個 `agent_settled` 事件之後）。</li></ul> |
+| `language` | `string` | `"en"` | 可選值：<code>en</code>、<code>es</code>、<code>de</code>、<code>fr</code>、<code>it</code>、<code>nl</code>、<code>pt</code>/<code>pt-BR</code>/<code>pt-PT</code>、<code>id</code>、<code>vi</code>、<code>tr</code>、<code>pl</code>、<code>uk</code>、<code>fa</code>、<code>ar</code>、<code>hi</code>、<code>zh</code>/<code>zh-CN</code>/<code>zh-Hans</code>、<code>zh-Hant</code>/<code>zh-TW</code>/<code>zh-HK</code>、<code>ja</code>、<code>ko</code>、<code>th</code> |
+| `namingContextDepth` | `string` | <code>"recent-user-messages"</code> | 每次重命名提示發送給 LLM 的對話量：<br><ul><li><code>"first-user-message"</code> — 僅第一條用戶消息</li><li><code>"recent-user-messages"</code> — 第一條用戶消息加最後 3 條用戶消息</li><li><code>"full-conversation"</code> — 完整對話（用戶、助手、工具調用和結果），限制約 60k 字符，保留開頭（核心意圖）和最新尾部</li></ul> |
+| `namingModel` | `string` | <code>""</code> | 重命名 LLM 調用的 <code>provider/modelId</code> 覆蓋。示例：<code>"openrouter/nvidia/nemotron-3-nano-30b-a3b:free"</code>。留空以使用配置的 Pi 默認模型和提供者。 |
+| `namingStyle` | `string` | <code>"natural"</code> | 兩種名稱使用的命名風格：<br><ul><li><code>"natural"</code> — 自由形式句子</li><li><code>"slug"</code> — 小寫連字符格式。</li><li><code>"topic-project"</code> — `<topic>｜<project>`，項目從當前工作目錄派生</li></ul> |
+| `replaceExistingName` | `string` | <code>"always"</code> | 何時覆蓋現有 Pi 会話名稱、tmux 窗口名稱、herdr 面板/標籤名稱、zellij 面板/標籤名稱：<br><ul><li><code>"always"</code> — 始終覆蓋</li><li><code>"never"</code> — 從不覆蓋</li></ul> |
 | `reRenameEveryNTurns` | `integer` | `0` | 每 N 輪重命名（每個 `agent_settled` 事件）。`0` 表示從不重命名。 |
 | `respectExternalRenames` | `boolean` | `true` | 當 `true` 時，在檢測到外部重命名後禁用此擴展的重命名功能（例如手動運行 `/name` 後）。 |
 | `sessionNameMaxLength` | `integer` | `200` | Pi 会話名稱的最大字符限制。 |

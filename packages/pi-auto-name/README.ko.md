@@ -90,12 +90,12 @@ pi install npm:@normful/pi-auto-name
 
 | Key | Type | Default | Meaning |
 | `enabled` | `boolean` | `true` | `false`는 이 확장 기능을 완전히 비활성화합니다。 |
-| `initialRenameTrigger` | `string` | `"first-input"` | 첫 번째 리네임이 트리거될 때：<br><ul><li>`"first-input"` — 첫 번째 프롬프트를 보낸 후</li><li>`"first-agent-settled"` — 첫 번째 LLM 실행이 완료된 후（첫 번째 `agent_settled` 이벤트 이후）。</li></ul> |
-| `language` | `string` | `"en"` | 다음 중 하나：`en`、`es`、`de`、`fr`、`it`、`nl`、`pt`/`pt-BR`/`pt-PT`、`id`、`vi`、`tr`、`pl`、`uk`、`fa`、`ar`、`hi`、`zh`/`zh-CN`/`zh-Hans`、`zh-Hant`/`zh-TW`/`zh-HK`、`ja`、`ko`、`th` |
-| `namingContextDepth` | `string` | `"recent-user-messages"` | 각 리네임 프롬프트에서 LLM에 보내는 대화의 양：<br><ul><li>`"first-user-message"` — 첫 번째 사용자 메시지만</li><li>`"recent-user-messages"` — 첫 번째 사용자 메시지와 마지막 3개의 사용자 메시지</li><li>`"full-conversation"` — 전체 대화(사용자, 어시스턴트, 도구 호출 및 결과)，약 60k 문자로 제한，맨 앞(핵심 의도)과 최신 끝부분 모두 유지</li></ul> |
-| `namingModel` | `string` | `""` | 리네임 LLM 호출의 `provider/modelId` 오버라이드。예：`"openrouter/nvidia/nemotron-3-nano-30b-a3b:free"`。비워 두면 구성된 Pi 기본 모델 및 제공자를 사용합니다。 |
-| `namingStyle` | `string` | `"natural"` | 두 이름에 사용되는命名 스타일：<br><ul><li>`"natural"` — 자유 형식 문장</li><li>`"slug"` — 소문자 하이픈 구분。</li><li>`"topic-project"` — `<topic>｜<project>`，현재 작업 디렉토리에서 파생된 프로젝트</li></ul> |
-| `replaceExistingName` | `string` | `"always"` | 기존 Pi 세션 이름、tmux 창 이름、herdr 패널/탭 이름、zellij 패널/탭 이름을 언제 덮어쓸지：<br><ul><li>`"always"` — 항상 덮어쓰기</li><li>`"never"` — 절대 덮어쓰지 않기</li></ul> |
+| `initialRenameTrigger` | `string` | <code>"first-input"</code> | 첫 번째 리네임이 트리거될 때：<br><ul><li><code>"first-input"</code> — 첫 번째 프롬프트를 보낸 후</li><li><code>"first-agent-settled"</code> — 첫 번째 LLM 실행이 완료된 후（첫 번째 `agent_settled` 이벤트 이후）。</li></ul> |
+| `language` | `string` | `"en"` | 다음 중 하나：<code>en</code>、<code>es</code>、<code>de</code>、<code>fr</code>、<code>it</code>、<code>nl</code>、<code>pt</code>/<code>pt-BR</code>/<code>pt-PT</code>、<code>id</code>、<code>vi</code>、<code>tr</code>、<code>pl</code>、<code>uk</code>、<code>fa</code>、<code>ar</code>、<code>hi</code>、<code>zh</code>/<code>zh-CN</code>/<code>zh-Hans</code>、<code>zh-Hant</code>/<code>zh-TW</code>/<code>zh-HK</code>、<code>ja</code>、<code>ko</code>、<code>th</code> |
+| `namingContextDepth` | `string` | <code>"recent-user-messages"</code> | 각 리네임 프롬프트에서 LLM에 보내는 대화의 양：<br><ul><li><code>"first-user-message"</code> — 첫 번째 사용자 메시지만</li><li><code>"recent-user-messages"</code> — 첫 번째 사용자 메시지와 마지막 3개의 사용자 메시지</li><li><code>"full-conversation"</code> — 전체 대화(사용자, 어시스턴트, 도구 호출 및 결과)，약 60k 문자로 제한，맨 앞(핵심 의도)과 최신 끝부분 모두 유지</li></ul> |
+| `namingModel` | `string` | <code>""</code> | 리네임 LLM 호출의 <code>provider/modelId</code> 오버라이드。예：<code>"openrouter/nvidia/nemotron-3-nano-30b-a3b:free"</code>。비워 두면 구성된 Pi 기본 모델 및 제공자를 사용합니다。 |
+| `namingStyle` | `string` | <code>"natural"</code> | 두 이름에 사용되는命名 스타일：<br><ul><li><code>"natural"</code> — 자유 형식 문장</li><li><code>"slug"</code> — 소문자 하이픈 구분。</li><li><code>"topic-project"</code> — `<topic>｜<project>`，현재 작업 디렉토리에서 파생된 프로젝트</li></ul> |
+| `replaceExistingName` | `string` | <code>"always"</code> | 기존 Pi 세션 이름、tmux 창 이름、herdr 패널/탭 이름、zellij 패널/탭 이름을 언제 덮어쓸지：<br><ul><li><code>"always"</code> — 항상 덮어쓰기</li><li><code>"never"</code> — 절대 덮어쓰지 않기</li></ul> |
 | `reRenameEveryNTurns` | `integer` | `0` | N턴마다 리네임（각 `agent_settled` 이벤트）。`0`은 리네임하지 않습니다。 |
 | `respectExternalRenames` | `boolean` | `true` | `true`인 경우、외부 리네임이 감지된 후 이 확장 기능의 리네임을 비활성화합니다（예：수동으로 `/name`을 실행한 후）。 |
 | `sessionNameMaxLength` | `integer` | `200` | Pi 세션 이름의 최대 문자 수 제한。 |
