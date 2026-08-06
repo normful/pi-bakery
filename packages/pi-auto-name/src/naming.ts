@@ -7,11 +7,7 @@ import type {
   Model,
   ModelsApiStreamOptions,
 } from "@earendil-works/pi-ai";
-import type {
-  ExtensionAPI,
-  ExtensionContext,
-  ModelRegistry,
-} from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, ModelRegistry } from "@earendil-works/pi-coding-agent";
 import type { Config } from "./config.js";
 import type { NamingContext } from "./context.js";
 import { buildLocale, fill, normalizeLanguageTag, type LocaleStrings } from "./i18n.js";
@@ -27,6 +23,19 @@ import {
   truncateToMax,
 } from "./sanitize.js";
 import { debug, debugEnabled } from "./debug.js";
+
+/**
+ * The session-bound values a naming run needs from `ExtensionContext`, captured
+ * up front at the top of an event handler. Passing this snapshot through the
+ * (possibly deferred) flow — rather than a live `ctx` — means the flow never
+ * touches a stale-guarded ctx getter after an await, so a session replacement
+ * or reload cannot invalidate it mid-run.
+ */
+export interface NamingSession {
+  modelRegistry: ModelRegistry;
+  model: Model<Api> | undefined;
+  signal: AbortSignal | undefined;
+}
 
 // Lazy, cached dynamic imports: the heavy external packages (pi-ai,
 // rpiv-config) are only loaded on the first call site that needs them —
@@ -232,17 +241,21 @@ function renderPrompt(
   return `${directive}\n\n${rules}\n\n${anchorBlock}${base}${extra}${format}`;
 }
 
-async function resolveModel(ctx: ExtensionContext, cfg: Config) {
+async function resolveModel(
+  modelRegistry: ModelRegistry,
+  currentModel: Model<Api> | undefined,
+  cfg: Config,
+) {
   let parsed: { provider: string; modelId: string } | undefined;
   if (cfg.namingModel) {
     const { parseModelKey } = await rpivConfig();
     parsed = parseModelKey(cfg.namingModel);
   }
   if (parsed) {
-    const model = ctx.modelRegistry.find(parsed.provider, parsed.modelId);
+    const model = modelRegistry.find(parsed.provider, parsed.modelId);
     if (model) return model;
   }
-  return ctx.model; // may be undefined → missing_model
+  return currentModel; // may be undefined → missing_model
 }
 
 /**
@@ -406,7 +419,7 @@ type ModelRegistryWithComplete = ModelRegistry & {
 };
 
 async function completeOnce(
-  ctx: ExtensionContext,
+  modelRegistry: ModelRegistry,
   model: Model<Api>,
   systemPrompt: string,
   userText: string,
@@ -430,15 +443,15 @@ async function completeOnce(
     signal: options.signal,
   };
 
-  const registry = ctx.modelRegistry as ModelRegistryWithComplete;
+  const registry = modelRegistry as ModelRegistryWithComplete;
   if (typeof registry.complete === "function") {
     return registry.complete(model, context, streamOptions);
   }
 
   const { ModelsError } = await piAi();
-  const provider = ctx.modelRegistry.getProvider(model.provider);
+  const provider = modelRegistry.getProvider(model.provider);
   if (!provider) throw new ModelsError("provider", `Unknown provider: ${model.provider}`);
-  const auth = await ctx.modelRegistry.getApiKeyAndHeaders(model);
+  const auth = await modelRegistry.getApiKeyAndHeaders(model);
   if (!auth.ok) throw new ModelsError("auth", auth.error);
   const stream = provider.stream(model, context, {
     ...streamOptions,
@@ -465,7 +478,7 @@ type AttemptResult =
  * retry loop — it never throws.
  */
 async function attemptOnce(
-  ctx: ExtensionContext,
+  session: NamingSession,
   cfg: Config,
   context: NamingContext,
   titles: string[],
@@ -481,7 +494,7 @@ async function attemptOnce(
   // Step 1: resolve the model.
   let model: Model<Api> | undefined;
   try {
-    model = await resolveModel(ctx, cfg);
+    model = await resolveModel(session.modelRegistry, session.model, cfg);
   } catch (error) {
     debug("generateNames: resolveModel threw", String(error));
     return { ok: false, kind: "request_failed" };
@@ -489,7 +502,7 @@ async function attemptOnce(
   if (!model) {
     debug("generateNames: missing_model — no model resolved", {
       namingModel: cfg.namingModel,
-      hasCtxModel: Boolean(ctx.model),
+      hasCtxModel: Boolean(session.model),
     });
     return { ok: false, kind: "missing_model" };
   }
@@ -500,7 +513,7 @@ async function attemptOnce(
   // only on failure — "configured" is steady-state noise.
   if (debugEnabled) {
     try {
-      const auth = await ctx.modelRegistry.getApiKeyAndHeaders(model);
+      const auth = await session.modelRegistry.getApiKeyAndHeaders(model);
       if (!auth.ok) {
         debug("generateNames: pi runtime auth unconfigured", {
           model: modelRef,
@@ -530,11 +543,11 @@ async function attemptOnce(
   let response: AssistantMessage;
   try {
     response = await completeOnce(
-      ctx,
+      session.modelRegistry,
       model,
       systemPromptFor(cfg.namingStyle, locale, cfg),
       fullPrompt,
-      { timeoutMs: options.timeoutMs ?? 30_000, signal: ctx.signal },
+      { timeoutMs: options.timeoutMs ?? 30_000, signal: session.signal },
     );
   } catch (error) {
     if (error instanceof ModelsError) {
@@ -594,7 +607,7 @@ async function attemptOnce(
  * (`ENVIRONMENTAL_FAILURES`), in which case the caller latches instead (§11).
  */
 export async function generateNames(
-  ctx: ExtensionContext,
+  session: NamingSession,
   cfg: Config,
   context: NamingContext,
   titles: string[],
@@ -616,7 +629,7 @@ export async function generateNames(
   const anchor = await resolveNamingAnchor(pi.exec, cwd);
 
   for (let attempt = 0; attempt < RETRIES; attempt++) {
-    const res = await attemptOnce(ctx, cfg, context, titles, cwd, pi, options, attempt, anchor);
+    const res = await attemptOnce(session, cfg, context, titles, cwd, pi, options, attempt, anchor);
     if (res.ok) return { ok: true, names: res.names };
     switch (res.kind) {
       case "missing_model":

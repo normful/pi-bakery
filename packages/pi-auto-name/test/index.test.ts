@@ -89,7 +89,7 @@ function setup(): Harness {
   };
   mocks.loadConfig.mockReturnValue(defaultCfg());
   mocks.collectExistingSessionNames.mockResolvedValue([]);
-  mocks.buildContext.mockResolvedValue(NAMING_CONTEXT);
+  mocks.buildContext.mockReturnValue(NAMING_CONTEXT);
   mocks.generateNames.mockResolvedValue({
     ok: true,
     names: { windowName: "OAuth refresh", sessionName: "Fix the OAuth callback" },

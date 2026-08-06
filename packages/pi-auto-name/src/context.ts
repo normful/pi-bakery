@@ -111,10 +111,15 @@ function buildConversationText(entries: readonly SessionEntry[]): string {
   return `${head}\n\n${FULL_CONVERSATION_OMITTED}\n\n${tail}`;
 }
 
-export async function buildContext(
-  ctx: ExtensionContext,
-  cfg: Config,
-): Promise<NamingContext | undefined> {
+/**
+ * Assemble the naming context. Deliberately synchronous: callers build the
+ * context at the top of an event handler, before any await, so the
+ * `ctx.sessionManager` read happens while the event context is still active.
+ * Deferring a session-bound read past an await is what lets a session
+ * replacement/reload (which invalidates the ctx) slip in between — avoid that
+ * by reading everything up front.
+ */
+export function buildContext(ctx: ExtensionContext, cfg: Config): NamingContext | undefined {
   // Compaction-aware view: pre-compaction summarized entries are excluded so
   // "full-conversation" depth does not include stale or duplicated conversation.
   const entries = ctx.sessionManager.buildContextEntries();

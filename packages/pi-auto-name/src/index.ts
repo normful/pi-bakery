@@ -9,25 +9,24 @@ import {
   UI_RENAME_TIMEOUT_MS,
   type GenerateFailureReason,
   type GenerateNamesResult,
+  type NamingSession,
 } from "./naming.js";
 import { collectExistingSessionNames } from "./dedup.js";
 import { applySessionName, syncSurfaces, windowNameForSync } from "./surfaces.js";
 import { debug, initDebug } from "./debug.js";
 
 /**
- * True when a captured ctx has been invalidated by a session replacement or
- * reload (e.g. /new, /fork, /reload, or a session switch). Every ExtensionContext
- * getter calls assertActive(), which throws the stale-instance error once the
- * runner has been replaced; probing the cheapest getter is how we detect that
- * without depending on error-message strings.
+ * Everything a rename run needs from the (fresh) event context, captured
+ * synchronously at the top of an event handler — before any await — so the
+ * deferred naming flow never touches a stale-guarded ctx getter.
  */
-function isStaleCtx(ctx: ExtensionContext): boolean {
-  try {
-    void ctx.cwd;
-    return false;
-  } catch {
-    return true;
-  }
+interface PreparedRename {
+  c: Config;
+  currentName: string | undefined;
+  context: NamingContext;
+  cwd: string;
+  sessionFile: string | undefined;
+  session: NamingSession;
 }
 
 export default function (pi: ExtensionAPI): void {
@@ -53,15 +52,25 @@ export default function (pi: ExtensionAPI): void {
     return cfg;
   }
 
-  async function renameOnce(
+  /**
+   * Guard checks + synchronous preparation, run at the top of an event handler
+   * while the event ctx is still fresh. Returns undefined when the rename is
+   * skipped (disabled, done, inflight/locked, un-replaceable name, or no
+   * naming context yet).
+   *
+   * Crucially, the naming context is built HERE — before any await — so the
+   * `ctx.sessionManager` read happens inside the event dispatch where the ctx
+   * is guaranteed active. The session-bound values are captured into a plain
+   * `PreparedRename` snapshot; the (possibly deferred) flow that follows never
+   * touches a stale-guarded ctx getter again.
+   */
+  function prepareRename(
     ctx: ExtensionContext,
-    options?: { timeoutMs?: number },
-  ): Promise<void> {
+    options: { timeoutMs?: number } | undefined,
+  ): PreparedRename | undefined {
     // cfg is read synchronously (not via the async config()) so the guard below
     // runs before the first await — matching the pre-lazy-config sync behavior.
-    // Every caller awaits config(ctx) before invoking renameOnce, so cfg is
-    // already cached here; the fire-and-forget callers rely on this guard
-    // running synchronously (they reset state.done right after `void renameOnce`).
+    // Every caller awaits config(ctx) before invoking us, so cfg is cached here.
     const c = cfg as Config;
     if (!c.enabled || state.done || state.inflight || state.autoRenameLocked) {
       // A completed initial rename (`done` or `!enabled`) is the expected
@@ -75,7 +84,7 @@ export default function (pi: ExtensionAPI): void {
           autoRenameLocked: state.autoRenameLocked,
         });
       }
-      return;
+      return undefined;
     }
 
     const currentName = pi.getSessionName();
@@ -85,7 +94,20 @@ export default function (pi: ExtensionAPI): void {
         policy: c.replaceExistingName,
       });
       state.done = true;
-      return;
+      return undefined;
+    }
+
+    // Build the naming context synchronously with the fresh ctx.
+    let context: NamingContext | undefined;
+    try {
+      context = buildContext(ctx, c);
+    } catch (error) {
+      debug("renameOnce: buildContext failed", String(error));
+      return undefined;
+    }
+    if (!context) {
+      debug("renameOnce: no naming context available");
+      return undefined;
     }
 
     state.inflight = true;
@@ -94,43 +116,39 @@ export default function (pi: ExtensionAPI): void {
       currentName,
       timeoutMs: options?.timeoutMs,
     });
-    try {
-      await runRenameFlow(ctx, c, currentName, options);
-    } catch (error) {
-      if (isStaleCtx(ctx)) {
-        // The session was replaced or reloaded mid-flow (e.g. /new, /fork,
-        // /reload, or a session switch while the naming LLM call was in
-        // flight). Every ctx getter asserts activity, so the captured ctx can
-        // no longer touch the session manager. Nothing to fix — just skip
-        // naming for the replaced session instead of crashing pi.
-        debug("renameOnce: session replaced/reloaded mid-flow — aborting rename", String(error));
-        return;
-      }
-      throw error;
-    } finally {
-      state.inflight = false;
-      state.done = true;
-    }
+    return {
+      c,
+      currentName,
+      context,
+      cwd: ctx.cwd,
+      sessionFile: ctx.sessionManager.getSessionFile(),
+      session: {
+        modelRegistry: ctx.modelRegistry,
+        model: ctx.model,
+        signal: ctx.signal,
+      },
+    };
   }
 
   /**
-   * The rename pipeline. Each risky step is wrapped in its own small
-   * try/catch that logs exactly where it failed and rethrows, so `renameOnce`'s
-   * finally still resets `inflight`/`done` and the caller observes the failure
-   * while debug pinpoints the failing stage.
+   * The rename pipeline on top of a prepared snapshot (no ctx access). Each
+   * risky step is wrapped in its own small try/catch that logs exactly where it
+   * failed and rethrows, so the caller of the pipeline still resets `inflight`/
+   * `done` and debug pinpoints the failing stage.
    */
-  async function runRenameFlow(
-    ctx: ExtensionContext,
-    c: Config,
-    currentName: string | undefined,
+  async function completeRename(
+    p: PreparedRename,
     options: { timeoutMs?: number } | undefined,
   ): Promise<void> {
+    const { c, currentName } = p;
+
     // Step 1: collect existing sibling session names (dedup hints). A failure
-    // here is non-fatal — the prompt just loses the dedup hints.
+    // here is non-fatal — the prompt just loses the dedup hints. Uses the
+    // captured cwd/sessionFile, not ctx.
     let titles: string[] = [];
     if (!c.skipSessionNameDedup) {
       try {
-        titles = await collectExistingSessionNames(ctx.cwd, ctx.sessionManager.getSessionFile());
+        titles = await collectExistingSessionNames(p.cwd, p.sessionFile);
       } catch (error) {
         debug(
           "renameOnce: collectExistingSessionNames failed — continuing without dedup",
@@ -140,24 +158,12 @@ export default function (pi: ExtensionAPI): void {
       }
     }
 
-    // Step 2: build the naming context. Undefined → nothing to name yet.
-    let context: NamingContext | undefined;
-    try {
-      context = await buildContext(ctx, c);
-    } catch (error) {
-      debug("renameOnce: buildContext failed", String(error));
-      throw error;
-    }
-    if (!context) {
-      debug("renameOnce: no naming context available");
-      return;
-    }
-
-    // Step 3: generate the names (LLM + fallback). generateNames returns its
-    // failures rather than throwing, so a throw here would be unexpected.
+    // Step 2: generate the names (LLM + fallback) from the prebuilt context and
+    // captured session refs. generateNames returns its failures rather than
+    // throwing, so a throw here would be unexpected.
     let result: GenerateNamesResult;
     try {
-      result = await generateNames(ctx, c, context, titles, ctx.cwd, pi, options);
+      result = await generateNames(p.session, c, p.context, titles, p.cwd, pi, options);
     } catch (error) {
       debug("renameOnce: generateNames threw unexpectedly", String(error));
       throw error;
@@ -169,7 +175,7 @@ export default function (pi: ExtensionAPI): void {
       return;
     }
 
-    // Step 4: apply the session name (race-guarded).
+    // Step 3: apply the session name (race-guarded).
     try {
       if (state.autoRenameLocked || pi.getSessionName() !== state.nameAtGenerationStart) {
         debug("renameOnce: race guard abort — session name changed during generation", {
@@ -190,13 +196,56 @@ export default function (pi: ExtensionAPI): void {
       throw error;
     }
 
-    // Step 5: sync surfaces to the generated window name.
+    // Step 4: sync surfaces to the generated window name.
     try {
       await syncSurfaces(pi, c, result.names.windowName);
     } catch (error) {
       debug("renameOnce: syncSurfaces failed", String(error));
       throw error;
     }
+  }
+
+  /**
+   * Awaited rename: prepare synchronously with the fresh event ctx, then run the
+   * pipeline to completion. Fired inside the event dispatch (`agent_settled`,
+   * and headless `input`), so any error propagates to the runtime, which wraps
+   * the handler await in try/catch and reports it rather than crashing.
+   */
+  async function renameOnce(
+    ctx: ExtensionContext,
+    options?: { timeoutMs?: number },
+  ): Promise<void> {
+    const p = prepareRename(ctx, options);
+    if (!p) return;
+    try {
+      await completeRename(p, options);
+    } finally {
+      state.inflight = false;
+      state.done = true;
+    }
+  }
+
+  /**
+   * Deferred rename for the interactive first-input flow: same synchronous
+   * preparation (fresh ctx), but the LLM call + apply run fire-and-forget so the
+   * user's turn is never blocked. The body swallows its own errors — a deferred
+   * continuation can never be an unhandled rejection (which would crash pi) —
+   * e.g. when the session is replaced/reloaded mid-flight; the rename for the
+   * replaced session is then simply skipped.
+   */
+  function renameOnceDeferred(ctx: ExtensionContext, options?: { timeoutMs?: number }): void {
+    const p = prepareRename(ctx, options);
+    if (!p) return;
+    void (async () => {
+      try {
+        await completeRename(p, options);
+      } catch (error) {
+        debug("renameOnce: deferred rename aborted mid-flight", String(error));
+      } finally {
+        state.inflight = false;
+        state.done = true;
+      }
+    })();
   }
 
   /**
@@ -256,11 +305,12 @@ export default function (pi: ExtensionAPI): void {
       text: text.slice(0, 80),
     });
     // With a UI present, never block the user's turn on the naming LLM call:
-    // fire-and-forget with a shorter naming budget so the rename lands before
-    // the agent gets far into its turn. Headless (RPC/print) awaits the full
-    // budget (§4 rule 5 note; Gap 5).
+    // prepare synchronously (fresh ctx) and defer only the LLM + apply with a
+    // shorter naming budget so the rename lands before the agent gets far into
+    // its turn. Headless (RPC/print) awaits the full budget (§4 rule 5 note;
+    // Gap 5).
     if (ctx.hasUI) {
-      void renameOnce(ctx, { timeoutMs: UI_RENAME_TIMEOUT_MS });
+      renameOnceDeferred(ctx, { timeoutMs: UI_RENAME_TIMEOUT_MS });
       return;
     }
     await renameOnce(ctx);
@@ -281,14 +331,13 @@ export default function (pi: ExtensionAPI): void {
     state.turnsSeen += 1;
 
     // Initial rename (first-agent-settled trigger): fires after the first
-    // agent run has fully settled, so the naming context is stable.
+    // agent run has fully settled, so the naming context is stable. Awaited:
+    // agent_settled is the post-turn boundary, so there is no user turn to
+    // block, and awaiting keeps the whole run inside the fresh event ctx (the
+    // runtime wraps the handler await in try/catch, so it cannot crash pi).
     if (c.initialRenameTrigger === "first-agent-settled" && !state.done) {
       debug("agent_settled: triggering initial rename", { hasUI: ctx.hasUI });
-      if (ctx.hasUI) {
-        void renameOnce(ctx, { timeoutMs: UI_RENAME_TIMEOUT_MS });
-        return;
-      }
-      await renameOnce(ctx);
+      await renameOnce(ctx, { timeoutMs: ctx.hasUI ? UI_RENAME_TIMEOUT_MS : undefined });
       return;
     }
 
@@ -312,11 +361,7 @@ export default function (pi: ExtensionAPI): void {
       if (!blocked && replaceable) {
         const prevDone = state.done;
         state.done = false; // allow a re-run
-        if (ctx.hasUI) {
-          void renameOnce(ctx, { timeoutMs: UI_RENAME_TIMEOUT_MS });
-        } else {
-          await renameOnce(ctx);
-        }
+        await renameOnce(ctx, { timeoutMs: ctx.hasUI ? UI_RENAME_TIMEOUT_MS : undefined });
         state.done = prevDone || state.done;
       }
     }
