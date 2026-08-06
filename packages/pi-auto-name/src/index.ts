@@ -14,6 +14,22 @@ import { collectExistingSessionNames } from "./dedup.js";
 import { applySessionName, syncSurfaces, windowNameForSync } from "./surfaces.js";
 import { debug, initDebug } from "./debug.js";
 
+/**
+ * True when a captured ctx has been invalidated by a session replacement or
+ * reload (e.g. /new, /fork, /reload, or a session switch). Every ExtensionContext
+ * getter calls assertActive(), which throws the stale-instance error once the
+ * runner has been replaced; probing the cheapest getter is how we detect that
+ * without depending on error-message strings.
+ */
+function isStaleCtx(ctx: ExtensionContext): boolean {
+  try {
+    void ctx.cwd;
+    return false;
+  } catch {
+    return true;
+  }
+}
+
 export default function (pi: ExtensionAPI): void {
   // NB: no action calls (appendEntry / registerEntryRenderer / ...) here — during
   // extension loading the runtime actions are throwing stubs. initDebug only
@@ -80,6 +96,17 @@ export default function (pi: ExtensionAPI): void {
     });
     try {
       await runRenameFlow(ctx, c, currentName, options);
+    } catch (error) {
+      if (isStaleCtx(ctx)) {
+        // The session was replaced or reloaded mid-flow (e.g. /new, /fork,
+        // /reload, or a session switch while the naming LLM call was in
+        // flight). Every ctx getter asserts activity, so the captured ctx can
+        // no longer touch the session manager. Nothing to fix — just skip
+        // naming for the replaced session instead of crashing pi.
+        debug("renameOnce: session replaced/reloaded mid-flow — aborting rename", String(error));
+        return;
+      }
+      throw error;
     } finally {
       state.inflight = false;
       state.done = true;
