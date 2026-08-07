@@ -119,6 +119,7 @@ describe("extension registration", () => {
     expect(events).toContain("input");
     expect(events).toContain("agent_settled");
     expect(events).toContain("session_info_changed");
+    expect(events).toContain("session_shutdown");
     // turn_end / agent_end are not used — agent_settled is the sole turn boundary.
     expect(events).not.toContain("turn_end");
     expect(events).not.toContain("agent_end");
@@ -179,6 +180,35 @@ describe("agent_settled trigger (first-agent-settled)", () => {
     h.setCfg({ initialRenameTrigger: "first-agent-settled" });
     await h.handlers.get("agent_settled")!({}, h.ctx);
     expect(mocks.generateNames).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not touch the event context after session shutdown", async () => {
+    const h = setup();
+    h.setCfg({ initialRenameTrigger: "first-agent-settled" });
+
+    let stale = false;
+    const staleReads: string[] = [];
+    const guardedCtx: Record<string, unknown> = {};
+    for (const key of Object.keys(h.ctx)) {
+      Object.defineProperty(guardedCtx, key, {
+        enumerable: true,
+        get() {
+          if (stale) {
+            staleReads.push(key);
+            throw new Error(`stale ctx.${key} accessed`);
+          }
+          return h.ctx[key];
+        },
+      });
+    }
+
+    const pending = h.handlers.get("agent_settled")!({}, guardedCtx);
+    await h.handlers.get("session_shutdown")!({ reason: "reload" }, h.ctx);
+    stale = true;
+
+    await expect(pending).resolves.toBeUndefined();
+    expect(staleReads).toEqual([]);
+    expect(mocks.generateNames).not.toHaveBeenCalled();
   });
 });
 
