@@ -21,6 +21,7 @@ import { debug, initDebug } from "./debug.js";
  * the deferred flow never touches a stale-guarded ctx getter.
  */
 interface PreparedRename {
+  activeSession: { active: boolean };
   c: Config;
   currentName: string | undefined;
   context: NamingContext;
@@ -115,6 +116,7 @@ export default function (pi: ExtensionAPI): void {
       timeoutMs: options?.timeoutMs,
     });
     return {
+      activeSession: lifecycle,
       c,
       currentName,
       context,
@@ -155,6 +157,7 @@ export default function (pi: ExtensionAPI): void {
         titles = [];
       }
     }
+    if (!p.activeSession.active) return;
 
     // Step 2: generate the names (LLM + fallback) from the prebuilt context and
     // captured session refs. generateNames returns its failures rather than
@@ -166,6 +169,7 @@ export default function (pi: ExtensionAPI): void {
       debug("renameOnce: generateNames threw unexpectedly", String(error));
       throw error;
     }
+    if (!p.activeSession.active) return;
     debug("renameOnce: generateNames result", result);
 
     if (!result.ok) {
@@ -193,6 +197,7 @@ export default function (pi: ExtensionAPI): void {
       debug("renameOnce: applySessionName failed", String(error));
       throw error;
     }
+    if (!p.activeSession.active) return;
 
     // Step 4: sync surfaces to the generated window name.
     try {
@@ -287,6 +292,7 @@ export default function (pi: ExtensionAPI): void {
 
   pi.on("input", async (event, ctx) => {
     const run = lifecycle;
+    if (!run.active) return;
     const cwd = ctx.cwd;
     const c = await config(cwd);
     if (!run.active) return;
@@ -333,6 +339,7 @@ export default function (pi: ExtensionAPI): void {
    */
   pi.on("agent_settled", async (_event, ctx) => {
     const run = lifecycle;
+    if (!run.active) return;
     const cwd = ctx.cwd;
     const c = await config(cwd);
     if (!run.active) return;
@@ -378,6 +385,7 @@ export default function (pi: ExtensionAPI): void {
 
   pi.on("session_info_changed", async (event, ctx) => {
     const run = lifecycle;
+    if (!run.active) return;
     const cwd = ctx.cwd;
     const c = await config(cwd);
     if (!run.active) return;

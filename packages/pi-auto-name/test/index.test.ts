@@ -182,7 +182,25 @@ describe("agent_settled trigger (first-agent-settled)", () => {
     expect(mocks.generateNames).toHaveBeenCalledTimes(1);
   });
 
-  it("does not touch the event context after session shutdown", async () => {
+  it("ignores an event whose context is already stale after session shutdown", async () => {
+    const h = setup();
+    h.setCfg({ initialRenameTrigger: "first-agent-settled" });
+
+    await h.handlers.get("session_shutdown")!({ reason: "reload" }, h.ctx);
+    const staleCtx = new Proxy(
+      {},
+      {
+        get(_target, key) {
+          throw new Error(`stale ctx.${String(key)} accessed`);
+        },
+      },
+    );
+
+    await expect(h.handlers.get("agent_settled")!({}, staleCtx)).resolves.toBeUndefined();
+    expect(mocks.generateNames).not.toHaveBeenCalled();
+  });
+
+  it("does not touch the event context when shutdown happens during config loading", async () => {
     const h = setup();
     h.setCfg({ initialRenameTrigger: "first-agent-settled" });
 
@@ -218,6 +236,27 @@ describe("renameOnce application", () => {
     await h.handlers.get("input")!({ source: "interactive", text: "Fix OAuth" }, h.ctx);
     expect(h.pi.setSessionName).toHaveBeenCalledWith("Fix the OAuth callback");
     expect(h.pi.exec).toHaveBeenCalled(); // surface sync (no-ops without env)
+  });
+
+  it("aborts the apply when the session shuts down during generation", async () => {
+    const h = setup();
+    let releaseGeneration!: (result: {
+      ok: true;
+      names: { windowName: string; sessionName: string };
+    }) => void;
+    mocks.generateNames.mockReturnValueOnce(
+      new Promise((resolve) => {
+        releaseGeneration = resolve;
+      }),
+    );
+
+    const pending = h.handlers.get("input")!({ source: "interactive", text: "Fix OAuth" }, h.ctx);
+    await vi.waitFor(() => expect(mocks.generateNames).toHaveBeenCalledTimes(1));
+    await h.handlers.get("session_shutdown")!({ reason: "reload" }, h.ctx);
+    releaseGeneration({ ok: true, names: { windowName: "W", sessionName: "S" } });
+
+    await expect(pending).resolves.toBeUndefined();
+    expect(h.pi.setSessionName).not.toHaveBeenCalled();
   });
 
   it("aborts the apply when the session name changed mid-generation (race guard)", async () => {
