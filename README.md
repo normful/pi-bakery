@@ -48,9 +48,15 @@ The `/theme-colors` command shows all colors available in the current Pi theme.
 
 ## [`@normful/pi-statusline`](./packages/pi-statusline)
 
-Info-rich TUI header/footer: context %, tokens, streaming CPS, cost, model, git branch.
+Adds colourful info around the editor.
 
-[![pi-statusline screenshot](./screenshots/statusline.png)](https://github.com/normful/pi-bakery/tree/main/packages/pi-statusline)
+[![pi-statusline screenshot](./screenshots/statusline3.png)](https://github.com/normful/pi-bakery/tree/main/packages/pi-statusline)
+
+<p align="center">
+  <a href="https://github.com/normful/pi-bakery/tree/main/packages/pi-statusline">
+    <img src="./videos/statusline-demo.gif" alt="pi-statusline-demo" width="800">
+  </a>
+</p>
 
 ## [`@normful/pi-stop-secrets-leaks`](./packages/pi-stop-secrets-leaks)
 

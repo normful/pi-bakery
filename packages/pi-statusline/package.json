@@ -1,6 +1,6 @@
 {
   "name": "@normful/pi-statusline",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": false,
   "description": "Information-rich status line for the Pi TUI — context usage, live streaming CPS, cost, model info, git branch, and hash-colored working directory",
   "keywords": [
@@ -34,6 +34,6 @@
     "extensions": [
       "./src/index.ts"
     ],
-    "image": "https://media.githubusercontent.com/media/normful/pi-bakery/main/screenshots/statusline.png"
+    "image": "https://media.githubusercontent.com/media/normful/pi-bakery/main/screenshots/statusline2.png"
   }
 }
