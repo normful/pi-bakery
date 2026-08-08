@@ -16,11 +16,12 @@ import { applySessionName, syncSurfaces, windowNameForSync } from "./surfaces.js
 import { debug, initDebug } from "./debug.js";
 
 /**
- * Everything a rename run needs from the (fresh) event context, captured
- * synchronously at the top of an event handler — before any await — so the
- * deferred naming flow never touches a stale-guarded ctx getter.
+ * Everything a rename run needs from the event context, captured synchronously
+ * after the session lifecycle guard and before the naming pipeline yields, so
+ * the deferred flow never touches a stale-guarded ctx getter.
  */
 interface PreparedRename {
+  activeSession: { active: boolean };
   c: Config;
   currentName: string | undefined;
   context: NamingContext;
@@ -37,30 +38,29 @@ export default function (pi: ExtensionAPI): void {
   initDebug(pi);
   let state: RenameState = createState();
   let cfg: Config | undefined;
+  let lifecycle = { active: true };
 
   /**
-   * Delayed initialization: `loadConfig` (and its transitive load of
-   * pi-coding-agent + rpiv-config + typebox) is only pulled in on the first
-   * call — which happens inside an event handler, well after the extension's
-   * measured import window — instead of at module evaluation time.
+   * Delayed initialization: capture cwd before yielding, then load config
+   * without retaining the event ctx across the dynamic import boundary.
    */
-  async function config(ctx: ExtensionContext): Promise<Config> {
+  async function config(cwd: string): Promise<Config> {
     if (!cfg) {
       const { loadConfig } = await import("./config.js");
-      cfg = loadConfig(ctx.cwd);
+      cfg = loadConfig(cwd);
     }
     return cfg;
   }
 
   /**
-   * Guard checks + synchronous preparation, run at the top of an event handler
-   * while the event ctx is still fresh. Returns undefined when the rename is
+   * Guard checks + synchronous preparation, run after config loading confirms
+   * the event's session is still active. Returns undefined when the rename is
    * skipped (disabled, done, inflight/locked, un-replaceable name, or no
    * naming context yet).
    *
-   * Crucially, the naming context is built HERE — before any await — so the
-   * `ctx.sessionManager` read happens inside the event dispatch where the ctx
-   * is guaranteed active. The session-bound values are captured into a plain
+   * Crucially, the naming context is built HERE - before the naming pipeline's
+   * first await and after the lifecycle check - so `ctx.sessionManager` is read
+   * only while the session remains active. Session-bound values go into a plain
    * `PreparedRename` snapshot; the (possibly deferred) flow that follows never
    * touches a stale-guarded ctx getter again.
    */
@@ -68,9 +68,8 @@ export default function (pi: ExtensionAPI): void {
     ctx: ExtensionContext,
     options: { timeoutMs?: number } | undefined,
   ): PreparedRename | undefined {
-    // cfg is read synchronously (not via the async config()) so the guard below
-    // runs before the first await — matching the pre-lazy-config sync behavior.
-    // Every caller awaits config(ctx) before invoking us, so cfg is cached here.
+    // cfg is read synchronously so this preparation remains before the next
+    // await in every caller. config(cwd) has already populated the cache.
     const c = cfg as Config;
     if (!c.enabled || state.done || state.inflight || state.autoRenameLocked) {
       // A completed initial rename (`done` or `!enabled`) is the expected
@@ -117,6 +116,7 @@ export default function (pi: ExtensionAPI): void {
       timeoutMs: options?.timeoutMs,
     });
     return {
+      activeSession: lifecycle,
       c,
       currentName,
       context,
@@ -157,6 +157,7 @@ export default function (pi: ExtensionAPI): void {
         titles = [];
       }
     }
+    if (!p.activeSession.active) return;
 
     // Step 2: generate the names (LLM + fallback) from the prebuilt context and
     // captured session refs. generateNames returns its failures rather than
@@ -168,6 +169,7 @@ export default function (pi: ExtensionAPI): void {
       debug("renameOnce: generateNames threw unexpectedly", String(error));
       throw error;
     }
+    if (!p.activeSession.active) return;
     debug("renameOnce: generateNames result", result);
 
     if (!result.ok) {
@@ -195,6 +197,7 @@ export default function (pi: ExtensionAPI): void {
       debug("renameOnce: applySessionName failed", String(error));
       throw error;
     }
+    if (!p.activeSession.active) return;
 
     // Step 4: sync surfaces to the generated window name.
     try {
@@ -206,7 +209,7 @@ export default function (pi: ExtensionAPI): void {
   }
 
   /**
-   * Awaited rename: prepare synchronously with the fresh event ctx, then run the
+   * Awaited rename: prepare synchronously with the active event ctx, then run the
    * pipeline to completion. Fired inside the event dispatch (`agent_settled`,
    * and headless `input`), so any error propagates to the runtime, which wraps
    * the handler await in try/catch and reports it rather than crashing.
@@ -259,10 +262,15 @@ export default function (pi: ExtensionAPI): void {
   }
 
   pi.on("session_start", async (event, ctx) => {
+    lifecycle.active = false;
+    lifecycle = { active: true };
+    const run = lifecycle;
     state = createState();
     cfg = undefined;
-    const c = await config(ctx);
+    const cwd = ctx.cwd;
     restoreProvenance(ctx, state);
+    const c = await config(cwd);
+    if (!run.active) return;
     debug("session_start", {
       reason: event.reason,
       restored: {
@@ -283,7 +291,11 @@ export default function (pi: ExtensionAPI): void {
   });
 
   pi.on("input", async (event, ctx) => {
-    const c = await config(ctx);
+    const run = lifecycle;
+    if (!run.active) return;
+    const cwd = ctx.cwd;
+    const c = await config(cwd);
+    if (!run.active) return;
     if (!c.enabled || c.initialRenameTrigger !== "first-input") {
       debug("input: ignored", {
         enabled: c.enabled,
@@ -326,7 +338,11 @@ export default function (pi: ExtensionAPI): void {
    * rename and the turn-interval re-rename both live here.
    */
   pi.on("agent_settled", async (_event, ctx) => {
-    const c = await config(ctx);
+    const run = lifecycle;
+    if (!run.active) return;
+    const cwd = ctx.cwd;
+    const c = await config(cwd);
+    if (!run.active) return;
     if (!c.enabled) return;
     state.turnsSeen += 1;
 
@@ -368,7 +384,11 @@ export default function (pi: ExtensionAPI): void {
   });
 
   pi.on("session_info_changed", async (event, ctx) => {
-    const c = await config(ctx);
+    const run = lifecycle;
+    if (!run.active) return;
+    const cwd = ctx.cwd;
+    const c = await config(cwd);
+    if (!run.active) return;
     const isEcho = event.name === state.lastAutoName;
     debug("session_info_changed", {
       name: event.name,
@@ -380,5 +400,9 @@ export default function (pi: ExtensionAPI): void {
     // Echoes of our own rename already synced surfaces inside renameOnce;
     // only external renames (user /name, RPC, other extensions) re-sync here.
     if (!isEcho) await syncSurfaces(pi, c, windowNameForSync(state, event.name));
+  });
+
+  pi.on("session_shutdown", async () => {
+    lifecycle.active = false;
   });
 }

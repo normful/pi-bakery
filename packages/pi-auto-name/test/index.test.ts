@@ -119,6 +119,7 @@ describe("extension registration", () => {
     expect(events).toContain("input");
     expect(events).toContain("agent_settled");
     expect(events).toContain("session_info_changed");
+    expect(events).toContain("session_shutdown");
     // turn_end / agent_end are not used — agent_settled is the sole turn boundary.
     expect(events).not.toContain("turn_end");
     expect(events).not.toContain("agent_end");
@@ -180,6 +181,53 @@ describe("agent_settled trigger (first-agent-settled)", () => {
     await h.handlers.get("agent_settled")!({}, h.ctx);
     expect(mocks.generateNames).toHaveBeenCalledTimes(1);
   });
+
+  it("ignores an event whose context is already stale after session shutdown", async () => {
+    const h = setup();
+    h.setCfg({ initialRenameTrigger: "first-agent-settled" });
+
+    await h.handlers.get("session_shutdown")!({ reason: "reload" }, h.ctx);
+    const staleCtx = new Proxy(
+      {},
+      {
+        get(_target, key) {
+          throw new Error(`stale ctx.${String(key)} accessed`);
+        },
+      },
+    );
+
+    await expect(h.handlers.get("agent_settled")!({}, staleCtx)).resolves.toBeUndefined();
+    expect(mocks.generateNames).not.toHaveBeenCalled();
+  });
+
+  it("does not touch the event context when shutdown happens during config loading", async () => {
+    const h = setup();
+    h.setCfg({ initialRenameTrigger: "first-agent-settled" });
+
+    let stale = false;
+    const staleReads: string[] = [];
+    const guardedCtx: Record<string, unknown> = {};
+    for (const key of Object.keys(h.ctx)) {
+      Object.defineProperty(guardedCtx, key, {
+        enumerable: true,
+        get() {
+          if (stale) {
+            staleReads.push(key);
+            throw new Error(`stale ctx.${key} accessed`);
+          }
+          return h.ctx[key];
+        },
+      });
+    }
+
+    const pending = h.handlers.get("agent_settled")!({}, guardedCtx);
+    await h.handlers.get("session_shutdown")!({ reason: "reload" }, h.ctx);
+    stale = true;
+
+    await expect(pending).resolves.toBeUndefined();
+    expect(staleReads).toEqual([]);
+    expect(mocks.generateNames).not.toHaveBeenCalled();
+  });
 });
 
 describe("renameOnce application", () => {
@@ -188,6 +236,27 @@ describe("renameOnce application", () => {
     await h.handlers.get("input")!({ source: "interactive", text: "Fix OAuth" }, h.ctx);
     expect(h.pi.setSessionName).toHaveBeenCalledWith("Fix the OAuth callback");
     expect(h.pi.exec).toHaveBeenCalled(); // surface sync (no-ops without env)
+  });
+
+  it("aborts the apply when the session shuts down during generation", async () => {
+    const h = setup();
+    let releaseGeneration!: (result: {
+      ok: true;
+      names: { windowName: string; sessionName: string };
+    }) => void;
+    mocks.generateNames.mockReturnValueOnce(
+      new Promise((resolve) => {
+        releaseGeneration = resolve;
+      }),
+    );
+
+    const pending = h.handlers.get("input")!({ source: "interactive", text: "Fix OAuth" }, h.ctx);
+    await vi.waitFor(() => expect(mocks.generateNames).toHaveBeenCalledTimes(1));
+    await h.handlers.get("session_shutdown")!({ reason: "reload" }, h.ctx);
+    releaseGeneration({ ok: true, names: { windowName: "W", sessionName: "S" } });
+
+    await expect(pending).resolves.toBeUndefined();
+    expect(h.pi.setSessionName).not.toHaveBeenCalled();
   });
 
   it("aborts the apply when the session name changed mid-generation (race guard)", async () => {
