@@ -248,6 +248,33 @@ describe("agent_settled trigger (first-agent-settled)", () => {
     expect(handlerReturned).toBe(true);
   });
 
+  it("does not let deferred cleanup suppress naming in a replacement session", async () => {
+    const h = setup();
+    h.ctx.hasUI = true;
+    h.setCfg({ initialRenameTrigger: "first-agent-settled" });
+    let releaseGeneration!: (result: {
+      ok: true;
+      names: { windowName: string; sessionName: string };
+    }) => void;
+    const generation = new Promise<{
+      ok: true;
+      names: { windowName: string; sessionName: string };
+    }>((resolve) => {
+      releaseGeneration = resolve;
+    });
+    mocks.generateNames.mockReturnValueOnce(generation);
+
+    const oldSettled = h.handlers.get("agent_settled")!({}, h.ctx);
+    await vi.waitFor(() => expect(mocks.generateNames).toHaveBeenCalledTimes(1));
+    await h.handlers.get("session_shutdown")!({ reason: "reload" }, h.ctx);
+    await h.handlers.get("session_start")!({ reason: "new" }, h.ctx);
+
+    releaseGeneration({ ok: true, names: { windowName: "W", sessionName: "S" } });
+    await oldSettled;
+    await h.handlers.get("agent_settled")!({}, h.ctx);
+    await vi.waitFor(() => expect(mocks.generateNames).toHaveBeenCalledTimes(2));
+  });
+
   it("ignores an event whose context is already stale after session shutdown", async () => {
     const h = setup();
     h.setCfg({ initialRenameTrigger: "first-agent-settled" });

@@ -22,6 +22,7 @@ import { debug, initDebug } from "./debug.js";
  */
 interface PreparedRename {
   activeSession: { active: boolean };
+  state: RenameState;
   c: Config;
   currentName: string | undefined;
   context: NamingContext;
@@ -117,6 +118,7 @@ export default function (pi: ExtensionAPI): void {
     });
     return {
       activeSession: lifecycle,
+      state,
       c,
       currentName,
       context,
@@ -179,9 +181,9 @@ export default function (pi: ExtensionAPI): void {
 
     // Step 3: apply the session name (race-guarded).
     try {
-      if (state.autoRenameLocked || pi.getSessionName() !== state.nameAtGenerationStart) {
+      if (p.state.autoRenameLocked || pi.getSessionName() !== p.state.nameAtGenerationStart) {
         debug("renameOnce: race guard abort — session name changed during generation", {
-          nameAtGenerationStart: state.nameAtGenerationStart,
+          nameAtGenerationStart: p.state.nameAtGenerationStart,
           current: pi.getSessionName(),
         });
         return;
@@ -192,7 +194,7 @@ export default function (pi: ExtensionAPI): void {
         changed: currentName !== result.names.sessionName,
         windowName: result.names.windowName,
       });
-      await applySessionName(pi, state, c, result.names.sessionName, result.names.windowName);
+      await applySessionName(pi, p.state, c, result.names.sessionName, result.names.windowName);
     } catch (error) {
       debug("renameOnce: applySessionName failed", String(error));
       throw error;
@@ -223,8 +225,8 @@ export default function (pi: ExtensionAPI): void {
     try {
       await completeRename(p, options);
     } finally {
-      state.inflight = false;
-      state.done = true;
+      p.state.inflight = false;
+      p.state.done = true;
     }
   }
 
@@ -245,8 +247,8 @@ export default function (pi: ExtensionAPI): void {
       } catch (error) {
         debug("renameOnce: deferred rename aborted mid-flight", String(error));
       } finally {
-        state.inflight = false;
-        state.done = true;
+        p.state.inflight = false;
+        p.state.done = true;
       }
     })();
   }
