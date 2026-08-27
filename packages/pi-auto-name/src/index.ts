@@ -210,9 +210,9 @@ export default function (pi: ExtensionAPI): void {
 
   /**
    * Awaited rename: prepare synchronously with the active event ctx, then run the
-   * pipeline to completion. Fired inside the event dispatch (`agent_settled`,
-   * and headless `input`), so any error propagates to the runtime, which wraps
-   * the handler await in try/catch and reports it rather than crashing.
+   * pipeline to completion. Fired inside the event dispatch for headless flows
+   * (`agent_settled` and `input`), so any error propagates to the runtime, which
+   * wraps the handler await in try/catch and reports it rather than crashing.
    */
   async function renameOnce(
     ctx: ExtensionContext,
@@ -229,12 +229,12 @@ export default function (pi: ExtensionAPI): void {
   }
 
   /**
-   * Deferred rename for the interactive first-input flow: same synchronous
-   * preparation (fresh ctx), but the LLM call + apply run fire-and-forget so the
-   * user's turn is never blocked. The body swallows its own errors — a deferred
-   * continuation can never be an unhandled rejection (which would crash pi) —
-   * e.g. when the session is replaced/reloaded mid-flight; the rename for the
-   * replaced session is then simply skipped.
+   * Deferred rename for interactive first-input and UI agent_settled flows:
+   * same synchronous preparation (fresh ctx), but the LLM call + apply run
+   * fire-and-forget so the user's turn is never blocked. The body swallows its
+   * own errors: a deferred continuation can never be an unhandled rejection
+   * (which would crash pi). If the session is replaced/reloaded mid-flight,
+   * the rename for the replaced session is then simply skipped.
    */
   function renameOnceDeferred(ctx: ExtensionContext, options?: { timeoutMs?: number }): void {
     const p = prepareRename(ctx, options);
@@ -347,13 +347,16 @@ export default function (pi: ExtensionAPI): void {
     state.turnsSeen += 1;
 
     // Initial rename (first-agent-settled trigger): fires after the first
-    // agent run has fully settled, so the naming context is stable. Awaited:
-    // agent_settled is the post-turn boundary, so there is no user turn to
-    // block, and awaiting keeps the whole run inside the fresh event ctx (the
-    // runtime wraps the handler await in try/catch, so it cannot crash pi).
+    // agent run has fully settled, so the naming context is stable. With a UI,
+    // defer the naming request so the next user turn is not blocked; headless
+    // callers keep the awaited behavior.
     if (c.initialRenameTrigger === "first-agent-settled" && !state.done) {
       debug("agent_settled: triggering initial rename", { hasUI: ctx.hasUI });
-      await renameOnce(ctx, { timeoutMs: ctx.hasUI ? UI_RENAME_TIMEOUT_MS : undefined });
+      if (ctx.hasUI) {
+        renameOnceDeferred(ctx, { timeoutMs: UI_RENAME_TIMEOUT_MS });
+      } else {
+        await renameOnce(ctx, { timeoutMs: undefined });
+      }
       return;
     }
 
@@ -377,7 +380,11 @@ export default function (pi: ExtensionAPI): void {
       if (!blocked && replaceable) {
         const prevDone = state.done;
         state.done = false; // allow a re-run
-        await renameOnce(ctx, { timeoutMs: ctx.hasUI ? UI_RENAME_TIMEOUT_MS : undefined });
+        if (ctx.hasUI) {
+          renameOnceDeferred(ctx, { timeoutMs: UI_RENAME_TIMEOUT_MS });
+        } else {
+          await renameOnce(ctx, { timeoutMs: undefined });
+        }
         state.done = prevDone || state.done;
       }
     }

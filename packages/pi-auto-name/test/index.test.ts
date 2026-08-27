@@ -182,6 +182,72 @@ describe("agent_settled trigger (first-agent-settled)", () => {
     expect(mocks.generateNames).toHaveBeenCalledTimes(1);
   });
 
+  it("returns before UI naming generation settles", async () => {
+    const h = setup();
+    h.ctx.hasUI = true;
+    h.setCfg({ initialRenameTrigger: "first-agent-settled" });
+    let releaseGeneration!: (result: {
+      ok: true;
+      names: { windowName: string; sessionName: string };
+    }) => void;
+    let generationSettled = false;
+    const generation = new Promise<{
+      ok: true;
+      names: { windowName: string; sessionName: string };
+    }>((resolve) => {
+      releaseGeneration = (result) => {
+        generationSettled = true;
+        resolve(result);
+      };
+    });
+    mocks.generateNames.mockReturnValueOnce(generation);
+
+    let handlerReturned = false;
+    const settled = h.handlers.get("agent_settled")!({}, h.ctx).then(() => {
+      handlerReturned = true;
+    });
+    try {
+      await vi.waitFor(() => expect(mocks.generateNames).toHaveBeenCalledTimes(1));
+      expect(handlerReturned).toBe(true);
+      expect(generationSettled).toBe(false);
+    } finally {
+      releaseGeneration({ ok: true, names: { windowName: "W", sessionName: "S" } });
+      await settled;
+    }
+  });
+
+  it("awaits naming generation without a UI", async () => {
+    const h = setup();
+    h.setCfg({ initialRenameTrigger: "first-agent-settled" });
+    let releaseGeneration!: (result: {
+      ok: true;
+      names: { windowName: string; sessionName: string };
+    }) => void;
+    let generationSettled = false;
+    const generation = new Promise<{
+      ok: true;
+      names: { windowName: string; sessionName: string };
+    }>((resolve) => {
+      releaseGeneration = (result) => {
+        generationSettled = true;
+        resolve(result);
+      };
+    });
+    mocks.generateNames.mockReturnValueOnce(generation);
+
+    let handlerReturned = false;
+    const settled = h.handlers.get("agent_settled")!({}, h.ctx).then(() => {
+      handlerReturned = true;
+    });
+    await vi.waitFor(() => expect(mocks.generateNames).toHaveBeenCalledTimes(1));
+    expect(handlerReturned).toBe(false);
+    expect(generationSettled).toBe(false);
+
+    releaseGeneration({ ok: true, names: { windowName: "W", sessionName: "S" } });
+    await settled;
+    expect(handlerReturned).toBe(true);
+  });
+
   it("ignores an event whose context is already stale after session shutdown", async () => {
     const h = setup();
     h.setCfg({ initialRenameTrigger: "first-agent-settled" });
@@ -337,6 +403,43 @@ describe("turn-interval re-rename", () => {
     const lastCall = mocks.generateNames.mock.calls[mocks.generateNames.mock.calls.length - 1];
     // generateNames(ctx, cfg, context, titles, cwd, pi, options) — options carries the UI timeout.
     expect(lastCall[6]).toEqual({ timeoutMs: 10_000 });
+  });
+
+  it("returns before UI interval naming generation settles", async () => {
+    const h = setup();
+    h.setCfg({ reRenameEveryNTurns: 1 });
+    await h.handlers.get("input")!({ source: "interactive", text: "first" }, h.ctx);
+    expect(mocks.generateNames).toHaveBeenCalledTimes(1);
+
+    h.ctx.hasUI = true;
+    let releaseGeneration!: (result: {
+      ok: true;
+      names: { windowName: string; sessionName: string };
+    }) => void;
+    let generationSettled = false;
+    const generation = new Promise<{
+      ok: true;
+      names: { windowName: string; sessionName: string };
+    }>((resolve) => {
+      releaseGeneration = (result) => {
+        generationSettled = true;
+        resolve(result);
+      };
+    });
+    mocks.generateNames.mockReturnValueOnce(generation);
+
+    let handlerReturned = false;
+    const settled = h.handlers.get("agent_settled")!({}, h.ctx).then(() => {
+      handlerReturned = true;
+    });
+    try {
+      await vi.waitFor(() => expect(mocks.generateNames).toHaveBeenCalledTimes(2));
+      expect(handlerReturned).toBe(true);
+      expect(generationSettled).toBe(false);
+    } finally {
+      releaseGeneration({ ok: true, names: { windowName: "W", sessionName: "S" } });
+      await settled;
+    }
   });
 
   it("is gated by done: the initial-settled rename wins on the first settle", async () => {
