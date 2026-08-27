@@ -54,7 +54,8 @@ pi install npm:@normful/pi-auto-name
 
 कॉन्फ़िगरेशन इसमें सेव करें：
 
-- वैश्विक：`~/.config/pi-auto-name/config.json`（`XDG_CONFIG_HOME` का सम्मान करता है）
+- वैश्विक：`~/.pi/agent/pi-auto-name.json`（या कॉन्फ़िगर होने पर `<PI_CODING_AGENT_DIR>/pi-auto-name.json`）
+- अप्रचलित फ़ॉलबैक：`~/.config/pi-auto-name/config.json` अब भी सबसे कम प्राथमिकता पर पढ़ा जाता है
 - प्रति-परियोजना ओवरराइड：`.pi/pi-auto-name.json`
 
 पूर्ण डिफ़ॉल्ट कॉन्फ़िगरेशन：

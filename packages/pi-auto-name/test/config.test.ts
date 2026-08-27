@@ -1,6 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ConfigSchema, loadConfig, validateConfig, type Config } from "../src/config.js";
 
+vi.mock("@earendil-works/pi-coding-agent", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@earendil-works/pi-coding-agent")>();
+  return {
+    ...actual,
+    getAgentDir: vi.fn(() => "/fake/home/.pi/agent"),
+  };
+});
+
 vi.mock("@juicesharp/rpiv-config", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@juicesharp/rpiv-config")>();
   return {
@@ -90,32 +98,48 @@ describe("loadConfig (nested defaults deep-merged)", () => {
     expect(cfg.surfaces.renameZellijTab).toBe(true);
   });
 
-  it("loads the user-global base and the project override, project winning per field", () => {
+  it("loads the preferred user-global config from Pi's agent directory", () => {
     vi.mocked(loadJsonConfig)
-      .mockReturnValueOnce({ namingStyle: "slug", language: "fr" }) // user base
-      .mockReturnValueOnce({ language: "de" }); // project override
+      .mockReturnValueOnce({}) // legacy fallback
+      .mockReturnValueOnce({ namingStyle: "slug" }) // preferred user config
+      .mockReturnValueOnce({}); // project override
     const cfg = loadConfig("/some/project");
 
-    expect(loadJsonConfig).toHaveBeenCalledTimes(2);
+    expect(loadJsonConfig).toHaveBeenCalledTimes(3);
     expect(loadJsonConfig).toHaveBeenNthCalledWith(
       1,
       "/fake/home/.config/pi-auto-name/config.json",
     );
-    const projectPath = vi.mocked(loadJsonConfig).mock.calls[1][0];
-    expect(projectPath).toContain("/some/project");
-    expect(projectPath.endsWith("pi-auto-name.json")).toBe(true);
-
-    expect(cfg.namingStyle).toBe("slug"); // from user base
-    expect(cfg.language).toBe("de"); // project wins
+    expect(loadJsonConfig).toHaveBeenNthCalledWith(2, "/fake/home/.pi/agent/pi-auto-name.json");
+    expect(loadJsonConfig).toHaveBeenNthCalledWith(3, "/some/project/.pi/pi-auto-name.json");
+    expect(cfg.namingStyle).toBe("slug");
   });
 
-  it("deep-merges nested surface objects across user and project", () => {
+  it("applies legacy, preferred user, and project precedence per field", () => {
+    vi.mocked(loadJsonConfig)
+      .mockReturnValueOnce({
+        namingStyle: "slug",
+        language: "fr",
+        reRenameEveryNTurns: 1,
+      })
+      .mockReturnValueOnce({ language: "de", reRenameEveryNTurns: 2 })
+      .mockReturnValueOnce({ reRenameEveryNTurns: 3 });
+    const cfg = loadConfig("/p");
+
+    expect(cfg.namingStyle).toBe("slug"); // legacy fallback
+    expect(cfg.language).toBe("de"); // preferred user config wins over legacy
+    expect(cfg.reRenameEveryNTurns).toBe(3); // project wins over both user sources
+  });
+
+  it("deep-merges nested surface objects across all config sources", () => {
     vi.mocked(loadJsonConfig)
       .mockReturnValueOnce({ surfaces: { renameTmuxWindow: false } })
-      .mockReturnValueOnce({ surfaces: { renameZellijTab: false } });
+      .mockReturnValueOnce({ surfaces: { renameZellijTab: false } })
+      .mockReturnValueOnce({ surfaces: { renamePiSession: false } });
     const cfg = loadConfig("/p");
-    expect(cfg.surfaces.renameTmuxWindow).toBe(false); // user
-    expect(cfg.surfaces.renameZellijTab).toBe(false); // project
-    expect(cfg.surfaces.renamePiSession).toBe(true); // default elsewhere
+    expect(cfg.surfaces.renameTmuxWindow).toBe(false); // legacy fallback
+    expect(cfg.surfaces.renameZellijTab).toBe(false); // preferred user config
+    expect(cfg.surfaces.renamePiSession).toBe(false); // project override
+    expect(cfg.surfaces.renameHerdrPane).toBe(true); // default elsewhere
   });
 });

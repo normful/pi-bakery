@@ -54,7 +54,8 @@ pi install npm:@normful/pi-auto-name
 
 پیکربندی را در ذخیره کنید：
 
-- سراسری：`~/.config/pi-auto-name/config.json`（از `XDG_CONFIG_HOME` پیروی می‌کند）
+- سراسری：`~/.pi/agent/pi-auto-name.json`（یا `<PI_CODING_AGENT_DIR>/pi-auto-name.json` در صورت تنظیم）
+- مسیر جایگزین منسوخ：`~/.config/pi-auto-name/config.json` همچنان با کمترین اولویت خوانده می‌شود
 - جایگزین به ازای هر پروژه：`.pi/pi-auto-name.json`
 
 پیکربندی پیش‌فرض کامل：

@@ -54,7 +54,8 @@ Dodatkowo możesz też skonfigurować ciągłe zmiany nazw w miarę rozwoju rozm
 
 Zapisz konfigurację w：
 
-- Globalnie：`~/.config/pi-auto-name/config.json`（szanuje `XDG_CONFIG_HOME`）
+- Globalnie：`~/.pi/agent/pi-auto-name.json`（lub `<PI_CODING_AGENT_DIR>/pi-auto-name.json`，jeśli skonfigurowano）
+- Przestarzała ścieżka zapasowa：`~/.config/pi-auto-name/config.json` jest nadal odczytywana z najniższym priorytetem
 - Nadpisanie dla projektu：`.pi/pi-auto-name.json`
 
 Pełna domyślna konfiguracja：

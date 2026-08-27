@@ -54,7 +54,8 @@ Ayrıca，`reRenameEveryNTurns` yapılandırarak konuşma geliştikçe eklentini
 
 Yapılandırmayı şuraya kaydedin：
 
-- Global：`~/.config/pi-auto-name/config.json`（`XDG_CONFIG_HOME`'u saygı gösterir）
+- Global：`~/.pi/agent/pi-auto-name.json`（veya yapılandırılmışsa `<PI_CODING_AGENT_DIR>/pi-auto-name.json`）
+- Kullanımdan kaldırılmış yedek yol：`~/.config/pi-auto-name/config.json` en düşük öncelikle okunmaya devam eder
 - Proje başına geçersiz kılma：`.pi/pi-auto-name.json`
 
 Tam varsayılan yapılandırma：

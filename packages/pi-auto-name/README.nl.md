@@ -54,7 +54,8 @@ Bovendien kun je ook configureren dat het blijven hernoemen terwijl het gesprek 
 
 Sla de configuratie op in：
 
-- Globaal：`~/.config/pi-auto-name/config.json`（respecteert `XDG_CONFIG_HOME`）
+- Globaal：`~/.pi/agent/pi-auto-name.json`（of `<PI_CODING_AGENT_DIR>/pi-auto-name.json` indien geconfigureerd）
+- Verouderde terugval：`~/.config/pi-auto-name/config.json` wordt nog steeds met de laagste prioriteit gelezen
 - Per-project overschrijving：`.pi/pi-auto-name.json`
 
 Volledige standaardconfiguratie：

@@ -54,7 +54,8 @@ pi install npm:@normful/pi-auto-name
 
 설정을 다음 위치에 저장합니다：
 
-- 전역：`~/.config/pi-auto-name/config.json`（`XDG_CONFIG_HOME` 준수）
+- 전역：`~/.pi/agent/pi-auto-name.json`（설정된 경우 `<PI_CODING_AGENT_DIR>/pi-auto-name.json`）
+- 더 이상 권장되지 않는 대체 경로：`~/.config/pi-auto-name/config.json`은 계속 가장 낮은 우선순위로 읽힙니다
 - 프로젝트별 오버라이드：`.pi/pi-auto-name.json`
 
 전체 기본 구성：
