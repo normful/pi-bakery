@@ -107,16 +107,14 @@ describe("constants", () => {
 });
 
 describe("buildAnchorBlock", () => {
-  it("renders cwd and branch inside <context>", () => {
+  it("renders cwd and branch", () => {
     expect(buildAnchorBlock({ cwd: "pi-extensions", branch: "feat/oauth" })).toBe(
-      "<context>\ncwd: pi-extensions\nbranch: feat/oauth\n</context>\n\n",
+      "cwd: pi-extensions\ngit branch: feat/oauth\n",
     );
   });
 
   it("omits missing fields", () => {
-    expect(buildAnchorBlock({ cwd: "pi-extensions" })).toBe(
-      "<context>\ncwd: pi-extensions\n</context>\n\n",
-    );
+    expect(buildAnchorBlock({ cwd: "pi-extensions" })).toBe("cwd: pi-extensions\n");
     expect(buildAnchorBlock({})).toBe("");
     expect(buildAnchorBlock(undefined)).toBe("");
   });

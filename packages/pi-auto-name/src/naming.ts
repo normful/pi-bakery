@@ -156,12 +156,12 @@ export interface NamingAnchor {
   branch?: string;
 }
 
-/** The `<context>` block; `cwd:` / `branch:` are structural markers (§9.1). */
+/** Uniqueness hints for the prompt; `cwd:` / `git branch:` are structural markers (§9.1). */
 export function buildAnchorBlock(anchor: NamingAnchor | undefined): string {
   const lines: string[] = [];
   if (anchor?.cwd) lines.push(`cwd: ${anchor.cwd}`);
-  if (anchor?.branch) lines.push(`branch: ${anchor.branch}`);
-  return lines.length ? `<context>\n${lines.join("\n")}\n</context>\n\n` : "";
+  if (anchor?.branch) lines.push(`git branch: ${anchor.branch}`);
+  return lines.length ? `${lines.join("\n")}\n` : "";
 }
 
 /**
@@ -238,7 +238,22 @@ function renderPrompt(
   // here (the natural/slug scaffolding never names the language itself).
   const directive = fill(locale.languageDirective, { language });
 
-  return `${directive}\n\n${rules}\n\n${anchorBlock}${base}${extra}${format}`;
+  // Wrap naming context (anchor + base + extra) in a single <context> block.
+  // The template `namingContextTemplate` no longer contains a header
+  // (§9.1 removed), so no intermediate string ever includes that header —
+  // the block contains only raw hints:
+  //   <context>
+  //   cwd: ...
+  //
+  //   First user message:
+  //   ...
+  //   </context>
+  const anchorInner = anchorBlock.trimEnd();
+  const baseInner = base.trim();
+  const extraInner = extra.trim();
+  const innerParts = [anchorInner, baseInner, extraInner].filter(Boolean).join("\n\n");
+  const contextBlock = innerParts ? `<context>\n${innerParts}\n</context>\n` : "";
+  return `${directive}\n\n${rules}\n${contextBlock}${locale.responseFormat}`;
 }
 
 async function resolveModel(

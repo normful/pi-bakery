@@ -60,14 +60,14 @@ Use plain text, no quotes, no markdown, no trailing punctuation, no extra text.`
     "Be concise and specific: prefer a precise, informative phrase over a vague category.\n" +
     "Output ONLY the two lines.",
   naturalRules: [
-    "Name this session based on the conversation.",
+    "Name this session based on the context below.",
     "Return exactly two lines: WINDOW and SESSION.",
     "WINDOW: 2-4 words in Title Case (a terminal tab label), up to {windowMaxChars} characters.",
-    "SESSION: 8-12 words in Title Case (a session-list name), up to {sessionMaxChars} characters.",
-    "Anchor the WINDOW on a specific entity so it stays distinguishable from sibling sessions.",
+    "SESSION: 8-12 words in Title Case (a session name), up to {sessionMaxChars} characters.",
+    "Pick a WINDOW name different from existing session names.",
     "Be concise and specific.",
     "Focus on the main topic or intent.",
-    "No quotes or punctuation at the end.",
+    "No quotes or punctuation at end.",
     "If unclear, use a generic but relevant title.",
     "Reply with ONLY the two lines, nothing else.",
   ].join("\n"),
@@ -86,8 +86,7 @@ Use plain text, no quotes, no markdown, no trailing punctuation, no extra text.`
     "{firstUserBlock}" +
     "{firstAssistantBlock}" +
     "{conversationBlock}",
-  namingContextTemplate:
-    "## Naming context\n\n{firstUserMessageLabel}\n{first}\n\nRecent user messages:\n{recent}",
+  namingContextTemplate: "{firstUserMessageLabel}\n{first}\n\nRecent user messages:\n{recent}",
   conversationSection: "\n\nConversation:\n{conversation}",
   projectLabel: "Project:",
   firstUserMessageLabel: "First user message:",
@@ -128,11 +127,11 @@ SESSION: 不超过 {sessionMaxChars} 个字符、用连字符分隔的名称。
     "简洁明确：优先选择精准、信息丰富的短语，而不是含糊的分类。\n" +
     "只输出这两行。",
   naturalRules: [
-    "根据对话内容为这个会话命名。",
+    "根据下面的上下文为这个会话命名。",
     "请恰好返回两行：WINDOW 和 SESSION。",
     "WINDOW: 约 4-12 个字（终端标签页标签），不超过 {windowMaxChars} 个字符。",
-    "SESSION: 约 15-40 个字（会话列表名称），不超过 {sessionMaxChars} 个字符。",
-    "把 WINDOW 锚定在具体的对象上，以便与其他会话区分。",
+    "SESSION: 约 15-40 个字（会话名称），不超过 {sessionMaxChars} 个字符。",
+    "为 WINDOW 选择一个与现有会话名称不同的名称。",
     "简洁明确。",
     "聚焦主要话题或意图。",
     "末尾不要加引号或标点。",
@@ -154,8 +153,7 @@ SESSION: 不超过 {sessionMaxChars} 个字符、用连字符分隔的名称。
     "{firstUserBlock}" +
     "{firstAssistantBlock}" +
     "{conversationBlock}",
-  namingContextTemplate:
-    "## 命名上下文\n\n{firstUserMessageLabel}\n{first}\n\n最近的用户消息：\n{recent}",
+  namingContextTemplate: "{firstUserMessageLabel}\n{first}\n\n最近的用户消息：\n{recent}",
   conversationSection: "\n\n对话内容：\n{conversation}",
   projectLabel: "项目：",
   firstUserMessageLabel: "第一条用户消息：",
@@ -195,11 +193,11 @@ SESSION: 不超過 {sessionMaxChars} 個字元、用連字號分隔的名稱。
     "簡潔明確：優先選擇精準、資訊豐富的片語，而不是含糊的分類。\n" +
     "只輸出這兩行。",
   naturalRules: [
-    "根據對話內容為這個會話命名。",
+    "根據下面的上下文為這個會話命名。",
     "請恰好回傳兩行：WINDOW 和 SESSION。",
     "WINDOW: 約 4-12 個字（終端機分頁標籤），不超過 {windowMaxChars} 個字元。",
-    "SESSION: 約 15-40 個字（會話清單名稱），不超過 {sessionMaxChars} 個字元。",
-    "把 WINDOW 錨定在具體的對象上，以便與其他會話區分。",
+    "SESSION: 約 15-40 個字（會話名稱），不超過 {sessionMaxChars} 個字元。",
+    "為 WINDOW 選擇一個與現有會話名稱不同的名稱。",
     "簡潔明確。",
     "聚焦主要話題或意圖。",
     "末尾不要加引號或標點。",
@@ -221,8 +219,7 @@ SESSION: 不超過 {sessionMaxChars} 個字元、用連字號分隔的名稱。
     "{firstUserBlock}" +
     "{firstAssistantBlock}" +
     "{conversationBlock}",
-  namingContextTemplate:
-    "## 命名上下文\n\n{firstUserMessageLabel}\n{first}\n\n最近的使用者訊息：\n{recent}",
+  namingContextTemplate: "{firstUserMessageLabel}\n{first}\n\n最近的使用者訊息：\n{recent}",
   conversationSection: "\n\n對話內容：\n{conversation}",
   projectLabel: "專案：",
   firstUserMessageLabel: "第一則使用者訊息：",
@@ -262,11 +259,11 @@ WINDOWは具体的な対象（ファイル・関数・サービス・サブシ�
     "簡潔かつ具体的に：曖昧な分類より、正確で情報量のあるフレーズを選んでください。\n" +
     "2行だけ出力してください。",
   naturalRules: [
-    "この会話に基づいてセッションに名前を付けてください。",
+    "以下のコンテキストに基づいてセッションに名前を付けてください。",
     "正確に2行だけ返してください：WINDOWとSESSION。",
     "WINDOW: 約4〜12文字（ターミナルタブのラベル）、{windowMaxChars}文字以内。",
-    "SESSION: 約15〜40文字（セッション一覧の名前）、{sessionMaxChars}文字以内。",
-    "WINDOWは具体的な対象に紐づけ、他のセッションと区別できるようにしてください。",
+    "SESSION: 約15〜40文字（セッション名）、{sessionMaxChars}文字以内。",
+    "WINDOWには既存のセッション名と異なる名前を選んでください。",
     "簡潔かつ具体的に。",
     "主要な話題や意図に焦点を当ててください。",
     "末尾に引用符や句読点を付けないでください。",
@@ -288,8 +285,7 @@ WINDOWは具体的な対象（ファイル・関数・サービス・サブシ�
     "{firstUserBlock}" +
     "{firstAssistantBlock}" +
     "{conversationBlock}",
-  namingContextTemplate:
-    "## 命名コンテキスト\n\n{firstUserMessageLabel}\n{first}\n\n最近のユーザーメッセージ：\n{recent}",
+  namingContextTemplate: "{firstUserMessageLabel}\n{first}\n\n最近のユーザーメッセージ：\n{recent}",
   conversationSection: "\n\n会話内容：\n{conversation}",
   projectLabel: "プロジェクト：",
   firstUserMessageLabel: "最初のユーザーメッセージ：",
@@ -330,11 +326,11 @@ WINDOW를 구체적인 대상(파일·함수·서비스·하위 시스템·브�
     "간결하고 구체적으로: 모호한 분류보다 정확하고 유익한 표현을 선택하세요.\n" +
     "두 줄만 출력하세요.",
   naturalRules: [
-    "대화 내용에 따라 이 세션의 이름을 지으세요.",
+    "아래 컨텍스트를 기반으로 이 세션의 이름을 지으세요.",
     "정확히 두 줄만 반환하세요: WINDOW와 SESSION.",
     "WINDOW: 약 4~12자(터미널 탭 라벨), {windowMaxChars}자 이내.",
-    "SESSION: 약 15~40자(세션 목록 이름), {sessionMaxChars}자 이내.",
-    "WINDOW를 구체적인 대상에 고정하여 다른 세션과 구별되게 하세요.",
+    "SESSION: 약 15~40자(세션 이름), {sessionMaxChars}자 이내.",
+    "기존 세션 이름과 다른 WINDOW 이름을 선택하세요.",
     "간결하고 구체적으로.",
     "주요 주제나 의도에 초점을 맞추세요.",
     "끝에 따옴표나 구두점을 붙이지 마세요.",
@@ -356,8 +352,7 @@ WINDOW를 구체적인 대상(파일·함수·서비스·하위 시스템·브�
     "{firstUserBlock}" +
     "{firstAssistantBlock}" +
     "{conversationBlock}",
-  namingContextTemplate:
-    "## 명명 컨텍스트\n\n{firstUserMessageLabel}\n{first}\n\n최근 사용자 메시지:\n{recent}",
+  namingContextTemplate: "{firstUserMessageLabel}\n{first}\n\n최근 사용자 메시지:\n{recent}",
   conversationSection: "\n\n대화 내용:\n{conversation}",
   projectLabel: "프로젝트:",
   firstUserMessageLabel: "첫 번째 사용자 메시지:",
@@ -397,11 +392,11 @@ Use texto simples, sem aspas, sem markdown, sem pontuação final, sem texto ext
     "Seja conciso e específico: prefira uma frase precisa e informativa a uma categoria vaga.\n" +
     "Produza SOMENTE as duas linhas.",
   naturalRules: [
-    "Nomeie esta sessão com base na conversa.",
+    "Nomeie esta sessão com base no contexto abaixo.",
     "Retorne exatamente duas linhas: WINDOW e SESSION.",
     "WINDOW: 2 a 4 palavras em Title Case (um rótulo de aba do terminal), até {windowMaxChars} caracteres.",
-    "SESSION: 8 a 12 palavras em Title Case (um nome de lista de sessões), até {sessionMaxChars} caracteres.",
-    "Ancore o WINDOW em uma entidade específica para diferenciá-lo de sessões irmãs.",
+    "SESSION: 8 a 12 palavras em Title Case (um nome de sessão), até {sessionMaxChars} caracteres.",
+    "Escolha um nome para o WINDOW diferente dos nomes de sessões existentes.",
     "Seja conciso e específico.",
     "Concentre-se no tópico ou intenção principal.",
     "Sem aspas ou pontuação no final.",
@@ -424,7 +419,7 @@ Use texto simples, sem aspas, sem markdown, sem pontuação final, sem texto ext
     "{firstAssistantBlock}" +
     "{conversationBlock}",
   namingContextTemplate:
-    "## Contexto de nomeação\n\n{firstUserMessageLabel}\n{first}\n\nMensagens recentes do usuário:\n{recent}",
+    "{firstUserMessageLabel}\n{first}\n\nMensagens recentes do usuário:\n{recent}",
   conversationSection: "\n\nConversa:\n{conversation}",
   projectLabel: "Projeto:",
   firstUserMessageLabel: "Primeira mensagem do usuário:",
@@ -465,11 +460,11 @@ Use texto sin formato, sin comillas, sin markdown, sin puntuación final, sin te
     "Sea conciso y específico: prefiera una frase precisa e informativa a una categoría vaga.\n" +
     "Produzca SOLO las dos líneas.",
   naturalRules: [
-    "Ponga nombre a esta sesión según la conversación.",
+    "Ponga nombre a esta sesión según el contexto siguiente.",
     "Devuelva exactamente dos líneas: WINDOW y SESSION.",
     "WINDOW: 2 a 4 palabras en Title Case (una etiqueta de pestaña del terminal), hasta {windowMaxChars} caracteres.",
-    "SESSION: 8 a 12 palabras en Title Case (un nombre de lista de sesiones), hasta {sessionMaxChars} caracteres.",
-    "Ancle el WINDOW en una entidad específica para distinguirlo de sesiones hermanas.",
+    "SESSION: 8 a 12 palabras en Title Case (un nombre de sesión), hasta {sessionMaxChars} caracteres.",
+    "Elija un nombre para WINDOW diferente de los nombres de sesiones existentes.",
     "Sea conciso y específico.",
     "Concéntrese en el tema o la intención principal.",
     "Sin comillas ni puntuación al final.",
@@ -492,7 +487,7 @@ Use texto sin formato, sin comillas, sin markdown, sin puntuación final, sin te
     "{firstAssistantBlock}" +
     "{conversationBlock}",
   namingContextTemplate:
-    "## Contexto de nombre\n\n{firstUserMessageLabel}\n{first}\n\nMensajes recientes del usuario:\n{recent}",
+    "{firstUserMessageLabel}\n{first}\n\nMensajes recientes del usuario:\n{recent}",
   conversationSection: "\n\nConversación:\n{conversation}",
   projectLabel: "Proyecto:",
   firstUserMessageLabel: "Primer mensaje del usuario:",
@@ -533,11 +528,11 @@ Verwenden Sie Klartext, keine Anführungszeichen, kein Markdown, keine Satzzeich
     "Seien Sie prägnant und spezifisch: bevorzugen Sie eine präzise, informative Formulierung gegenüber einer vagen Kategorie.\n" +
     "Geben Sie NUR die zwei Zeilen aus.",
   naturalRules: [
-    "Benennen Sie diese Sitzung anhand der Konversation.",
+    "Benennen Sie diese Sitzung anhand des untenstehenden Kontexts.",
     "Geben Sie genau zwei Zeilen zurück: WINDOW und SESSION.",
     "WINDOW: 2 bis 4 Wörter im Title Case (ein Terminal-Tab-Label), bis zu {windowMaxChars} Zeichen.",
-    "SESSION: 8 bis 12 Wörter im Title Case (ein Sitzungslistennamen), bis zu {sessionMaxChars} Zeichen.",
-    "Verankern Sie den WINDOW an einer konkreten Einheit, um ihn von Schwester-Sitzungen zu unterscheiden.",
+    "SESSION: 8 bis 12 Wörter im Title Case (ein Sitzungsname), bis zu {sessionMaxChars} Zeichen.",
+    "Wählen Sie einen WINDOW-Namen, der sich von bestehenden Sitzungsnamen unterscheidet.",
     "Seien Sie prägnant und spezifisch.",
     "Konzentrieren Sie sich auf das Hauptthema oder die Absicht.",
     "Keine Anführungszeichen oder Satzzeichen am Ende.",
@@ -560,7 +555,7 @@ Verwenden Sie Klartext, keine Anführungszeichen, kein Markdown, keine Satzzeich
     "{firstAssistantBlock}" +
     "{conversationBlock}",
   namingContextTemplate:
-    "## Benennungskontext\n\n{firstUserMessageLabel}\n{first}\n\nLetzte Benutzernachrichten:\n{recent}",
+    "{firstUserMessageLabel}\n{first}\n\nLetzte Benutzernachrichten:\n{recent}",
   conversationSection: "\n\nKonversation:\n{conversation}",
   projectLabel: "Projekt:",
   firstUserMessageLabel: "Erste Benutzernachricht:",
@@ -601,11 +596,11 @@ Utilisez du texte brut, sans guillemets, sans markdown, sans ponctuation finale,
     "Soyez concis et spécifique : préférez une formulation précise et informative à une catégorie vague.\n" +
     "Produisez UNIQUEMENT les deux lignes.",
   naturalRules: [
-    "Nommez cette session en fonction de la conversation.",
+    "Nommez cette session en fonction du contexte ci-dessous.",
     "Renvoyez exactement deux lignes : WINDOW et SESSION.",
     "WINDOW: 2 à 4 mots en Title Case (une étiquette d'onglet du terminal), jusqu'à {windowMaxChars} caractères.",
-    "SESSION: 8 à 12 mots en Title Case (un nom de liste de sessions), jusqu'à {sessionMaxChars} caractères.",
-    "Ancrez le WINDOW sur une entité spécifique pour le distinguer des sessions sœurs.",
+    "SESSION: 8 à 12 mots en Title Case (un nom de session), jusqu'à {sessionMaxChars} caractères.",
+    "Choisissez un nom WINDOW différent des noms de sessions existantes.",
     "Soyez concis et spécifique.",
     "Concentrez-vous sur le sujet ou l'intention principal.",
     "Sans guillemets ni ponctuation à la fin.",
@@ -628,7 +623,7 @@ Utilisez du texte brut, sans guillemets, sans markdown, sans ponctuation finale,
     "{firstAssistantBlock}" +
     "{conversationBlock}",
   namingContextTemplate:
-    "## Contexte de nommage\n\n{firstUserMessageLabel}\n{first}\n\nMessages récents de l'utilisateur :\n{recent}",
+    "{firstUserMessageLabel}\n{first}\n\nMessages récents de l'utilisateur :\n{recent}",
   conversationSection: "\n\nConversation :\n{conversation}",
   projectLabel: "Projet :",
   firstUserMessageLabel: "Premier message de l'utilisateur :",
@@ -669,11 +664,11 @@ Gunakan teks biasa, tanpa tanda kutip, tanpa markdown, tanpa tanda baca di akhir
     "Ringkas dan spesifik: utamakan frasa yang tepat dan informatif daripada kategori yang samar.\n" +
     "Keluarkan HANYA dua baris itu.",
   naturalRules: [
-    "Beri nama sesi ini berdasarkan percakapan.",
+    "Beri nama sesi ini berdasarkan konteks di bawah ini.",
     "Kembalikan tepat dua baris: WINDOW dan SESSION.",
     "WINDOW: 2-4 kata dalam Title Case (label tab terminal), hingga {windowMaxChars} karakter.",
-    "SESSION: 8-12 kata dalam Title Case (nama daftar sesi), hingga {sessionMaxChars} karakter.",
-    "Ancarkan WINDOW pada entitas spesifik agar dapat dibedakan dari sesi lain.",
+    "SESSION: 8-12 kata dalam Title Case (nama sesi), hingga {sessionMaxChars} karakter.",
+    "Pilih nama WINDOW yang berbeda dari nama sesi yang sudah ada.",
     "Ringkas dan spesifik.",
     "Fokus pada topik atau maksud utama.",
     "Tanpa tanda kutip atau tanda baca di akhir.",
@@ -695,8 +690,7 @@ Gunakan teks biasa, tanpa tanda kutip, tanpa markdown, tanpa tanda baca di akhir
     "{firstUserBlock}" +
     "{firstAssistantBlock}" +
     "{conversationBlock}",
-  namingContextTemplate:
-    "## Konteks penamaan\n\n{firstUserMessageLabel}\n{first}\n\nPesan pengguna terbaru:\n{recent}",
+  namingContextTemplate: "{firstUserMessageLabel}\n{first}\n\nPesan pengguna terbaru:\n{recent}",
   conversationSection: "\n\nPercakapan:\n{conversation}",
   projectLabel: "Proyek:",
   firstUserMessageLabel: "Pesan pengguna pertama:",
@@ -737,11 +731,11 @@ Dùng văn bản thuần, không dấu ngoặc kép, không markdown, không d�
     "Ngắn gọn và cụ thể: ưu tiên một cụm từ chính xác, giàu thông tin hơn một loại mơ hồ.\n" +
     "Chỉ xuất ra HAI dòng đó.",
   naturalRules: [
-    "Đặt tên cho phiên này dựa trên cuộc trò chuyện.",
+    "Đặt tên cho phiên này dựa trên ngữ cảnh bên dưới.",
     "Chỉ trả về chính xác hai dòng: WINDOW và SESSION.",
     "WINDOW: 2-4 từ ở dạng Title Case (nhãn tab thiết bị đầu cuối), tối đa {windowMaxChars} ký tự.",
-    "SESSION: 8-12 từ ở dạng Title Case (tên danh sách phiên), tối đa {sessionMaxChars} ký tự.",
-    "Gắn WINDOW vào một thực thể cụ thể để phân biệt với các phiên cùng cấp.",
+    "SESSION: 8-12 từ ở dạng Title Case (tên phiên), tối đa {sessionMaxChars} ký tự.",
+    "Chọn tên WINDOW khác với tên các phiên hiện có.",
     "Ngắn gọn và cụ thể.",
     "Tập trung vào chủ đề hoặc ý định chính.",
     "Không dấu ngoặc kép hoặc dấu câu ở cuối.",
@@ -764,7 +758,7 @@ Dùng văn bản thuần, không dấu ngoặc kép, không markdown, không d�
     "{firstAssistantBlock}" +
     "{conversationBlock}",
   namingContextTemplate:
-    "## Bối cảnh đặt tên\n\n{firstUserMessageLabel}\n{first}\n\nTin nhắn gần đây của người dùng:\n{recent}",
+    "{firstUserMessageLabel}\n{first}\n\nTin nhắn gần đây của người dùng:\n{recent}",
   conversationSection: "\n\nCuộc trò chuyện:\n{conversation}",
   projectLabel: "Dự án:",
   firstUserMessageLabel: "Tin nhắn đầu tiên của người dùng:",
@@ -805,11 +799,11 @@ Düz metin kullanın; tırnak işareti, markdown, sonda noktalama veya fazladan 
     "Kısa ve belirli olun: belirsiz bir kategori yerine kesin ve bilgilendirici bir ifadeyi tercih edin.\n" +
     "Yalnızca bu iki satırı çıkarın.",
   naturalRules: [
-    "Bu oturumu konuşmaya göre adlandırın.",
+    "Bu oturumu aşağıdaki bağlama göre adlandırın.",
     "Tam olarak iki satır döndürün: WINDOW ve SESSION.",
     "WINDOW: Title Case biçiminde 2-4 kelime (bir terminal sekme etiketi), en fazla {windowMaxChars} karakter.",
-    "SESSION: Title Case biçiminde 8-12 kelime (bir oturum listesi adı), en fazla {sessionMaxChars} karakter.",
-    "WINDOW'u belirli bir varlığa sabitleyerek kardeş oturumlardan ayırt edin.",
+    "SESSION: Title Case biçiminde 8-12 kelime (bir oturum adı), en fazla {sessionMaxChars} karakter.",
+    "Mevcut oturum adlarından farklı bir WINDOW adı seçin.",
     "Kısa ve belirli olun.",
     "Ana konuya veya amaca odaklanın.",
     "Sonda tırnak işareti veya noktalama yok.",
@@ -831,8 +825,7 @@ Düz metin kullanın; tırnak işareti, markdown, sonda noktalama veya fazladan 
     "{firstUserBlock}" +
     "{firstAssistantBlock}" +
     "{conversationBlock}",
-  namingContextTemplate:
-    "## Adlandırma bağlamı\n\n{firstUserMessageLabel}\n{first}\n\nSon kullanıcı mesajları:\n{recent}",
+  namingContextTemplate: "{firstUserMessageLabel}\n{first}\n\nSon kullanıcı mesajları:\n{recent}",
   conversationSection: "\n\nKonuşma:\n{conversation}",
   projectLabel: "Proje:",
   firstUserMessageLabel: "İlk kullanıcı mesajı:",
@@ -872,11 +865,11 @@ Użyj zwykłego tekstu: bez cudzysłowów, bez markdownu, bez interpunkcji na ko
     "Bądź zwięzły i konkretny: preferuj precyzyjne, informacyjne sformułowanie zamiast niejasnej kategorii.\n" +
     "Wypisz TYLKO te dwie linie.",
   naturalRules: [
-    "Nadaj tej sesji nazwę na podstawie rozmowy.",
+    "Nadaj tej sesji nazwę na podstawie poniższego kontekstu.",
     "Zwróć dokładnie dwie linie: WINDOW i SESSION.",
     "WINDOW: 2-4 słowa w Title Case (etykieta karty terminala), do {windowMaxChars} znaków.",
-    "SESSION: 8-12 słów w Title Case (nazwa listy sesji), do {sessionMaxChars} znaków.",
-    "Zakotwicz WINDOW na konkretnym bycie, aby odróżnić go od sesji siostrzanych.",
+    "SESSION: 8-12 słów w Title Case (nazwa sesji), do {sessionMaxChars} znaków.",
+    "Wybierz nazwę WINDOW inną niż istniejące nazwy sesji.",
     "Bądź zwięzły i konkretny.",
     "Skup się na głównym temacie lub intencji.",
     "Bez cudzysłowów i interpunkcji na końcu.",
@@ -899,7 +892,7 @@ Użyj zwykłego tekstu: bez cudzysłowów, bez markdownu, bez interpunkcji na ko
     "{firstAssistantBlock}" +
     "{conversationBlock}",
   namingContextTemplate:
-    "## Kontekst nazewnictwa\n\n{firstUserMessageLabel}\n{first}\n\nOstatnie wiadomości użytkownika:\n{recent}",
+    "{firstUserMessageLabel}\n{first}\n\nOstatnie wiadomości użytkownika:\n{recent}",
   conversationSection: "\n\nRozmowa:\n{conversation}",
   projectLabel: "Projekt:",
   firstUserMessageLabel: "Pierwsza wiadomość użytkownika:",
@@ -940,11 +933,11 @@ SESSION: назва в нижньому регістрі, розділена д�
     "Будьте стислими й конкретними: надавайте перевагу точному, інформативному вислову, а не розмитій категорії.\n" +
     "Виведіть ТІЛЬКИ ці два рядки.",
   naturalRules: [
-    "Назвіть цю сесію на основі розмови.",
+    "Назвіть цю сесію на основі контексту нижче.",
     "Поверніть рівно два рядки: WINDOW і SESSION.",
     "WINDOW: 2-4 слова у форматі Title Case (ярлик вкладки термінала), до {windowMaxChars} символів.",
-    "SESSION: 8-12 слів у форматі Title Case (назва списку сесій), до {sessionMaxChars} символів.",
-    "Прив'яжіть WINDOW до конкретної сутності, щоб відрізнити його від сусідніх сесій.",
+    "SESSION: 8-12 слів у форматі Title Case (назва сесії), до {sessionMaxChars} символів.",
+    "Виберіть назву WINDOW, відмінну від існуючих назв сесій.",
     "Будьте стислими й конкретними.",
     "Зосередьтеся на головній темі або намірі.",
     "Без лапок і пунктуації в кінці.",
@@ -967,7 +960,7 @@ SESSION: назва в нижньому регістрі, розділена д�
     "{firstAssistantBlock}" +
     "{conversationBlock}",
   namingContextTemplate:
-    "## Контекст найменування\n\n{firstUserMessageLabel}\n{first}\n\nОстанні повідомлення користувача:\n{recent}",
+    "{firstUserMessageLabel}\n{first}\n\nОстанні повідомлення користувача:\n{recent}",
   conversationSection: "\n\nРозмова:\n{conversation}",
   projectLabel: "Проєкт:",
   firstUserMessageLabel: "Перше повідомлення користувача:",
@@ -1008,11 +1001,11 @@ WINDOW را به یک موجودیت مشخص (فایل، تابع، سرویس�
     "مختصر و مشخص باشید: یک عبارت دقیق و آموزنده را به یک دسته‌بندی مبهم ترجیح دهید.\n" +
     "فقط این دو خط را خروجی دهید.",
   naturalRules: [
-    "بر اساس گفتگو به این جلسه نام بدهید.",
+    "بر اساس زمینه زیر به این جلسه نام بدهید。",
     "دقیقاً دو خط برگردانید: WINDOW و SESSION.",
     "WINDOW: برچسب کوتاه 2 تا 4 کلمه (برچسب تب پایانه)، حداکثر {windowMaxChars} کاراکتر.",
-    "SESSION: نام توصیفی 8 تا 12 کلمه (نام فهرست جلسات)، حداکثر {sessionMaxChars} کاراکتر.",
-    "WINDOW را به یک موجودیت مشخص گره بزنید تا از جلسات هم‌تراز متمایز شود.",
+    "SESSION: نام توصیفی 8 تا 12 کلمه (نام جلسه)، حداکثر {sessionMaxChars} کاراکتر.",
+    "نامی برای WINDOW انتخاب کنید که با نام جلسات موجود متفاوت باشد.",
     "مختصر و مشخص باشید.",
     "روی موضوع یا قصد اصلی تمرکز کنید.",
     "بدون نقل‌قول یا علامت نگارشی در انتها.",
@@ -1034,8 +1027,7 @@ WINDOW را به یک موجودیت مشخص (فایل، تابع، سرویس�
     "{firstUserBlock}" +
     "{firstAssistantBlock}" +
     "{conversationBlock}",
-  namingContextTemplate:
-    "## زمینه نام‌گذاری\n\n{firstUserMessageLabel}\n{first}\n\nپیام‌های اخیر کاربر:\n{recent}",
+  namingContextTemplate: "{firstUserMessageLabel}\n{first}\n\nپیام‌های اخیر کاربر:\n{recent}",
   conversationSection: "\n\nگفتگو:\n{conversation}",
   projectLabel: "پروژه:",
   firstUserMessageLabel: "اولین پیام کاربر:",
@@ -1075,11 +1067,11 @@ SESSION: اسم مفصول بشرطات أقل من {sessionMaxChars} حرفًا
     "كن موجزًا ومحددًا: فضّل صياغة دقيقة وغنية بالمعلومات على فئة غامضة.\n" +
     "أخرج هذين السطرين فقط.",
   naturalRules: [
-    "سمِّ هذه الجلسة بناءً على المحادثة.",
+    "سمِّ هذه الجلسة بناءً على السياق أدناه.",
     "أعد سطرين بالضبط: WINDOW وSESSION.",
     "WINDOW: من 2 إلى 4 كلمات (تسمية علامة تبويب الطرفية)، حتى {windowMaxChars} حرفًا.",
-    "SESSION: من 8 إلى 12 كلمة (اسم قائمة جلسات)، حتى {sessionMaxChars} حرفًا.",
-    "اربط WINDOW بكيان محدد لتمييزه عن الجلسات الشقيقة.",
+    "SESSION: من 8 إلى 12 كلمة (اسم جلسة)، حتى {sessionMaxChars} حرفًا.",
+    "اختر اسمًا لـ WINDOW مختلفًا عن أسماء الجلسات الموجودة.",
     "كن موجزًا ومحددًا.",
     "ركّز على الموضوع أو النية الرئيسية.",
     "بدون اقتباسات أو علامات ترقيم في النهاية.",
@@ -1101,8 +1093,7 @@ SESSION: اسم مفصول بشرطات أقل من {sessionMaxChars} حرفًا
     "{firstUserBlock}" +
     "{firstAssistantBlock}" +
     "{conversationBlock}",
-  namingContextTemplate:
-    "## سياق التسمية\n\n{firstUserMessageLabel}\n{first}\n\nرسائل المستخدم الأخيرة:\n{recent}",
+  namingContextTemplate: "{firstUserMessageLabel}\n{first}\n\nرسائل المستخدم الأخيرة:\n{recent}",
   conversationSection: "\n\nالمحادثة:\n{conversation}",
   projectLabel: "المشروع:",
   firstUserMessageLabel: "أول رسالة من المستخدم:",
@@ -1142,11 +1133,11 @@ WINDOW को किसी विशिष्ट इकाई (फ़ाइल, 
     "संक्षिप्त और विशिष्ट रहें: अस्पष्ट श्रेणी के बजाय सटीक, सूचनाप्रद वाक्यांश चुनें।\n" +
     "केवल ये दो पंक्तियाँ ही आउटपुट करें।",
   naturalRules: [
-    "इस सत्र का नाम बातचीत के आधार पर रखें।",
+    "इस सत्र का नाम नीचे दिए गए संदर्भ के आधार पर रखें।",
     "ठीक दो पंक्तियाँ लौटाएँ: WINDOW और SESSION।",
     "WINDOW: 2 से 4 शब्द (टर्मिनल टैब लेबल), अधिकतम {windowMaxChars} वर्ण।",
-    "SESSION: 8 से 12 शब्द (सत्र सूची नाम), अधिकतम {sessionMaxChars} वर्ण।",
-    "WINDOW को किसी विशिष्ट इकाई से जोड़कर अन्य सत्रों से अलग करें।",
+    "SESSION: 8 से 12 शब्द (सत्र नाम), अधिकतम {sessionMaxChars} वर्ण।",
+    "मौजूदा सत्र नामों से अलग WINDOW नाम चुनें।",
     "संक्षिप्त और विशिष्ट रहें।",
     "मुख्य विषय या आशय पर ध्यान दें।",
     "अंत में बिना उद्धरण चिह्न या विराम चिह्न।",
@@ -1168,8 +1159,7 @@ WINDOW को किसी विशिष्ट इकाई (फ़ाइल, 
     "{firstUserBlock}" +
     "{firstAssistantBlock}" +
     "{conversationBlock}",
-  namingContextTemplate:
-    "## नामकरण संदर्भ\n\n{firstUserMessageLabel}\n{first}\n\nहाल के उपयोगकर्ता संदेश:\n{recent}",
+  namingContextTemplate: "{firstUserMessageLabel}\n{first}\n\nहाल के उपयोगकर्ता संदेश:\n{recent}",
   conversationSection: "\n\nबातचीत:\n{conversation}",
   projectLabel: "प्रोजेक्ट:",
   firstUserMessageLabel: "पहला उपयोगकर्ता संदेश:",
@@ -1209,11 +1199,11 @@ Usa testo semplice, niente virgolette, niente markdown, niente punteggiatura fin
     "Sii conciso e specifico: preferisci una formulazione precisa e informativa a una categoria vaga.\n" +
     "Produci SOLO le due righe.",
   naturalRules: [
-    "Nomina questa sessione in base alla conversazione.",
+    "Nomina questa sessione in base al contesto sottostante.",
     "Restituisci esattamente due righe: WINDOW e SESSION.",
     "WINDOW: 2-4 parole in Title Case (un'etichetta di scheda del terminale), fino a {windowMaxChars} caratteri.",
-    "SESSION: 8-12 parole in Title Case (un nome di elenco di sessioni), fino a {sessionMaxChars} caratteri.",
-    "Ancora il WINDOW a un'entità specifica per distinguerlo dalle sessioni sorelle.",
+    "SESSION: 8-12 parole in Title Case (un nome di sessione), fino a {sessionMaxChars} caratteri.",
+    "Scegli un nome WINDOW diverso dai nomi delle sessioni esistenti.",
     "Sii conciso e specifico.",
     "Concentrati sull'argomento o sull'intenzione principale.",
     "Niente virgolette o punteggiatura alla fine.",
@@ -1236,7 +1226,7 @@ Usa testo semplice, niente virgolette, niente markdown, niente punteggiatura fin
     "{firstAssistantBlock}" +
     "{conversationBlock}",
   namingContextTemplate:
-    "## Contesto di denominazione\n\n{firstUserMessageLabel}\n{first}\n\nMessaggi recenti dell'utente:\n{recent}",
+    "{firstUserMessageLabel}\n{first}\n\nMessaggi recenti dell'utente:\n{recent}",
   conversationSection: "\n\nConversazione:\n{conversation}",
   projectLabel: "Progetto:",
   firstUserMessageLabel: "Primo messaggio dell'utente:",
@@ -1277,11 +1267,11 @@ Gebruik gewone tekst: geen aanhalingstekens, geen markdown, geen leestekens aan 
     "Wees beknopt en specifiek: geef de voorkeur aan een precieze, informatieve formulering boven een vage categorie.\n" +
     "Geef ALLEEN de twee regels uit.",
   naturalRules: [
-    "Geef deze sessie een naam op basis van het gesprek.",
+    "Geef deze sessie een naam op basis van de onderstaande context.",
     "Geef exact twee regels terug: WINDOW en SESSION.",
     "WINDOW: 2-4 woorden in Title Case (een label van een terminaltabblad), tot {windowMaxChars} tekens.",
-    "SESSION: 8-12 woorden in Title Case (een naam van een sessielijst), tot {sessionMaxChars} tekens.",
-    "Veranker de WINDOW aan een specifieke entiteit om hem te onderscheiden van zustersessies.",
+    "SESSION: 8-12 woorden in Title Case (een sessienaam), tot {sessionMaxChars} tekens.",
+    "Kies een WINDOW-naam die verschilt van bestaande sessienamen.",
     "Wees beknopt en specifiek.",
     "Richt je op het hoofdonderwerp of de bedoeling.",
     "Geen aanhalingstekens of leestekens aan het einde.",
@@ -1304,7 +1294,7 @@ Gebruik gewone tekst: geen aanhalingstekens, geen markdown, geen leestekens aan 
     "{firstAssistantBlock}" +
     "{conversationBlock}",
   namingContextTemplate:
-    "## Naamgevingscontext\n\n{firstUserMessageLabel}\n{first}\n\nRecente gebruikersberichten:\n{recent}",
+    "{firstUserMessageLabel}\n{first}\n\nRecente gebruikersberichten:\n{recent}",
   conversationSection: "\n\nGesprek:\n{conversation}",
   projectLabel: "Project:",
   firstUserMessageLabel: "Eerste gebruikersbericht:",
@@ -1345,11 +1335,11 @@ SESSION: ชื่อคั่นด้วยเครื่องหมาย�
     "กระชับและเฉพาะเจาะจง: เลือกสำนวนที่แม่นยำและให้ข้อมูล มากกว่าหมวดหมู่ที่คลุมเครือ\n" +
     "แสดงผลเพียงสองบรรทัดนี้",
   naturalRules: [
-    "ตั้งชื่อเซสชันนี้ตามบทสนทนา",
+    "ตั้งชื่อเซสชันนี้ตามบริบทด้านล่าง",
     "คืนค่าสองบรรทัดเท่านั้น: WINDOW และ SESSION",
     "WINDOW: ประมาณ 4-12 ตัวอักษร (ป้ายแท็บเทอร์มินัล) ไม่เกิน {windowMaxChars} ตัวอักษร",
-    "SESSION: ประมาณ 15-40 ตัวอักษร (ชื่อรายชื่อเซสชัน) ไม่เกิน {sessionMaxChars} ตัวอักษร",
-    "ยึด WINDOW กับเอนทิตีเฉพาะเพื่อแยกจากเซสชันอื่น",
+    "SESSION: ประมาณ 15-40 ตัวอักษร (ชื่อเซสชัน) ไม่เกิน {sessionMaxChars} ตัวอักษร",
+    "เลือกชื่อ WINDOW ที่แตกต่างจากชื่อเซสชันที่มีอยู่",
     "กระชับและเฉพาะเจาะจง",
     "มุ่งเน้นหัวข้อหลักหรือความตั้งใจ",
     "ไม่ใช้เครื่องหมายคำพูดหรือเครื่องหมายวรรคตอนท้าย",
@@ -1371,8 +1361,7 @@ SESSION: ชื่อคั่นด้วยเครื่องหมาย�
     "{firstUserBlock}" +
     "{firstAssistantBlock}" +
     "{conversationBlock}",
-  namingContextTemplate:
-    "## บริบทการตั้งชื่อ\n\n{firstUserMessageLabel}\n{first}\n\nข้อความผู้ใช้ล่าสุด:\n{recent}",
+  namingContextTemplate: "{firstUserMessageLabel}\n{first}\n\nข้อความผู้ใช้ล่าสุด:\n{recent}",
   conversationSection: "\n\nบทสนทนา:\n{conversation}",
   projectLabel: "โปรเจกต์:",
   firstUserMessageLabel: "ข้อความผู้ใช้แรก:",
