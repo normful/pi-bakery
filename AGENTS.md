@@ -64,25 +64,35 @@ npm run lint:fix    # lint + autofix (vp check --fix)
 
 `test`, `lint`, and `lint:fix` are wrapped by `./run-silent`, which suppresses stdout/stderr on success and prints only a `✔` line. On failure it prints the captured output and exits non-zero.
 
-## Pre-commit hooks (prek)
+## Git hooks (hk)
 
-This repo uses prek (a pre-commit-compatible hook runner) configured in `prek.toml`. On every commit it runs:
+This repo uses [hk](https://hk.jdx.dev) configured in `hk.pkl`. On every `pre-commit`/`pre-push` it runs hygiene (trailing-whitespace, newlines, mixed-line-ending, check-added-large-files, check-symlinks, check-merge-conflict, detect-private-key, etc.) plus `npm run typecheck` / `npm run lint` (`vp check`) / `npm run test` — all project-wide (no per-file filtering).
 
-- **Builtin hygiene hooks** — trailing-whitespace, end-of-file-fixer, check-json / check-json5 / check-toml, check-symlinks, check-merge-conflict, detect-private-key, check-added-large-files, and friends.
-- **`npm run typecheck`** — type-checks the whole repo (`tsc`).
-- **`npm run lint`** — the linter (`vp check`).
-- **`npm run test`** — the full test suite (`vp test`).
+**Install hk:**
 
-All three local hooks use `pass_filenames = false` so they run project-wide regardless of which files are staged.
+```bash
+mise use hk && hk --version   # or: brew install hk / cargo install hk
+hk install --global           # once per machine (no-op outside hk repos; Git 2.54+)
+# or per-repo: hk install
+```
 
-A commit fails if typecheck, lint, or tests fail, so run `npm run typecheck`, `npm test`, and `npm run lint` before committing. Note `check-symlinks` is active — keep the per-package `.npmignore` symlinks valid.
+**Use:**
+
+```bash
+hk check --all   # check without fixing (CI)
+hk fix --all     # auto-fix
+hk run pre-commit --all  # test hook without committing
+HK=0 git commit  # bypass hook
+```
+
+A commit fails if typecheck/lint/test fail, so run `npm run typecheck`, `npm test`, and `npm run lint` (or `hk check`) before committing. Note `check-symlinks` is active — keep per-package `.npmignore` symlinks valid.
 
 ## Committing
 
 - After you finish each batch of related changes (one logical unit of work), **commit proactively — do not wait to be asked**. A "batch" is a cohesive set of edits toward one purpose (e.g. scaffolding a new package, fixing license years, updating docs).
 - Split logically distinct batches into **separate, focused commits** rather than one lump commit. Stage only the files relevant to each commit.
 - Use Conventional Commits with an optional scope, matching the existing history: `feat`, `fix`, `chore`, `docs`, `refactor`, `test` (e.g. `feat(pi-stop-secrets-leaks): scaffold new extension`, `docs(AGENTS): note committing practice`).
-- The prek hooks run typecheck/lint/test on every commit, so make sure those pass before committing.
+- The hk hooks run typecheck/lint/test on every commit, so make sure those pass before committing.
 
 ## Testing
 
@@ -90,13 +100,13 @@ Tests are written with [vitest](https://vitest.dev) and run via [Vite Plus](http
 
 ```bash
 # Run all tests across all packages
-npx vp test
+npm test
 
 # Run tests for a specific package (project filter)
-npx vp test --project pi-show-theme-colors
+npm test -- --project pi-show-theme-colors
 
 # Run tests matching a file pattern
-npx vp test packages/pi-show-theme-colors/
+npm test -- packages/pi-show-theme-colors/
 ```
 
 ### Writing tests

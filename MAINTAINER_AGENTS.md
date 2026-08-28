@@ -91,3 +91,25 @@ For each `packages/pi-<package-name-slug>/README.md`, write drafts using these g
 ## How-To: Maintain package CHANGELOG.md files
 
 Always read `.pi/skills/changelogs/SKILL.md` before updating `packages/pi-<package-name-slug>/CHANGELOG.md` files.
+
+## How-To: Run `gh` CLI
+
+The `~/.config/pi-bakery-coding-agent` file contains a previously created minimally scoped fine-graine
+GitHub Personal Access Token.
+
+For all `gh` CLI commands, invoke with an explicit `GH_TOKEN` from that file. Example:
+
+```bash
+GH_TOKEN=$(cat ~/.config/pi-bakery-coding-agent) gh pr view 6
+```
+
+### Forbidden `gh` commands
+
+NEVER attempt any of these:
+
+```bash
+gh pr review --approve
+gh pr merge
+gh auth logout
+gh auth login
+```
