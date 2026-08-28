@@ -100,13 +100,13 @@ Tests are written with [vitest](https://vitest.dev) and run via [Vite Plus](http
 
 ```bash
 # Run all tests across all packages
-npx vp test
+npm test
 
 # Run tests for a specific package (project filter)
-npx vp test --project pi-show-theme-colors
+npm test -- --project pi-show-theme-colors
 
 # Run tests matching a file pattern
-npx vp test packages/pi-show-theme-colors/
+npm test -- packages/pi-show-theme-colors/
 ```
 
 ### Writing tests
