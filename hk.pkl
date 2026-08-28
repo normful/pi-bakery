@@ -1,0 +1,54 @@
+amends "package://github.com/jdx/hk/releases/download/v1.54.0/hk@1.54.0#/Config.pkl"
+import "package://github.com/jdx/hk/releases/download/v1.54.0/hk@1.54.0#/Builtins.pkl"
+
+exclude = List("node_modules")
+
+local hygiene = new Mapping<String, Step> {
+  ["trailing-whitespace"] = Builtins.trailing_whitespace
+  ["end-of-file-fixer"] = Builtins.newlines
+  ["mixed-line-ending"] = Builtins.mixed_line_ending
+  ["check-added-large-files"] = Builtins.check_added_large_files
+  ["check-case-conflict"] = Builtins.check_case_conflict
+  ["check-symlinks"] = Builtins.check_symlinks
+  ["check-merge-conflict"] = Builtins.check_merge_conflict
+  ["detect-private-key"] = Builtins.detect_private_key
+  ["check-executables-have-shebangs"] = Builtins.check_executables_have_shebangs
+  ["byte-order-marker"] = Builtins.byte_order_marker
+}
+
+local lint = new Mapping<String, Step> {
+  ["lint"] = (Builtins.vp_check) {
+    check = "npx vp check {{files}}"
+    fix = "npx vp check --fix {{files}}"
+  }
+}
+
+local checks = new Mapping<String, Step> {
+  ["typecheck"] {
+    check = "npm run typecheck"
+  }
+  ["test"] {
+    check = "npm run test"
+  }
+}
+
+local fixable = hygiene + lint
+local all = fixable + checks
+
+hooks {
+  ["pre-commit"] {
+    fix = true
+    stash = "git"
+    steps = all
+  }
+  ["pre-push"] {
+    steps = all
+  }
+  ["check"] {
+    steps = all
+  }
+  ["fix"] {
+    fix = true
+    steps = fixable
+  }
+}
