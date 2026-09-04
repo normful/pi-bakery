@@ -54,7 +54,8 @@ pi install npm:@normful/pi-auto-name
 
 احفظ التكوين في：
 
-- عام：`~/.config/pi-auto-name/config.json`（يحترم `XDG_CONFIG_HOME`）
+- عام：`~/.pi/agent/pi-auto-name.json`（أو `<PI_CODING_AGENT_DIR>/pi-auto-name.json` عند تعيينه）
+- مسار احتياطي مهمل：لا يزال `~/.config/pi-auto-name/config.json` يُقرأ بأدنى أولوية
 - تجاوز لكل مشروع：`.pi/pi-auto-name.json`
 
 التكوين الافتراضي الكامل：

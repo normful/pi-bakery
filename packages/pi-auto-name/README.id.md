@@ -54,7 +54,8 @@ Selain itu，Anda juga dapat mengaturnya untuk mengubah nama secara terus-meneru
 
 Simpan konfigurasi ke：
 
-- Global：`~/.config/pi-auto-name/config.json`（menghormati `XDG_CONFIG_HOME`）
+- Global：`~/.pi/agent/pi-auto-name.json`（atau `<PI_CODING_AGENT_DIR>/pi-auto-name.json` jika dikonfigurasi）
+- Fallback usang：`~/.config/pi-auto-name/config.json` masih dibaca dengan prioritas terendah
 - Timpa per proyek：`.pi/pi-auto-name.json`
 
 Konfigurasi default lengkap：

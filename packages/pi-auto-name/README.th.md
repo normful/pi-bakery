@@ -54,7 +54,8 @@ pi install npm:@normful/pi-auto-name
 
 บันทึกการกำหนดค่าที่：
 
-- ทั่วไป：`~/.config/pi-auto-name/config.json`（เคารพ `XDG_CONFIG_HOME`）
+- ทั่วไป：`~/.pi/agent/pi-auto-name.json`（หรือ `<PI_CODING_AGENT_DIR>/pi-auto-name.json` เมื่อตั้งค่าไว้）
+- เส้นทางสำรองที่เลิกแนะนำ：`~/.config/pi-auto-name/config.json` ยังคงถูกอ่านด้วยลำดับความสำคัญต่ำสุด
 - ทับซ้อนตามโปรเจกต์：`.pi/pi-auto-name.json`
 
 การกำหนดค่าเริ่มต้นเต็มรูปแบบ：

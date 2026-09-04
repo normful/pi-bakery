@@ -54,9 +54,10 @@ Additionally, you can also configure it to continually rename as the conversatio
 
 ## Configuration
 
-Save config to either:
+Save configuration to:
 
-- Globally: `~/.config/pi-auto-name/config.json` (respects `XDG_CONFIG_HOME`)
+- Globally: `~/.pi/agent/pi-auto-name.json` (or `<PI_CODING_AGENT_DIR>/pi-auto-name.json` when configured)
+- Deprecated fallback: `~/.config/pi-auto-name/config.json` is still read at the lowest precedence
 - Per-project override: `.pi/pi-auto-name.json`
 
 Full default configuration:

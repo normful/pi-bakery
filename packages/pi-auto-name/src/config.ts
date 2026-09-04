@@ -1,7 +1,7 @@
 // config.ts — schema, defaults, load/merge.
 import { join } from "node:path";
 import { Type, type Static, type TObject } from "typebox";
-import { CONFIG_DIR_NAME } from "@earendil-works/pi-coding-agent";
+import { CONFIG_DIR_NAME, getAgentDir } from "@earendil-works/pi-coding-agent";
 import {
   configPath,
   loadJsonConfig,
@@ -70,7 +70,7 @@ export function validateConfig<T extends TObject>(schema: T, value: unknown): St
   return rpivValidateConfig(schema as TObject, value) as Static<T>;
 }
 
-const USER_CONFIG_PATH = configPath("pi-auto-name"); // ~/.config/pi-auto-name/config.json
+const LEGACY_USER_CONFIG_PATH = configPath("pi-auto-name");
 
 function isPlainObject(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
@@ -93,16 +93,18 @@ function deepMerge(
 }
 
 /**
- * Load: user-global base ← project override (per-field, project wins).
- * Configuration comes ONLY from the two JSON files read via rpiv-config;
+ * Load: legacy user base ← Pi user config ← project override (per-field, right wins).
+ * Configuration comes only from the three JSON files read via rpiv-config;
  * there are no env-var overrides.
  */
 export function loadConfig(cwd: string): Config {
-  const userPath = USER_CONFIG_PATH;
+  const legacyUserPath = LEGACY_USER_CONFIG_PATH;
+  const userPath = join(getAgentDir(), "pi-auto-name.json");
   const projectPath = join(cwd, CONFIG_DIR_NAME, "pi-auto-name.json");
+  const legacyUser = loadJsonConfig<Record<string, unknown>>(legacyUserPath);
   const user = loadJsonConfig<Record<string, unknown>>(userPath);
   const project = loadJsonConfig<Record<string, unknown>>(projectPath);
-  const merged = deepMerge(user, project);
+  const merged = deepMerge(deepMerge(legacyUser, user), project);
   const validated = validateConfig(ConfigSchema, merged);
   // rpiv-config's merge is shallow (`{...defaults, ...cleaned}`) and TypeBox
   // Value.Create honors an object's own default over nested property defaults.
@@ -111,6 +113,7 @@ export function loadConfig(cwd: string): Config {
   const fullDefaults = validateConfig(ConfigSchema, {});
   const cfg = deepMerge(fullDefaults, validated) as Config;
   debug("loadConfig", {
+    legacyUserPath,
     userPath,
     projectPath,
     enabled: cfg.enabled,

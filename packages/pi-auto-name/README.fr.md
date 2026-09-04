@@ -54,7 +54,8 @@ De plus，tu peux aussi le configurer pour renommer en continu au fur et à mesu
 
 Enregistre la configuration dans：
 
-- Globalement：`~/.config/pi-auto-name/config.json`（respecte `XDG_CONFIG_HOME`）
+- Globalement：`~/.pi/agent/pi-auto-name.json`（ou `<PI_CODING_AGENT_DIR>/pi-auto-name.json` lorsqu'il est configuré）
+- Emplacement de secours obsolète：`~/.config/pi-auto-name/config.json` reste lu avec la priorité la plus basse
 - Remplacement par projet：`.pi/pi-auto-name.json`
 
 Configuration par défaut complète：

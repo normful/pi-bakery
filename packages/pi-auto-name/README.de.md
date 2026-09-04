@@ -54,7 +54,8 @@ Darüber hinaus kannst du auch konfigurieren，dass es kontinuierlich umbenennt�
 
 Speichere die Konfiguration in：
 
-- Global：`~/.config/pi-auto-name/config.json`（beachtet `XDG_CONFIG_HOME`）
+- Global：`~/.pi/agent/pi-auto-name.json`（oder `<PI_CODING_AGENT_DIR>/pi-auto-name.json`，wenn konfiguriert）
+- Veralteter Fallback：`~/.config/pi-auto-name/config.json` wird weiterhin mit niedrigster Priorität gelesen
 - Projektüberschreibung：`.pi/pi-auto-name.json`
 
 Volle Standardkonfiguration：
