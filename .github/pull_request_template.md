@@ -4,4 +4,4 @@
 
 # Human verification
 
-- [ ] I (human, not an agent on my behalf) ran `pi --extension <your-local-copy-of-the-updated-extension>` and spot-checked that it works as you intended.
+- [ ] I am a human (I am not a coding assistant) and I ran `pi --extension <local-copy-of-updated-extension>` after making my changes to manually confirmed my changes worked.
