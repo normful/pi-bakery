@@ -37,18 +37,20 @@ export interface NamingSession {
   signal: AbortSignal | undefined;
 }
 
-// Lazy, cached dynamic imports: the heavy external packages (pi-ai,
-// rpiv-config) are only loaded on the first call site that needs them —
-// i.e. during an actual naming run — not at extension load. Both getters
-// cache the import promise, so repeated requests share one resolved module.
+// Lazy, cached dynamic import: pi-ai is only loaded on the first naming run,
+// not at extension load. The promise is cached so repeated runs share one module.
 let _piAi: Promise<typeof import("@earendil-works/pi-ai")> | undefined;
 function piAi(): Promise<typeof import("@earendil-works/pi-ai")> {
   return (_piAi ??= import("@earendil-works/pi-ai"));
 }
 
-let _rpivConfig: Promise<typeof import("@juicesharp/rpiv-config")> | undefined;
-function rpivConfig(): Promise<typeof import("@juicesharp/rpiv-config")> {
-  return (_rpivConfig ??= import("@juicesharp/rpiv-config"));
+// Inline model-key codec: slash at >=1, else invalid.
+export function splitIntoProviderAndModelId(
+  key: string,
+): { provider: string; modelId: string } | undefined {
+  const slashIdx = key.indexOf("/");
+  if (slashIdx >= 1) return { provider: key.slice(0, slashIdx), modelId: key.slice(slashIdx + 1) };
+  return undefined;
 }
 
 export const RETRIES = 3;
@@ -256,19 +258,17 @@ function renderPrompt(
   return `${directive}\n\n${rules}\n${contextBlock}${locale.responseFormat}`;
 }
 
-async function resolveModel(
+export function resolveModel(
   modelRegistry: ModelRegistry,
   currentModel: Model<Api> | undefined,
   cfg: Config,
-) {
-  let parsed: { provider: string; modelId: string } | undefined;
+): Model<Api> | undefined {
   if (cfg.namingModel) {
-    const { parseModelKey } = await rpivConfig();
-    parsed = parseModelKey(cfg.namingModel);
-  }
-  if (parsed) {
-    const model = modelRegistry.find(parsed.provider, parsed.modelId);
-    if (model) return model;
+    const parsed = splitIntoProviderAndModelId(cfg.namingModel);
+    if (parsed) {
+      const model = modelRegistry.find(parsed.provider, parsed.modelId);
+      if (model) return model;
+    }
   }
   return currentModel; // may be undefined → missing_model
 }
@@ -507,13 +507,7 @@ async function attemptOnce(
   const locale = buildLocale(cfg.language);
 
   // Step 1: resolve the model.
-  let model: Model<Api> | undefined;
-  try {
-    model = await resolveModel(session.modelRegistry, session.model, cfg);
-  } catch (error) {
-    debug("generateNames: resolveModel threw", String(error));
-    return { ok: false, kind: "request_failed" };
-  }
+  const model = resolveModel(session.modelRegistry, session.model, cfg);
   if (!model) {
     debug("generateNames: missing_model — no model resolved", {
       namingModel: cfg.namingModel,

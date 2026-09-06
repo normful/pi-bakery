@@ -12,6 +12,7 @@ import {
   buildAnchorBlock,
   resolveNamingAnchor,
   parseGeneratedNames,
+  splitIntoProviderAndModelId,
   sanitizeWindowName,
   sanitizeSessionName,
   windowNameBudget,
@@ -577,6 +578,71 @@ describe("budget pass-through ({windowMaxChars}/{sessionMaxChars})", () => {
     expect(text).not.toContain("Recent user messages:");
     expect(text).not.toContain("First user message:");
     expect(text).not.toContain("1. bonus follow-up");
+  });
+});
+
+describe("splitIntoProviderAndModelId", () => {
+  it("parses provider/modelId with slash", () => {
+    expect(splitIntoProviderAndModelId("anthropic/claude-sonnet-4")).toEqual({
+      provider: "anthropic",
+      modelId: "claude-sonnet-4",
+    });
+    expect(splitIntoProviderAndModelId("openrouter/nvidia/nemotron:free")).toEqual({
+      provider: "openrouter",
+      modelId: "nvidia/nemotron:free",
+    });
+  });
+
+  it("rejects colon form and missing/invalid separators", () => {
+    expect(splitIntoProviderAndModelId("anthropic:claude-sonnet-4")).toBeUndefined();
+    expect(splitIntoProviderAndModelId("claude-sonnet-4")).toBeUndefined();
+    expect(splitIntoProviderAndModelId("")).toBeUndefined();
+    expect(splitIntoProviderAndModelId("/leading-slash")).toBeUndefined();
+    expect(splitIntoProviderAndModelId("/")).toBeUndefined();
+  });
+});
+
+describe("resolveModel", () => {
+  it("uses namingModel override when registry finds it", () => {
+    const found = { provider: "openai", id: "gpt-test" };
+    const registry = { find: vi.fn(() => found) } as any;
+    const current = { provider: "anthropic", id: "claude-test" } as any;
+    expect(resolveModel(registry, current, mkConfig({ namingModel: "openai/gpt-test" }))).toBe(
+      found,
+    );
+    expect(registry.find).toHaveBeenCalledWith("openai", "gpt-test");
+  });
+
+  it("falls back to currentModel when override not found", () => {
+    const registry = { find: vi.fn(() => undefined) } as any;
+    const current = { provider: "anthropic", id: "claude-test" } as any;
+    expect(resolveModel(registry, current, mkConfig({ namingModel: "openai/missing" }))).toBe(
+      current,
+    );
+  });
+
+  it("falls back to currentModel when namingModel invalid (no slash)", () => {
+    const registry = { find: vi.fn(() => undefined) } as any;
+    const current = { provider: "anthropic", id: "claude-test" } as any;
+    expect(resolveModel(registry, current, mkConfig({ namingModel: "anthropic:claude" }))).toBe(
+      current,
+    );
+    expect(registry.find).not.toHaveBeenCalled();
+  });
+
+  it("falls back to currentModel when namingModel empty", () => {
+    const registry = { find: vi.fn(() => undefined) } as any;
+    const current = { provider: "anthropic", id: "claude-test" } as any;
+    expect(resolveModel(registry, current, mkConfig({ namingModel: "" }))).toBe(current);
+    expect(registry.find).not.toHaveBeenCalled();
+  });
+
+  it("returns undefined when both override and current are missing", () => {
+    const registry = { find: vi.fn(() => undefined) } as any;
+    expect(resolveModel(registry, undefined, mkConfig({ namingModel: "" }))).toBeUndefined();
+    expect(
+      resolveModel(registry, undefined, mkConfig({ namingModel: "openai/gpt-test" })),
+    ).toBeUndefined();
   });
 });
 
