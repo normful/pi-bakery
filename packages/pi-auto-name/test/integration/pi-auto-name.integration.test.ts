@@ -277,3 +277,52 @@ describe("integration: lifecycle & surfaces (Groups D/E)", () => {
     expect(h.eventsOfType("session_info_changed" as never).length).toBe(countBefore + 1);
   });
 });
+
+describe("integration: resume/reload provenance (Group F)", () => {
+  it("reload does not re-fire the initial rename for an already named session", async () => {
+    const h = await createHarness({
+      config: { initialRenameTrigger: "first-input", reRenameEveryNTurns: 1 },
+      reloadable: true,
+    });
+    harnesses.push(h);
+    h.faux.setResponses([fauxWindowSession("First Name", "First Name"), mainResponse()]);
+    await h.session.prompt("first");
+    expect(h.sessionManager.getSessionName()).toBe("First Name");
+
+    await h.session.reload();
+    h.reregisterFauxApi();
+    // turn 2 input is skipped (done latched from provenance): nothing
+    // consumes the head, so the main turn echoes the naming response and
+    // the main response stays pending.
+    h.faux.setResponses([fauxWindowSession("Spurious Name", "Spurious Name"), mainResponse()]);
+    await h.session.prompt("second");
+    expect(h.sessionManager.getSessionName()).toBe("First Name");
+    expect(h.faux.getPendingResponseCount()).toBe(1);
+
+    // intervals still work after reload: turn 3 hits N=1 and re-renames,
+    // which also proves the extension is live on the new runner.
+    h.faux.setResponses([mainResponse(), fauxWindowSession("Third Turn", "Third Turn")]);
+    await h.session.prompt("third turn here");
+    expect(h.sessionManager.getSessionName()).toBe("Third Turn");
+  });
+
+  it("reload restores the external-rename lock from provenance", async () => {
+    const h = await createHarness({
+      config: { initialRenameTrigger: "first-input" },
+      reloadable: true,
+    });
+    harnesses.push(h);
+    h.faux.setResponses([fauxWindowSession("First Name", "First Name"), mainResponse()]);
+    await h.session.prompt("first");
+    expect(h.sessionManager.getSessionName()).toBe("First Name");
+
+    // external rename locks (in-memory); reload wipes memory but the
+    // transcript provenance lets session_start re-derive the lock.
+    h.session.setSessionName("User Picked");
+    await h.session.reload();
+    h.reregisterFauxApi();
+    h.faux.setResponses([fauxWindowSession("Spurious Name", "Spurious Name"), mainResponse()]);
+    await h.session.prompt("second turn here");
+    expect(h.sessionManager.getSessionName()).toBe("User Picked");
+  });
+});

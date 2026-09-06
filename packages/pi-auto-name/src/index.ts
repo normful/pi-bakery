@@ -2,7 +2,7 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import type { Config } from "./config.js";
 import { createState, restoreProvenance, type RenameState } from "./state.js";
-import { canReplace, handleSessionInfoChanged } from "./ownership.js";
+import { canReplace, handleSessionInfoChanged, reconcileProvenanceOnStart } from "./ownership.js";
 import { buildContext, type NamingContext } from "./context.js";
 import {
   generateNames,
@@ -296,6 +296,7 @@ export default function (pi: ExtensionAPI): void {
     // Respect an existing deliberate name; still sync surfaces to a window
     // name derived from it (stored window name, else compacted session name).
     const currentName = pi.getSessionName();
+    reconcileProvenanceOnStart(state, currentName, c.respectExternalRenames);
     if (currentName && !canReplace(currentName, c.replaceExistingName)) {
       debug("session_start: existing deliberate name — initial rename skipped", { currentName });
       state.done = true;

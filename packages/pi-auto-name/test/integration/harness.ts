@@ -80,11 +80,17 @@ export interface Harness {
   tempDir: string;
   cleanup: () => void;
   writeConfig: (patch: Record<string, unknown>) => void;
+  /** Re-register the faux api streams (session.reload() wipes the registry). */
+  reregisterFauxApi: () => void;
 }
 
 export interface HarnessOptions {
   config?: Record<string, unknown>;
   withAuth?: boolean;
+  /** Bind a stub UI context so ctx.hasUI is true (deferred rename paths). */
+  ui?: boolean;
+  /** Bind an error listener so session.reload() emits session_start. */
+  reloadable?: boolean;
 }
 
 export async function createHarness(options: HarnessOptions = {}): Promise<Harness> {
@@ -112,14 +118,17 @@ export async function createHarness(options: HarnessOptions = {}): Promise<Harne
   // "No API provider registered". Scoped per harness; released in cleanup().
   const apiSourceId = `pi-auto-name-int-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const compatRegistry = loadRuntimeCompatRegistry();
-  compatRegistry.registerApiProvider(
-    {
-      api: (faux as unknown as { api: string }).api,
-      stream: (faux as unknown as { stream: unknown }).stream,
-      streamSimple: (faux as unknown as { streamSimple: unknown }).streamSimple,
-    },
-    apiSourceId,
-  );
+  function registerFauxApi(): void {
+    compatRegistry.registerApiProvider(
+      {
+        api: (faux as unknown as { api: string }).api,
+        stream: (faux as unknown as { stream: unknown }).stream,
+        streamSimple: (faux as unknown as { streamSimple: unknown }).streamSimple,
+      },
+      apiSourceId,
+    );
+  }
+  registerFauxApi();
 
   const credentials = new InMemoryCredentialStore();
   const fauxModel = faux.getModel();
@@ -224,7 +233,10 @@ export async function createHarness(options: HarnessOptions = {}): Promise<Harne
     events.push(event);
   });
 
-  await session.bindExtensions({});
+  await session.bindExtensions({
+    ...(options.ui ? { uiContext: {} as never } : {}),
+    ...(options.reloadable ? { onError: () => {} } : {}),
+  });
 
   function writeConfig(patch: Record<string, unknown>) {
     const piDir = join(tempDir, ".pi");
@@ -249,5 +261,6 @@ export async function createHarness(options: HarnessOptions = {}): Promise<Harne
       if (existsSync(tempDir)) rmSync(tempDir, { recursive: true, force: true });
     },
     writeConfig,
+    reregisterFauxApi: registerFauxApi,
   };
 }
