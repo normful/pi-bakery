@@ -12,7 +12,7 @@ import {
   type NamingSession,
 } from "./naming.js";
 import { collectExistingSessionNames } from "./dedup.js";
-import { applySessionName, syncSurfaces, windowNameForSync } from "./surfaces.js";
+import { applySessionName, logSurfacesEnv, syncSurfaces, windowNameForSync } from "./surfaces.js";
 import { debug, initDebug } from "./debug.js";
 
 /**
@@ -307,6 +307,7 @@ export default function (pi: ExtensionAPI): void {
       state.done = true;
     }
     debug("session_start: syncing surfaces", { currentName });
+    logSurfacesEnv();
     await syncSurfaces(pi, c, windowNameForSync(state, currentName));
   });
 
