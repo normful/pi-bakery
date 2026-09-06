@@ -17,11 +17,18 @@ import { debug, initDebug } from "./debug.js";
 
 /**
  * Everything a rename run needs from the event context, captured synchronously
- * after the session lifecycle guard and before the naming pipeline yields, so
- * the deferred flow never touches a stale-guarded ctx getter.
+ * after the generation guard and before the naming pipeline yields, so the
+ * deferred flow never touches a stale-guarded ctx getter.
  */
 interface PreparedRename {
-  activeSession: { active: boolean };
+  /**
+   * The pure generation signal at prepare time. Aborted on session_shutdown
+   * and superseded by the re-mint on session_start, so post-step checks
+   * against it detect a replaced session. Deliberately NOT the combined
+   * fetch signal (NamingSession.signal), which can abort for non-replacement
+   * reasons.
+   */
+  generation: AbortSignal;
   state: RenameState;
   c: Config;
   currentName: string | undefined;
@@ -62,14 +69,15 @@ export default function (pi: ExtensionAPI): void {
   initDebug(pi);
   let state: RenameState = createState();
   let cfg: Config | undefined;
-  let lifecycle = { active: true };
   /**
    * Per-generation abort controller. Aborted on `session_shutdown` — every
    * replacement path (reload/new/resume/fork/quit) emits it to the old runner
-   * before invalidation — and re-minted on `session_start`, so a naming fetch
-   * from a replaced session is preempted at the provider boundary instead of
-   * running to `timeoutMs`. Its signal flows into every rename via
-   * prepareRename (see namingSignal); abort classification lives in naming.ts.
+   * before invalidation — and re-minted on `session_start`. Its signal is
+   * both the preemption mechanism (fed to the naming fetch via prepareRename,
+   * see namingSignal) and the staleness token: handlers capture it on entry
+   * and the pipeline re-checks it after each step, so work from a replaced
+   * session exits instead of touching a stale ctx or renaming the wrong
+   * session. Abort classification lives in naming.ts.
    */
   let generationController = new AbortController();
 
@@ -87,12 +95,12 @@ export default function (pi: ExtensionAPI): void {
 
   /**
    * Guard checks + synchronous preparation, run after config loading confirms
-   * the event's session is still active. Returns undefined when the rename is
+   * the event's generation is still current. Returns undefined when the rename is
    * skipped (disabled, done, inflight/locked, un-replaceable name, or no
    * naming context yet).
    *
    * Crucially, the naming context is built HERE - before the naming pipeline's
-   * first await and after the lifecycle check - so `ctx.sessionManager` is read
+   * first await and after the generation check - so `ctx.sessionManager` is read
    * only while the session remains active. Session-bound values go into a plain
    * `PreparedRename` snapshot; the (possibly deferred) flow that follows never
    * touches a stale-guarded ctx getter again.
@@ -152,7 +160,7 @@ export default function (pi: ExtensionAPI): void {
       timeoutMs: options?.timeoutMs,
     });
     return {
-      activeSession: lifecycle,
+      generation: generationController.signal,
       state,
       c,
       currentName,
@@ -165,7 +173,7 @@ export default function (pi: ExtensionAPI): void {
         // NOTE: ctx.signal is expected to be undefined here — both callers
         // (input, agent_settled) run while the agent is idle. Preemption
         // across session replacement/reload comes from the generation
-        // signal; lifecycle.active remains the post-step guard.
+        // signal; the post-step generation checks below remain as backup.
         // See NamingSession.signal.
         signal: namingSignal(ctx.signal, generationController.signal),
       },
@@ -199,7 +207,7 @@ export default function (pi: ExtensionAPI): void {
         titles = [];
       }
     }
-    if (!p.activeSession.active) return;
+    if (p.generation.aborted) return;
 
     // Step 2: generate the names (LLM + fallback) from the prebuilt context and
     // captured session refs. generateNames returns its failures rather than
@@ -211,7 +219,7 @@ export default function (pi: ExtensionAPI): void {
       debug("renameOnce: generateNames threw unexpectedly", String(error));
       throw error;
     }
-    if (!p.activeSession.active) return;
+    if (p.generation.aborted) return;
     debug("renameOnce: generateNames result", result);
 
     if (!result.ok) {
@@ -247,7 +255,7 @@ export default function (pi: ExtensionAPI): void {
       debug("renameOnce: applySessionName failed", String(error));
       throw error;
     }
-    if (!p.activeSession.active) return;
+    if (p.generation.aborted) return;
 
     // Step 4: sync surfaces to the generated window name.
     try {
@@ -311,20 +319,19 @@ export default function (pi: ExtensionAPI): void {
   }
 
   pi.on("session_start", async (event, ctx) => {
-    lifecycle.active = false;
-    lifecycle = { active: true };
-    // Re-mint for the new generation. Normally already-fresh (a reloaded
-    // factory gets a new closure), but a shared closure across replacement
-    // would otherwise inherit an aborted controller and fail every rename.
+    // Re-mint for the new generation, invalidating the previous one. Normally
+    // already-fresh (a reloaded factory gets a new closure), but a shared
+    // closure across replacement would otherwise inherit an aborted
+    // controller and fail every rename.
     generationController.abort();
     generationController = new AbortController();
-    const run = lifecycle;
+    const generation = generationController.signal;
     state = createState();
     cfg = undefined;
     const cwd = ctx.cwd;
     restoreProvenance(ctx, state);
     const c = await config(cwd);
-    if (!run.active) return;
+    if (generation.aborted) return;
     debug("session_start", {
       reason: event.reason,
       restored: {
@@ -347,11 +354,11 @@ export default function (pi: ExtensionAPI): void {
   });
 
   pi.on("input", async (event, ctx) => {
-    const run = lifecycle;
-    if (!run.active) return;
+    const generation = generationController.signal;
+    if (generation.aborted) return;
     const cwd = ctx.cwd;
     const c = await config(cwd);
-    if (!run.active) return;
+    if (generation.aborted) return;
     if (!c.enabled || c.initialRenameTrigger !== "first-input") {
       debug("input: ignored", {
         enabled: c.enabled,
@@ -396,11 +403,11 @@ export default function (pi: ExtensionAPI): void {
    * rename and the turn-interval re-rename both live here.
    */
   pi.on("agent_settled", async (_event, ctx) => {
-    const run = lifecycle;
-    if (!run.active) return;
+    const generation = generationController.signal;
+    if (generation.aborted) return;
     const cwd = ctx.cwd;
     const c = await config(cwd);
-    if (!run.active) return;
+    if (generation.aborted) return;
     if (!c.enabled) return;
     state.turnsSeen += 1;
 
@@ -458,11 +465,11 @@ export default function (pi: ExtensionAPI): void {
   });
 
   pi.on("session_info_changed", async (event, ctx) => {
-    const run = lifecycle;
-    if (!run.active) return;
+    const generation = generationController.signal;
+    if (generation.aborted) return;
     const cwd = ctx.cwd;
     const c = await config(cwd);
-    if (!run.active) return;
+    if (generation.aborted) return;
     const isEcho = event.name === state.lastAutoName;
     debug("session_info_changed", {
       name: event.name,
@@ -477,10 +484,9 @@ export default function (pi: ExtensionAPI): void {
   });
 
   pi.on("session_shutdown", async () => {
-    lifecycle.active = false;
     // Preempt any in-flight naming fetch from this (now dead) generation at
     // the provider boundary. The pipeline classifies the abort and exits
-    // silently (see naming.ts); post-step lifecycle checks remain as backup.
+    // silently (see naming.ts); post-step generation checks remain as backup.
     generationController.abort();
   });
 }
