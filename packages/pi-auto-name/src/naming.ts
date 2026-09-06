@@ -730,7 +730,20 @@ export async function generateNames(
 
   const anchor = await resolveNamingAnchor(pi.exec, cwd);
 
+  // Overall attempt budget: a hung model must not stall the caller for
+  // RETRIES x the per-call timeout (e.g. ~90s on an awaited headless first
+  // input). Past the budget, stop retrying and fall through to the
+  // last-message fallback below, which needs no network.
+  const attemptStart = Date.now();
+  const attemptBudgetMs = options.timeoutMs ?? 30_000;
   for (let attempt = 0; attempt < RETRIES; attempt++) {
+    if (attempt > 0 && Date.now() - attemptStart > attemptBudgetMs) {
+      debug("generateNames: attempt budget exhausted - falling back", {
+        attempt,
+        budgetMs: attemptBudgetMs,
+      });
+      break;
+    }
     const res = await attemptOnce(session, cfg, context, titles, cwd, pi, options, attempt, anchor);
     if (res.ok) return { ok: true, names: res.names };
     switch (res.kind) {

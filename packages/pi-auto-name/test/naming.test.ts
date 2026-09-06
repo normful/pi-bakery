@@ -439,6 +439,26 @@ describe("generateNames", () => {
     }
   });
 
+  it("stops retrying past the attempt budget and falls back", async () => {
+    // A hung model must not cost RETRIES x the per-call timeout: once the
+    // budget elapses, the loop breaks to the last-message fallback.
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-01-01T00:00:00Z"));
+      const complete = vi.fn(async () => {
+        vi.setSystemTime(new Date(Date.now() + 60_000));
+        return mkResponse("WINDOW: Only one line");
+      });
+      const result = await generateNames(mkCtx({}, complete), mkConfig(), mkContext(), [], "/p", {
+        exec: vi.fn(),
+      } as any);
+      expect(complete).toHaveBeenCalledTimes(1);
+      expect(result.ok).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("falls back to the last message when stopReason is not stop", async () => {
     const complete = vi.fn(async () => mkResponse("", "length"));
     const result = await generateNames(
