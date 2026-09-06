@@ -36,6 +36,16 @@ import { debug, debugEnabled } from "./debug.js";
 export interface NamingSession {
   modelRegistry: ModelRegistry;
   model: Model<Api> | undefined;
+  /**
+   * AbortSignal captured from the triggering event ctx. Both registered
+   * triggers (`input`, `agent_settled`) fire while idle — before `_runAgentPrompt`
+   * starts and after `finishRun()` nulled `activeRun` — so this is expected to
+   * be `undefined` and naming is intentionally non-cancellable. Cancellation
+   * across session replacement/reload is handled by the caller's lifecycle
+   * guard (`activeSession.active`), with `timeoutMs` (10s UI / 30s headless)
+   * as the only in-flight bound. Forwarded when defined so a future in-flight
+   * trigger (e.g. `agent_end`) would cancel for free.
+   */
   signal: AbortSignal | undefined;
 }
 
@@ -544,6 +554,13 @@ async function completeOnce(
     apiKey: auth.apiKey,
     headers: auth.headers,
     env: auth.env,
+    // Per-credential baseUrl overlay (e.g. Copilot-style providers resolve it
+    // via auth.json/models.json "$ENV(...)"). ModelRuntime.prepareRequest
+    // applies it on the complete() path; the fallback must forward it too or
+    // the request hits the default host.
+    ...("baseUrl" in auth && typeof auth.baseUrl === "string" && auth.baseUrl
+      ? { baseUrl: auth.baseUrl }
+      : {}),
   });
   return stream.result();
 }

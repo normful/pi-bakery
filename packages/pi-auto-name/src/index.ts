@@ -140,6 +140,11 @@ export default function (pi: ExtensionAPI): void {
       session: {
         modelRegistry: ctx.modelRegistry,
         model: ctx.model,
+        // NOTE: ctx.signal is expected to be undefined here — both callers
+        // (input, agent_settled) run while the agent is idle, so there is no
+        // in-flight run to cancel. Intentional: lifecycle.active is the
+        // cancellation mechanism (checked after each pipeline step), and
+        // timeoutMs bounds the LLM call. See NamingSession.signal.
         signal: ctx.signal,
       },
     };
