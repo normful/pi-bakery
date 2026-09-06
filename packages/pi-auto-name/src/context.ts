@@ -24,8 +24,26 @@ function extractText(content: unknown): string {
     .join("\n");
 }
 
+/**
+ * Per-message cap for the first/recent naming context. A pasted log or dump
+ * can be megabytes; without a cap it ships in full on every naming call
+ * (initial + each interval turn). Only full-conversation depth was capped
+ * (`MAX_FULL_CONVERSATION_CHARS`) — first/recent rode along unbounded.
+ * Head + tail preserves both the topic setup and the closing ask.
+ */
+export const MAX_NAMING_MESSAGE_CHARS = 2000;
+const NAMING_MESSAGE_HEAD_CHARS = 1500;
+const NAMING_MESSAGE_TAIL_CHARS = 500;
+/** Marker replacing the dropped middle of an oversized context message. */
+export const NAMING_MESSAGE_TRUNCATED_MARKER = "[message truncated]";
+
+export function truncateNamingMessage(text: string): string {
+  if (text.length <= MAX_NAMING_MESSAGE_CHARS) return text;
+  return `${text.slice(0, NAMING_MESSAGE_HEAD_CHARS)}\n\n${NAMING_MESSAGE_TRUNCATED_MARKER}\n\n${text.slice(-NAMING_MESSAGE_TAIL_CHARS)}`;
+}
+
 function userMessageText(message: { role?: string; content?: unknown }): string {
-  return extractText(message.content).trim();
+  return truncateNamingMessage(extractText(message.content).trim());
 }
 
 /** Text of the first assistant message with content (topic-project context). */
@@ -33,7 +51,7 @@ function getFirstAssistantMessage(entries: readonly SessionEntry[]): string | un
   for (const entry of entries) {
     if (entry.type !== "message" || entry.message.role !== "assistant") continue;
     const text = extractText(entry.message.content).trim();
-    if (text) return text;
+    if (text) return truncateNamingMessage(text);
   }
   return undefined;
 }
@@ -58,7 +76,8 @@ function getUserMessageContext(
     if (text) userMessages.push({ index, text });
   }
   const cleanInput = currentInput?.trim();
-  if (cleanInput) userMessages.push({ index: entries.length, text: cleanInput });
+  if (cleanInput)
+    userMessages.push({ index: entries.length, text: truncateNamingMessage(cleanInput) });
   const firstMessage = userMessages[0];
   if (!firstMessage) return undefined;
   const recentMessages = userMessages.slice(-3).filter((m) => m.index !== firstMessage.index);

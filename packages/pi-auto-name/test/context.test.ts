@@ -60,6 +60,29 @@ describe("extractText behavior through buildContext", () => {
     expect(out?.firstUserMessage).toBe("first");
     expect(out?.recentUserMessages).toEqual(["second"]);
   });
+
+  it("truncates oversized messages head+tail with a marker", async () => {
+    const big = `head-${"a".repeat(3000)}-tail`;
+    const ctx = mkCtx([msg("user", big)]);
+    const out = await buildContext(ctx, cfg("recent-user-messages"));
+    expect(out?.firstUserMessage).toContain("[message truncated]");
+    expect(out?.firstUserMessage?.startsWith("head-")).toBe(true);
+    expect(out?.firstUserMessage?.endsWith("-tail")).toBe(true);
+    expect(out!.firstUserMessage.length).toBeLessThan(big.length);
+  });
+
+  it("leaves messages at the cap untouched", async () => {
+    const exact = "b".repeat(2000);
+    const ctx = mkCtx([msg("user", exact)]);
+    const out = await buildContext(ctx, cfg("recent-user-messages"));
+    expect(out?.firstUserMessage).toBe(exact);
+  });
+
+  it("truncates the in-progress input too", async () => {
+    const ctx = mkCtx([]);
+    const out = await buildContext(ctx, cfg("recent-user-messages"), `x${"y".repeat(3000)}z`);
+    expect(out?.firstUserMessage).toContain("[message truncated]");
+  });
 });
 
 describe("recent-user-messages depth", () => {
