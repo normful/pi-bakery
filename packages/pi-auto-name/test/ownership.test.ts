@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { canReplace, handleSessionInfoChanged } from "../src/ownership.js";
+import {
+  canReplace,
+  handleSessionInfoChanged,
+  reconcileProvenanceOnStart,
+} from "../src/ownership.js";
 import { createState, type RenameState } from "../src/state.js";
 
 describe("canReplace", () => {
@@ -43,5 +47,46 @@ describe("handleSessionInfoChanged", () => {
     const state: RenameState = { ...createState(), autoRenameLocked: true };
     handleSessionInfoChanged(state, "anything", true);
     expect(state.autoRenameLocked).toBe(true);
+  });
+});
+
+describe("reconcileProvenanceOnStart", () => {
+  it("leaves fresh sessions untouched", () => {
+    const state = createState();
+    reconcileProvenanceOnStart(state, "Some Name", true);
+    expect(state.done).toBe(false);
+    expect(state.autoRenameLocked).toBe(false);
+  });
+
+  it("latches done when our auto name survived", () => {
+    const state = createState();
+    state.lastAutoName = "our-name";
+    reconcileProvenanceOnStart(state, "our-name", true);
+    expect(state.done).toBe(true);
+    expect(state.autoRenameLocked).toBe(false);
+  });
+
+  it("latches the lock when renamed away and respect is on", () => {
+    const state = createState();
+    state.lastAutoName = "our-name";
+    reconcileProvenanceOnStart(state, "external-name", true);
+    expect(state.done).toBe(false);
+    expect(state.autoRenameLocked).toBe(true);
+  });
+
+  it("leaves diverged names alone when respect is off", () => {
+    const state = createState();
+    state.lastAutoName = "our-name";
+    reconcileProvenanceOnStart(state, "external-name", false);
+    expect(state.done).toBe(false);
+    expect(state.autoRenameLocked).toBe(false);
+  });
+
+  it("leaves cleared names alone (normal policy re-names unnamed sessions)", () => {
+    const state = createState();
+    state.lastAutoName = "our-name";
+    reconcileProvenanceOnStart(state, undefined, true);
+    expect(state.done).toBe(false);
+    expect(state.autoRenameLocked).toBe(false);
   });
 });

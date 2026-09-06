@@ -24,8 +24,26 @@ function extractText(content: unknown): string {
     .join("\n");
 }
 
+/**
+ * Per-message cap for the first/recent naming context. A pasted log or dump
+ * can be megabytes; without a cap it ships in full on every naming call
+ * (initial + each interval turn). Only full-conversation depth was capped
+ * (`MAX_FULL_CONVERSATION_CHARS`) — first/recent rode along unbounded.
+ * Head + tail preserves both the topic setup and the closing ask.
+ */
+export const MAX_NAMING_MESSAGE_CHARS = 2000;
+const NAMING_MESSAGE_HEAD_CHARS = 1500;
+const NAMING_MESSAGE_TAIL_CHARS = 500;
+/** Marker replacing the dropped middle of an oversized context message. */
+export const NAMING_MESSAGE_TRUNCATED_MARKER = "[message truncated]";
+
+export function truncateNamingMessage(text: string): string {
+  if (text.length <= MAX_NAMING_MESSAGE_CHARS) return text;
+  return `${text.slice(0, NAMING_MESSAGE_HEAD_CHARS)}\n\n${NAMING_MESSAGE_TRUNCATED_MARKER}\n\n${text.slice(-NAMING_MESSAGE_TAIL_CHARS)}`;
+}
+
 function userMessageText(message: { role?: string; content?: unknown }): string {
-  return extractText(message.content).trim();
+  return truncateNamingMessage(extractText(message.content).trim());
 }
 
 /** Text of the first assistant message with content (topic-project context). */
@@ -33,14 +51,23 @@ function getFirstAssistantMessage(entries: readonly SessionEntry[]): string | un
   for (const entry of entries) {
     if (entry.type !== "message" || entry.message.role !== "assistant") continue;
     const text = extractText(entry.message.content).trim();
-    if (text) return text;
+    if (text) return truncateNamingMessage(text);
   }
   return undefined;
 }
 
-/** Depth "first" + "recent": first + last 3 user messages. */
+/** Depth "first" + "recent": first + last 3 user messages.
+ *
+ * `currentInput` is the in-progress user turn being handled: the `input`
+ * event fires before pi appends the message to the transcript, so without it
+ * the very first turn has no user message yet and the context is undefined
+ * (the initial rename silently never runs). The synthetic entry uses
+ * `entries.length` as its index — out of range for real entries — so it can
+ * never collide with the first message's index in the recent filter below.
+ */
 function getUserMessageContext(
   entries: readonly SessionEntry[],
+  currentInput?: string,
 ): { firstUserMessage: string; recentUserMessages: string[] } | undefined {
   const userMessages: { index: number; text: string }[] = [];
   for (const [index, entry] of entries.entries()) {
@@ -48,6 +75,9 @@ function getUserMessageContext(
     const text = userMessageText(entry.message);
     if (text) userMessages.push({ index, text });
   }
+  const cleanInput = currentInput?.trim();
+  if (cleanInput)
+    userMessages.push({ index: entries.length, text: truncateNamingMessage(cleanInput) });
   const firstMessage = userMessages[0];
   if (!firstMessage) return undefined;
   const recentMessages = userMessages.slice(-3).filter((m) => m.index !== firstMessage.index);
@@ -118,15 +148,29 @@ function buildConversationText(entries: readonly SessionEntry[]): string {
  * Deferring a session-bound read past an await is what lets a session
  * replacement/reload (which invalidates the ctx) slip in between — avoid that
  * by reading everything up front.
+ *
+ * `currentInput` carries the in-progress user turn (only the `input` handler
+ * passes it): that event fires before pi appends the message, so the first
+ * turn would otherwise have no seed at all.
  */
-export function buildContext(ctx: ExtensionContext, cfg: Config): NamingContext | undefined {
+export function buildContext(
+  ctx: ExtensionContext,
+  cfg: Config,
+  currentInput?: string,
+): NamingContext | undefined {
   // Compaction-aware view: pre-compaction summarized entries are excluded so
   // "full-conversation" depth does not include stale or duplicated conversation.
   const entries = ctx.sessionManager.buildContextEntries();
+  const cleanInput = currentInput?.trim() || undefined;
 
   if (cfg.namingContextDepth === "full-conversation") {
-    const fullText = buildConversationText(entries);
-    const firstCtx = getUserMessageContext(entries);
+    const base = buildConversationText(entries);
+    const fullText = cleanInput
+      ? base
+        ? `${base}\n\nUser: ${cleanInput}`
+        : `User: ${cleanInput}`
+      : base;
+    const firstCtx = getUserMessageContext(entries, cleanInput);
     if (!firstCtx && !fullText) return undefined;
     return {
       firstUserMessage: firstCtx?.firstUserMessage ?? "",
@@ -136,7 +180,7 @@ export function buildContext(ctx: ExtensionContext, cfg: Config): NamingContext 
     };
   }
 
-  const firstCtx = getUserMessageContext(entries);
+  const firstCtx = getUserMessageContext(entries, cleanInput);
   if (!firstCtx) return undefined;
   return {
     firstUserMessage: firstCtx.firstUserMessage,

@@ -2,7 +2,7 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import type { Config } from "./config.js";
 import { createState, restoreProvenance, type RenameState } from "./state.js";
-import { canReplace, handleSessionInfoChanged } from "./ownership.js";
+import { canReplace, handleSessionInfoChanged, reconcileProvenanceOnStart } from "./ownership.js";
 import { buildContext, type NamingContext } from "./context.js";
 import {
   generateNames,
@@ -12,16 +12,23 @@ import {
   type NamingSession,
 } from "./naming.js";
 import { collectExistingSessionNames } from "./dedup.js";
-import { applySessionName, syncSurfaces, windowNameForSync } from "./surfaces.js";
+import { applySessionName, logSurfacesEnv, syncSurfaces, windowNameForSync } from "./surfaces.js";
 import { debug, initDebug } from "./debug.js";
 
 /**
  * Everything a rename run needs from the event context, captured synchronously
- * after the session lifecycle guard and before the naming pipeline yields, so
- * the deferred flow never touches a stale-guarded ctx getter.
+ * after the generation guard and before the naming pipeline yields, so the
+ * deferred flow never touches a stale-guarded ctx getter.
  */
 interface PreparedRename {
-  activeSession: { active: boolean };
+  /**
+   * The pure generation signal at prepare time. Aborted on session_shutdown
+   * and superseded by the re-mint on session_start, so post-step checks
+   * against it detect a replaced session. Deliberately NOT the combined
+   * fetch signal (NamingSession.signal), which can abort for non-replacement
+   * reasons.
+   */
+  generation: AbortSignal;
   state: RenameState;
   c: Config;
   currentName: string | undefined;
@@ -29,6 +36,29 @@ interface PreparedRename {
   cwd: string;
   sessionFile: string | undefined;
   session: NamingSession;
+}
+
+/**
+ * Options for a rename run. `currentInput` carries the in-progress user turn
+ * — only the `input` handler sets it (it fires before pi appends the
+ * message); `agent_settled` handlers leave it unset and read the transcript.
+ */
+interface RenameOptions {
+  timeoutMs?: number;
+  currentInput?: string;
+}
+
+/**
+ * The signal a rename fetch runs with: the event ctx's signal when pi
+ * provides one, combined with the generation signal so a session
+ * replacement/reload preempts the fetch. ctx.signal is expected to be
+ * undefined at both registered triggers (they fire while idle), in which
+ * case the generation signal alone applies.
+ */
+function namingSignal(ctxSignal: AbortSignal | undefined, generation: AbortSignal): AbortSignal {
+  if (!ctxSignal) return generation;
+  if (typeof AbortSignal.any === "function") return AbortSignal.any([ctxSignal, generation]);
+  return ctxSignal;
 }
 
 export default function (pi: ExtensionAPI): void {
@@ -39,7 +69,17 @@ export default function (pi: ExtensionAPI): void {
   initDebug(pi);
   let state: RenameState = createState();
   let cfg: Config | undefined;
-  let lifecycle = { active: true };
+  /**
+   * Per-generation abort controller. Aborted on `session_shutdown` — every
+   * replacement path (reload/new/resume/fork/quit) emits it to the old runner
+   * before invalidation — and re-minted on `session_start`. Its signal is
+   * both the preemption mechanism (fed to the naming fetch via prepareRename,
+   * see namingSignal) and the staleness token: handlers capture it on entry
+   * and the pipeline re-checks it after each step, so work from a replaced
+   * session exits instead of touching a stale ctx or renaming the wrong
+   * session. Abort classification lives in naming.ts.
+   */
+  let generationController = new AbortController();
 
   /**
    * Delayed initialization: capture cwd before yielding, then load config
@@ -55,19 +95,19 @@ export default function (pi: ExtensionAPI): void {
 
   /**
    * Guard checks + synchronous preparation, run after config loading confirms
-   * the event's session is still active. Returns undefined when the rename is
+   * the event's generation is still current. Returns undefined when the rename is
    * skipped (disabled, done, inflight/locked, un-replaceable name, or no
    * naming context yet).
    *
    * Crucially, the naming context is built HERE - before the naming pipeline's
-   * first await and after the lifecycle check - so `ctx.sessionManager` is read
+   * first await and after the generation check - so `ctx.sessionManager` is read
    * only while the session remains active. Session-bound values go into a plain
    * `PreparedRename` snapshot; the (possibly deferred) flow that follows never
    * touches a stale-guarded ctx getter again.
    */
   function prepareRename(
     ctx: ExtensionContext,
-    options: { timeoutMs?: number } | undefined,
+    options: RenameOptions | undefined,
   ): PreparedRename | undefined {
     // cfg is read synchronously so this preparation remains before the next
     // await in every caller. config(cwd) has already populated the cache.
@@ -97,10 +137,13 @@ export default function (pi: ExtensionAPI): void {
       return undefined;
     }
 
-    // Build the naming context synchronously with the fresh ctx.
+    // Build the naming context synchronously with the fresh ctx. The
+    // in-progress user turn is threaded in explicitly: the `input` event
+    // fires before pi appends the message, so the transcript alone has no
+    // seed on the very first turn.
     let context: NamingContext | undefined;
     try {
-      context = buildContext(ctx, c);
+      context = buildContext(ctx, c, options?.currentInput);
     } catch (error) {
       debug("renameOnce: buildContext failed", String(error));
       return undefined;
@@ -117,7 +160,7 @@ export default function (pi: ExtensionAPI): void {
       timeoutMs: options?.timeoutMs,
     });
     return {
-      activeSession: lifecycle,
+      generation: generationController.signal,
       state,
       c,
       currentName,
@@ -127,7 +170,12 @@ export default function (pi: ExtensionAPI): void {
       session: {
         modelRegistry: ctx.modelRegistry,
         model: ctx.model,
-        signal: ctx.signal,
+        // NOTE: ctx.signal is expected to be undefined here — both callers
+        // (input, agent_settled) run while the agent is idle. Preemption
+        // across session replacement/reload comes from the generation
+        // signal; the post-step generation checks below remain as backup.
+        // See NamingSession.signal.
+        signal: namingSignal(ctx.signal, generationController.signal),
       },
     };
   }
@@ -159,7 +207,7 @@ export default function (pi: ExtensionAPI): void {
         titles = [];
       }
     }
-    if (!p.activeSession.active) return;
+    if (p.generation.aborted) return;
 
     // Step 2: generate the names (LLM + fallback) from the prebuilt context and
     // captured session refs. generateNames returns its failures rather than
@@ -171,10 +219,18 @@ export default function (pi: ExtensionAPI): void {
       debug("renameOnce: generateNames threw unexpectedly", String(error));
       throw error;
     }
-    if (!p.activeSession.active) return;
+    if (p.generation.aborted) return;
     debug("renameOnce: generateNames result", result);
 
     if (!result.ok) {
+      // Aborted by session replacement/reload mid-fetch: this run belongs to
+      // a dead session. Exit silently — no failure handling, no fallback
+      // (which would rename the wrong session), no done-latching here beyond
+      // the caller's standard reset of its own (possibly detached) state.
+      if (result.reason === "aborted") {
+        debug("renameOnce: naming aborted (session replaced) — exiting silently");
+        return;
+      }
       await handleFailure(result.reason);
       return;
     }
@@ -199,7 +255,7 @@ export default function (pi: ExtensionAPI): void {
       debug("renameOnce: applySessionName failed", String(error));
       throw error;
     }
-    if (!p.activeSession.active) return;
+    if (p.generation.aborted) return;
 
     // Step 4: sync surfaces to the generated window name.
     try {
@@ -216,10 +272,7 @@ export default function (pi: ExtensionAPI): void {
    * (`agent_settled` and `input`), so any error propagates to the runtime, which
    * wraps the handler await in try/catch and reports it rather than crashing.
    */
-  async function renameOnce(
-    ctx: ExtensionContext,
-    options?: { timeoutMs?: number },
-  ): Promise<void> {
+  async function renameOnce(ctx: ExtensionContext, options?: RenameOptions): Promise<void> {
     const p = prepareRename(ctx, options);
     if (!p) return;
     try {
@@ -238,7 +291,7 @@ export default function (pi: ExtensionAPI): void {
    * (which would crash pi). If the session is replaced/reloaded mid-flight,
    * the rename for the replaced session is then simply skipped.
    */
-  function renameOnceDeferred(ctx: ExtensionContext, options?: { timeoutMs?: number }): void {
+  function renameOnceDeferred(ctx: ExtensionContext, options?: RenameOptions): void {
     const p = prepareRename(ctx, options);
     if (!p) return;
     void (async () => {
@@ -254,25 +307,31 @@ export default function (pi: ExtensionAPI): void {
   }
 
   /**
-   * Total-failure handling. Any naming failure latches `done` (renameOnce's
-   * finally sets it), so there is no temporary title and no mid-session retry:
-   * the session simply keeps its current / pi-derived default name and the
-   * initial rename does not land this session.
+   * Total-failure handling for the initial rename. Latching `done`
+   * (renameOnce's finally sets it) stops the input path from retrying: the
+   * session simply keeps its current name and the initial rename does not
+   * land this turn. This is not a permanent lockout — a configured
+   * `reRenameEveryNTurns` interval re-arms `done` on its turns, so a
+   * transient failure (model down on turn one) can still recover later.
    */
   async function handleFailure(reason: GenerateFailureReason): Promise<void> {
     debug("renameOnce: name generation failed — latching done (no retry)", { reason });
   }
 
   pi.on("session_start", async (event, ctx) => {
-    lifecycle.active = false;
-    lifecycle = { active: true };
-    const run = lifecycle;
+    // Re-mint for the new generation, invalidating the previous one. Normally
+    // already-fresh (a reloaded factory gets a new closure), but a shared
+    // closure across replacement would otherwise inherit an aborted
+    // controller and fail every rename.
+    generationController.abort();
+    generationController = new AbortController();
+    const generation = generationController.signal;
     state = createState();
     cfg = undefined;
     const cwd = ctx.cwd;
     restoreProvenance(ctx, state);
     const c = await config(cwd);
-    if (!run.active) return;
+    if (generation.aborted) return;
     debug("session_start", {
       reason: event.reason,
       restored: {
@@ -284,20 +343,22 @@ export default function (pi: ExtensionAPI): void {
     // Respect an existing deliberate name; still sync surfaces to a window
     // name derived from it (stored window name, else compacted session name).
     const currentName = pi.getSessionName();
+    reconcileProvenanceOnStart(state, currentName, c.respectExternalRenames);
     if (currentName && !canReplace(currentName, c.replaceExistingName)) {
       debug("session_start: existing deliberate name — initial rename skipped", { currentName });
       state.done = true;
     }
     debug("session_start: syncing surfaces", { currentName });
+    logSurfacesEnv();
     await syncSurfaces(pi, c, windowNameForSync(state, currentName));
   });
 
   pi.on("input", async (event, ctx) => {
-    const run = lifecycle;
-    if (!run.active) return;
+    const generation = generationController.signal;
+    if (generation.aborted) return;
     const cwd = ctx.cwd;
     const c = await config(cwd);
-    if (!run.active) return;
+    if (generation.aborted) return;
     if (!c.enabled || c.initialRenameTrigger !== "first-input") {
       debug("input: ignored", {
         enabled: c.enabled,
@@ -322,12 +383,14 @@ export default function (pi: ExtensionAPI): void {
     // prepare synchronously (fresh ctx) and defer only the LLM + apply with a
     // shorter naming budget so the rename lands before the agent gets far into
     // its turn. Headless (RPC/print) awaits the full budget (§4 rule 5 note;
-    // Gap 5).
+    // Gap 5). Either way the in-progress turn is threaded in as the seed: the
+    // `input` event fires before pi appends the message, so the transcript
+    // alone has nothing to name on the very first turn.
     if (ctx.hasUI) {
-      renameOnceDeferred(ctx, { timeoutMs: UI_RENAME_TIMEOUT_MS });
+      renameOnceDeferred(ctx, { timeoutMs: UI_RENAME_TIMEOUT_MS, currentInput: text });
       return;
     }
-    await renameOnce(ctx);
+    await renameOnce(ctx, { currentInput: text });
   });
 
   /**
@@ -340,11 +403,11 @@ export default function (pi: ExtensionAPI): void {
    * rename and the turn-interval re-rename both live here.
    */
   pi.on("agent_settled", async (_event, ctx) => {
-    const run = lifecycle;
-    if (!run.active) return;
+    const generation = generationController.signal;
+    if (generation.aborted) return;
     const cwd = ctx.cwd;
     const c = await config(cwd);
-    if (!run.active) return;
+    if (generation.aborted) return;
     if (!c.enabled) return;
     state.turnsSeen += 1;
 
@@ -365,8 +428,17 @@ export default function (pi: ExtensionAPI): void {
     // Turn-interval re-rename. agent_settled counts real user-facing turns
     // (one input = one settled turn), so reRenameEveryNTurns behaves exactly
     // as its name implies — no per-continuation churn, and it fires at the
-    // settled boundary rather than mid-turn.
-    if (c.reRenameEveryNTurns > 0 && state.done && state.turnsSeen % c.reRenameEveryNTurns === 0) {
+    // settled boundary rather than mid-turn. The first settled turn belongs
+    // to the initial rename (landed at its input, or just above at its
+    // settle), so intervals start counting from turn 2: without this, N=1
+    // would re-rename on the very turn the initial rename landed and
+    // overwrite it.
+    if (
+      c.reRenameEveryNTurns > 0 &&
+      state.done &&
+      state.turnsSeen > 1 &&
+      state.turnsSeen % c.reRenameEveryNTurns === 0
+    ) {
       const currentName = pi.getSessionName();
       const blocked = state.inflight || state.autoRenameLocked;
       const replaceable = canReplace(currentName, c.replaceExistingName);
@@ -393,11 +465,11 @@ export default function (pi: ExtensionAPI): void {
   });
 
   pi.on("session_info_changed", async (event, ctx) => {
-    const run = lifecycle;
-    if (!run.active) return;
+    const generation = generationController.signal;
+    if (generation.aborted) return;
     const cwd = ctx.cwd;
     const c = await config(cwd);
-    if (!run.active) return;
+    if (generation.aborted) return;
     const isEcho = event.name === state.lastAutoName;
     debug("session_info_changed", {
       name: event.name,
@@ -412,6 +484,9 @@ export default function (pi: ExtensionAPI): void {
   });
 
   pi.on("session_shutdown", async () => {
-    lifecycle.active = false;
+    // Preempt any in-flight naming fetch from this (now dead) generation at
+    // the provider boundary. The pipeline classifies the abort and exits
+    // silently (see naming.ts); post-step generation checks remain as backup.
+    generationController.abort();
   });
 }

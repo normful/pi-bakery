@@ -158,3 +158,25 @@ describe("renderDebugEntry", () => {
     expect(rendered).not.toContain("x".repeat(300));
   });
 });
+
+describe("debug reload", () => {
+  it("re-registers the renderer after initDebug with a new api (reload)", async () => {
+    vi.stubEnv("PI_AUTO_NAME_DEBUG", "1");
+    vi.resetModules();
+    const { debug, DEBUG_ENTRY_TYPE, initDebug } = await import("../src/debug.js");
+    const first = mkPi();
+    initDebug(first.pi);
+    debug("before reload");
+    expect(first.registerEntryRenderer).toHaveBeenCalledTimes(1);
+    // Reload: fresh Extension + api object, factory re-invoked.
+    const second = mkPi();
+    initDebug(second.pi);
+    debug("after reload");
+    expect(second.registerEntryRenderer).toHaveBeenCalledTimes(1);
+    expect(second.registerEntryRenderer).toHaveBeenCalledWith(
+      DEBUG_ENTRY_TYPE,
+      expect.any(Function),
+    );
+    expect(second.appendEntry).toHaveBeenCalledTimes(1);
+  });
+});

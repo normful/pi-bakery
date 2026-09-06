@@ -15,7 +15,9 @@ import {
   ISO_FALLBACK_RE,
   WINDOW_WORD_MIN,
   buildProjectSuffixTitle,
+  cleanLine,
   cleanTitle,
+  codePointLength,
   compactWindowName,
   normalizeTitle,
   sanitizeSlug,
@@ -34,21 +36,32 @@ import { debug, debugEnabled } from "./debug.js";
 export interface NamingSession {
   modelRegistry: ModelRegistry;
   model: Model<Api> | undefined;
+  /**
+   * AbortSignal for the naming fetch. The caller combines the triggering
+   * event ctx's signal (expected `undefined`: both registered triggers
+   * fire while idle) with the per-generation signal, which aborts on
+   * `session_shutdown` — so a session replacement/reload preempts the
+   * in-flight fetch instead of leaving it to run to `timeoutMs`. An abort
+   * surfaces as `reason: "aborted"`, which callers must exit silently (never
+   * latch `done`, never fall back): the run belongs to a dead session.
+   */
   signal: AbortSignal | undefined;
 }
 
-// Lazy, cached dynamic imports: the heavy external packages (pi-ai,
-// rpiv-config) are only loaded on the first call site that needs them —
-// i.e. during an actual naming run — not at extension load. Both getters
-// cache the import promise, so repeated requests share one resolved module.
+// Lazy, cached dynamic import: pi-ai is only loaded on the first naming run,
+// not at extension load. The promise is cached so repeated runs share one module.
 let _piAi: Promise<typeof import("@earendil-works/pi-ai")> | undefined;
 function piAi(): Promise<typeof import("@earendil-works/pi-ai")> {
   return (_piAi ??= import("@earendil-works/pi-ai"));
 }
 
-let _rpivConfig: Promise<typeof import("@juicesharp/rpiv-config")> | undefined;
-function rpivConfig(): Promise<typeof import("@juicesharp/rpiv-config")> {
-  return (_rpivConfig ??= import("@juicesharp/rpiv-config"));
+// Inline model-key codec: slash at >=1, else invalid.
+export function splitIntoProviderAndModelId(
+  key: string,
+): { provider: string; modelId: string } | undefined {
+  const slashIdx = key.indexOf("/");
+  if (slashIdx >= 1) return { provider: key.slice(0, slashIdx), modelId: key.slice(slashIdx + 1) };
+  return undefined;
 }
 
 export const RETRIES = 3;
@@ -75,6 +88,23 @@ export function sessionNameBudget(cfg: Config): number {
   return cfg.sessionNameMaxLength ?? DEFAULT_MAX_SESSION_NAME_CHARS;
 }
 
+/**
+ * Token budget for the naming LLM call.
+ *
+ * Fixed 2048 tokens — generous for the 2-line `WINDOW`/`SESSION` output
+ * (worst ~3 tok/char + labels) and leaves headroom when a provider counts
+ * thinking/reasoning against the same ceiling. Grounded:
+ * - Anthropic `max_tokens` includes `budget_tokens` (platform.claude.com)
+ * - OpenAI `max_completion_tokens`/`max_output_tokens` includes `reasoning_tokens` (platform.openai.com)
+ * - Gemini `maxOutputTokens` includes `thoughts` (ai.google.dev) — 2048 avoids
+ *   the empty-response truncation seen with 35-435 caps on gemini-2.5/3 flash.
+ * `pi-ai` adds `thinkingBudget` on top when `reasoning` is set, so this is
+ * answer-only; keep it constant — no need to scale with W/S.
+ */
+export function resolveMaxTokens(_cfg: Config): number {
+  return 2048;
+}
+
 function buildTopicProjectPrompt(input: {
   projectName?: string;
   cwd: string;
@@ -83,6 +113,9 @@ function buildTopicProjectPrompt(input: {
   conversation?: string;
   separator: string;
   maxChars: number;
+  windowMaxChars: number;
+  sessionMaxChars: number;
+  topicBudget: number;
   language: string;
   locale: LocaleStrings;
 }): string {
@@ -90,6 +123,11 @@ function buildTopicProjectPrompt(input: {
   return fill(locale.topicProjectPromptTemplate, {
     language: input.language,
     maxChars: input.maxChars,
+    windowMaxChars: input.windowMaxChars,
+    sessionMaxChars: input.sessionMaxChars,
+    topicBudget: input.topicBudget,
+    projectName: input.projectName ?? "",
+    separator: input.separator,
     projectLines: input.projectName
       ? fill(locale.projectSuffixLines, {
           separator: input.separator,
@@ -201,16 +239,23 @@ function renderPrompt(
   const format = `\n\n${locale.responseFormat}`;
 
   if (style === "topic-project") {
+    const projectName = basename(cwd).trim() || undefined;
+    const W = windowNameBudget(cfg);
+    const S = sessionNameBudget(cfg);
+    const topicBudget = Math.max(0, W - codePointLength(`｜${projectName ?? ""}`));
     return (
       anchorBlock +
       buildTopicProjectPrompt({
-        projectName: basename(cwd).trim() || undefined,
+        projectName,
         cwd,
         firstUserMessage: first || undefined,
         firstAssistantMessage: context.firstAssistantMessage,
         conversation: context.fullText,
         separator: "｜",
-        maxChars: sessionNameBudget(cfg),
+        maxChars: S,
+        windowMaxChars: W,
+        sessionMaxChars: S,
+        topicBudget,
         language,
         locale,
       }) +
@@ -256,19 +301,17 @@ function renderPrompt(
   return `${directive}\n\n${rules}\n${contextBlock}${locale.responseFormat}`;
 }
 
-async function resolveModel(
+export function resolveModel(
   modelRegistry: ModelRegistry,
   currentModel: Model<Api> | undefined,
   cfg: Config,
-) {
-  let parsed: { provider: string; modelId: string } | undefined;
+): Model<Api> | undefined {
   if (cfg.namingModel) {
-    const { parseModelKey } = await rpivConfig();
-    parsed = parseModelKey(cfg.namingModel);
-  }
-  if (parsed) {
-    const model = modelRegistry.find(parsed.provider, parsed.modelId);
-    if (model) return model;
+    const parsed = splitIntoProviderAndModelId(cfg.namingModel);
+    if (parsed) {
+      const model = modelRegistry.find(parsed.provider, parsed.modelId);
+      if (model) return model;
+    }
   }
   return currentModel; // may be undefined → missing_model
 }
@@ -284,7 +327,35 @@ export function sanitizeWindowName(
   raw: string,
   maxChars: number,
   cwd: string,
+  opts?: { isExplicit?: boolean },
 ): string | undefined {
+  const isExplicit = opts?.isExplicit ?? false;
+  if (isExplicit) {
+    switch (style) {
+      case "natural": {
+        // Hard cut after minimal cleaning — may cut mid-word, no word floor.
+        const lines = raw.split(/\r?\n/).map(cleanLine).filter(Boolean);
+        const cleaned = lines[0] ?? cleanLine(raw);
+        if (!cleaned) return undefined;
+        return truncateToMax(cleaned, maxChars) || undefined;
+      }
+      case "slug": {
+        const s = sanitizeSlug(raw);
+        if (!s) return undefined;
+        const truncated = truncateToMax(s, maxChars);
+        // Hard cut may leave trailing hyphen (e.g. "fix-oauth-issue" @10 -> "fix-oauth-"); trim it
+        return truncated.replace(/-+$/, "").trim() || undefined;
+      }
+      case "topic-project": {
+        const projectName = basename(cwd).trim();
+        // Do not pre-truncate topic to maxChars — let buildProjectSuffixTitle budget it as 1b
+        const rawTopic = cleanTitle(raw, Infinity) ?? "";
+        const topic = topicWithoutProject(rawTopic, projectName, "｜");
+        if (!topic && !projectName) return undefined;
+        return buildProjectSuffixTitle(topic, projectName, "｜", maxChars) || undefined;
+      }
+    }
+  }
   switch (style) {
     case "natural": {
       // 2-4 whole words, dropped to fit maxChars; undefined below the word
@@ -293,7 +364,9 @@ export function sanitizeWindowName(
     }
     case "slug": {
       const s = sanitizeSlug(raw);
-      return s ? truncateToMax(s, maxChars) : undefined;
+      if (!s) return undefined;
+      const truncated = truncateToMax(s, maxChars);
+      return truncated.replace(/-+$/, "").trim() || undefined;
     }
     case "topic-project": {
       const projectName = basename(cwd).trim();
@@ -347,7 +420,8 @@ export type GenerateFailureReason =
   | "missing_model"
   | "missing_auth"
   | "request_failed"
-  | "invalid_output";
+  | "invalid_output"
+  | "aborted";
 
 export type GenerateNamesResult =
   | { ok: true; names: GeneratedNames }
@@ -438,7 +512,11 @@ async function completeOnce(
   model: Model<Api>,
   systemPrompt: string,
   userText: string,
-  options: { timeoutMs: number; signal?: AbortSignal },
+  options: {
+    timeoutMs: number;
+    signal?: AbortSignal;
+    maxTokens: number;
+  },
 ): Promise<AssistantMessage> {
   const context: Context = {
     systemPrompt,
@@ -450,8 +528,11 @@ async function completeOnce(
       },
     ],
   };
-  const streamOptions = {
-    maxTokens: 120,
+  const streamOptions: ModelsApiStreamOptions<Api> & {
+    timeoutMs: number;
+    signal?: AbortSignal;
+  } = {
+    maxTokens: options.maxTokens,
     maxRetries: 0,
     cacheRetention: "none" as const,
     timeoutMs: options.timeoutMs,
@@ -473,6 +554,13 @@ async function completeOnce(
     apiKey: auth.apiKey,
     headers: auth.headers,
     env: auth.env,
+    // Per-credential baseUrl overlay (e.g. Copilot-style providers resolve it
+    // via auth.json/models.json "$ENV(...)"). ModelRuntime.prepareRequest
+    // applies it on the complete() path; the fallback must forward it too or
+    // the request hits the default host.
+    ...("baseUrl" in auth && typeof auth.baseUrl === "string" && auth.baseUrl
+      ? { baseUrl: auth.baseUrl }
+      : {}),
   });
   return stream.result();
 }
@@ -483,7 +571,24 @@ type AttemptResult =
   | { ok: false; kind: "missing_model" }
   | { ok: false; kind: "missing_auth" }
   | { ok: false; kind: "request_failed" }
+  | { ok: false; kind: "aborted" }
   | { ok: false; kind: "retry" };
+
+/**
+ * True for provider abort rejections (fetch-style AbortError). Checked by
+ * error name rather than instanceof so cross-realm/adapter-wrapped aborts
+ * still classify. A pre-aborted session signal also forces this path, so an
+ * adapter that throws a generic error on abort still exits silently.
+ */
+function isAbortError(error: unknown, signal: AbortSignal | undefined): boolean {
+  if (signal?.aborted) return true;
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "name" in error &&
+    (error as { name: unknown }).name === "AbortError"
+  );
+}
 
 /**
  * Run a single naming attempt. Each risky step is wrapped in its own small
@@ -507,13 +612,7 @@ async function attemptOnce(
   const locale = buildLocale(cfg.language);
 
   // Step 1: resolve the model.
-  let model: Model<Api> | undefined;
-  try {
-    model = await resolveModel(session.modelRegistry, session.model, cfg);
-  } catch (error) {
-    debug("generateNames: resolveModel threw", String(error));
-    return { ok: false, kind: "request_failed" };
-  }
+  const model = resolveModel(session.modelRegistry, session.model, cfg);
   if (!model) {
     debug("generateNames: missing_model — no model resolved", {
       namingModel: cfg.namingModel,
@@ -553,7 +652,8 @@ async function attemptOnce(
   }
 
   // Step 4: the LLM call itself — the site that can throw ModelsError.
-  debug("generateNames: attempt", { attempt, model: modelRef });
+  const maxTokens = resolveMaxTokens(cfg);
+  debug("generateNames: attempt", { attempt, model: modelRef, maxTokens });
   const { ModelsError } = await piAi();
   let response: AssistantMessage;
   try {
@@ -562,9 +662,17 @@ async function attemptOnce(
       model,
       systemPromptFor(cfg.namingStyle, locale, cfg),
       fullPrompt,
-      { timeoutMs: options.timeoutMs ?? 30_000, signal: session.signal },
+      { timeoutMs: options.timeoutMs ?? 30_000, signal: session.signal, maxTokens },
     );
   } catch (error) {
+    // Aborted by session replacement/reload (or an in-flight trigger): the
+    // run is stale, not failed — exit for silent handling upstream. Never
+    // retry (the signal stays aborted) and never report as request_failed
+    // (which would latch done on a session this run no longer belongs to).
+    if (isAbortError(error, session.signal)) {
+      debug("generateNames: aborted mid-flight — exiting for silent handling");
+      return { ok: false, kind: "aborted" };
+    }
     if (error instanceof ModelsError) {
       debug("generateNames: missing_auth (ModelsError)", {
         code: error.code,
@@ -574,6 +682,15 @@ async function attemptOnce(
     }
     debug("generateNames: request_failed", String(error));
     return { ok: false, kind: "request_failed" };
+  }
+
+  // An aborted stopReason means the session moved on mid-fetch: same silent
+  // handling as a thrown abort — never retry, never fall through to the
+  // last-message fallback (which would rename a session this run no longer
+  // belongs to).
+  if (response.stopReason === "aborted") {
+    debug("generateNames: aborted (stopReason) — exiting for silent handling");
+    return { ok: false, kind: "aborted" };
   }
 
   // Only error/retry responses are diagnostic noise worth recording; a clean
@@ -589,6 +706,8 @@ async function attemptOnce(
   // Step 5: parse + sanitize the output.
   let windowName: string | undefined;
   let sessionName: string | undefined;
+  let parsedSession: string | undefined;
+  const isExplicit = cfg.windowNameMaxLength !== undefined;
   try {
     const raw = response.content
       .filter((b): b is { type: "text"; text: string } => b.type === "text")
@@ -596,7 +715,10 @@ async function attemptOnce(
       .join("\n")
       .trim();
     const parsed = parseGeneratedNames(raw);
-    windowName = sanitizeWindowName(style, parsed.window ?? "", windowNameBudget(cfg), cwd);
+    parsedSession = parsed.session;
+    windowName = sanitizeWindowName(style, parsed.window ?? "", windowNameBudget(cfg), cwd, {
+      isExplicit,
+    });
     sessionName = sanitizeSessionName(style, parsed.session ?? "", sessionNameBudget(cfg));
     debug("generateNames: parsed output", {
       raw: raw.slice(0, 120),
@@ -610,6 +732,22 @@ async function attemptOnce(
   }
   if (windowName && sessionName) {
     return { ok: true, names: { windowName, sessionName } };
+  }
+  // Salvage: the session name is the primary product (pi session + session
+  // list) while the window is an auxiliary surface label. When the model
+  // returns a usable session with a degenerate window (e.g. a single word
+  // below the natural floor), derive the window from the session raw instead
+  // of discarding both — retrying would burn another call for a name we
+  // already have, and the last-message fallback would lose the model's
+  // session entirely.
+  if (!windowName && sessionName && parsedSession) {
+    const derived = sanitizeWindowName(style, parsedSession, windowNameBudget(cfg), cwd, {
+      isExplicit,
+    });
+    if (derived) {
+      debug("generateNames: derived window from session", { derived });
+      return { ok: true, names: { windowName: derived, sessionName } };
+    }
   }
   debug("generateNames: invalid output — retrying");
   return { ok: false, kind: "retry" };
@@ -643,7 +781,20 @@ export async function generateNames(
 
   const anchor = await resolveNamingAnchor(pi.exec, cwd);
 
+  // Overall attempt budget: a hung model must not stall the caller for
+  // RETRIES x the per-call timeout (e.g. ~90s on an awaited headless first
+  // input). Past the budget, stop retrying and fall through to the
+  // last-message fallback below, which needs no network.
+  const attemptStart = Date.now();
+  const attemptBudgetMs = options.timeoutMs ?? 30_000;
   for (let attempt = 0; attempt < RETRIES; attempt++) {
+    if (attempt > 0 && Date.now() - attemptStart > attemptBudgetMs) {
+      debug("generateNames: attempt budget exhausted - falling back", {
+        attempt,
+        budgetMs: attemptBudgetMs,
+      });
+      break;
+    }
     const res = await attemptOnce(session, cfg, context, titles, cwd, pi, options, attempt, anchor);
     if (res.ok) return { ok: true, names: res.names };
     switch (res.kind) {
@@ -653,13 +804,18 @@ export async function generateNames(
         return { ok: false, reason: "missing_auth" };
       case "request_failed":
         return { ok: false, reason: "request_failed" };
+      case "aborted":
+        return { ok: false, reason: "aborted" };
       case "retry":
         continue; // invalid / non-stop output → try again
     }
   }
 
   // Last-message fallback: sanitize the latest user message into both names.
-  const fallbackWindow = sanitizeWindowName(style, seed, windowNameBudget(cfg), cwd);
+  const isExplicit = cfg.windowNameMaxLength !== undefined;
+  const fallbackWindow = sanitizeWindowName(style, seed, windowNameBudget(cfg), cwd, {
+    isExplicit,
+  });
   const fallbackSession = sanitizeSessionName(style, seed, sessionNameBudget(cfg));
   if (fallbackWindow && fallbackSession) {
     debug("generateNames: last-message fallback", {

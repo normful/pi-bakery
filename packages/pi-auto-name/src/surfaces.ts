@@ -88,9 +88,51 @@ export async function syncSurfaces(
 
 // ---- herdr ----------------------------------------------------------------
 
-const HERDR_ENV = process.env.HERDR_ENV?.trim();
-const HERDR_PANE_ID = process.env.HERDR_PANE_ID?.trim();
-const HERDR_TAB_ID = process.env.HERDR_TAB_ID?.trim();
+/**
+ * Multiplexer env, read fresh on every call — never captured at module load.
+ * jiti may cache the module across reloads while the process re-attaches to a
+ * different tmux/zellij session, so import-time values would go stale. The old
+ * top-level `debug("surfaces env")` also ran before initDebug bound pi and was
+ * silently lost; use logSurfacesEnv() from session_start instead.
+ */
+function envTrim(name: string): string | undefined {
+  const v = process.env[name]?.trim();
+  return v ? v : undefined;
+}
+
+export function getSurfacesEnv(): {
+  HERDR_ENV: string | undefined;
+  HERDR_PANE_ID: string | undefined;
+  HERDR_TAB_ID: string | undefined;
+  TMUX: string | undefined;
+  TMUX_PANE: string | undefined;
+  ZELLIJ: string | undefined;
+  ZELLIJ_PANE_ID: string | undefined;
+} {
+  return {
+    HERDR_ENV: envTrim("HERDR_ENV"),
+    HERDR_PANE_ID: envTrim("HERDR_PANE_ID"),
+    HERDR_TAB_ID: envTrim("HERDR_TAB_ID"),
+    TMUX: envTrim("TMUX"),
+    TMUX_PANE: envTrim("TMUX_PANE"),
+    ZELLIJ: envTrim("ZELLIJ"),
+    ZELLIJ_PANE_ID: envTrim("ZELLIJ_PANE_ID"),
+  };
+}
+
+/** Debug-log the current multiplexer env. Call from session_start (pi bound). */
+export function logSurfacesEnv(): void {
+  const env = getSurfacesEnv();
+  debug("surfaces env", {
+    herdr: {
+      HERDR_ENV: env.HERDR_ENV,
+      HERDR_PANE_ID: env.HERDR_PANE_ID,
+      HERDR_TAB_ID: env.HERDR_TAB_ID,
+    },
+    tmux: { TMUX: env.TMUX, TMUX_PANE: env.TMUX_PANE },
+    zellij: { ZELLIJ: env.ZELLIJ, ZELLIJ_PANE_ID: env.ZELLIJ_PANE_ID },
+  });
+}
 
 interface HerdrPaneInfo {
   pane?: {
@@ -115,8 +157,9 @@ interface HerdrTabInfo {
 async function herdrCurrentIds(
   pi: ExtensionAPI,
 ): Promise<{ paneId: string; tabId?: string } | undefined> {
-  if (HERDR_PANE_ID) {
-    return { paneId: HERDR_PANE_ID, tabId: HERDR_TAB_ID || undefined };
+  const env = getSurfacesEnv();
+  if (env.HERDR_PANE_ID) {
+    return { paneId: env.HERDR_PANE_ID, tabId: env.HERDR_TAB_ID || undefined };
   }
   try {
     const r = await pi.exec("herdr", ["pane", "current"], { timeout: 5000 });
@@ -213,31 +256,22 @@ async function renameHerdrTab(pi: ExtensionAPI, name: string, always: boolean): 
 
 // ---- tmux ----------------------------------------------------------------
 
-const TMUX_PANE = process.env.TMUX_PANE?.trim();
-
 /**
  * Rename the tmux window this process runs in. The pane id (`TMUX_PANE`) is a
  * valid tmux window target, so this renames the pane's window even when pi runs
  * in a background (non-active) window — no window_id lookup or cache needed.
  */
 async function renameTmuxWindow(pi: ExtensionAPI, name: string): Promise<void> {
-  if (!process.env.TMUX || !TMUX_PANE) {
-    return; // only when running inside tmux (env presence already in surfaces env)
+  const env = getSurfacesEnv();
+  if (!env.TMUX || !env.TMUX_PANE) {
+    return; // only when running inside tmux
   }
   try {
-    await pi.exec("tmux", ["rename-window", "-t", TMUX_PANE, name], { timeout: 3000 });
+    await pi.exec("tmux", ["rename-window", "-t", env.TMUX_PANE, name], { timeout: 3000 });
   } catch (error) {
     debug("renameTmuxWindow: failed", String(error)); // non-fatal
   }
 }
-
-const ZELLIJ_PANE_ID = process.env.ZELLIJ_PANE_ID?.trim();
-
-debug("surfaces env", {
-  herdr: { HERDR_ENV, HERDR_PANE_ID, HERDR_TAB_ID },
-  tmux: { TMUX: process.env.TMUX?.trim(), TMUX_PANE },
-  zellij: { ZELLIJ: process.env.ZELLIJ?.trim(), ZELLIJ_PANE_ID },
-});
 
 /**
  * Resolve the tab_id of the pane this process runs in via
@@ -248,6 +282,7 @@ debug("surfaces env", {
  * skipped rather than guessing the focused tab.
  */
 async function zellijTabId(pi: ExtensionAPI): Promise<number | undefined> {
+  const { ZELLIJ_PANE_ID } = getSurfacesEnv();
   if (!ZELLIJ_PANE_ID) return undefined;
   try {
     const r = await pi.exec("zellij", ["action", "list-panes", "-j", "-t"], { timeout: 5000 });
@@ -270,8 +305,9 @@ async function zellijTabId(pi: ExtensionAPI): Promise<number | undefined> {
  * closed mid-session exits non-zero (`Pane with id ... not found`); swallowed.
  */
 async function renameZellijPane(pi: ExtensionAPI, name: string): Promise<void> {
+  const { ZELLIJ_PANE_ID } = getSurfacesEnv();
   if (!ZELLIJ_PANE_ID) {
-    return; // only inside zellij (env presence already in surfaces env)
+    return; // only inside zellij
   }
   try {
     await pi.exec("zellij", ["action", "rename-pane", "-p", ZELLIJ_PANE_ID, name], {
@@ -283,7 +319,7 @@ async function renameZellijPane(pi: ExtensionAPI, name: string): Promise<void> {
 }
 
 async function renameZellijTab(pi: ExtensionAPI, name: string): Promise<void> {
-  if (!ZELLIJ_PANE_ID) {
+  if (!getSurfacesEnv().ZELLIJ_PANE_ID) {
     return;
   }
   const tabId = await zellijTabId(pi);
