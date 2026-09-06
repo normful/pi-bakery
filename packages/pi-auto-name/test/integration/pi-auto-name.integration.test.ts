@@ -164,6 +164,28 @@ describe("integration: re-rename & ownership (Group B)", () => {
     await h.session.prompt("second");
     expect(h.sessionManager.getSessionName()).toBe("Second Round");
   });
+
+  it("interval re-rename recovers after a total initial failure", async () => {
+    const h = await createHarness({
+      config: { initialRenameTrigger: "first-input", reRenameEveryNTurns: 2 },
+    });
+    harnesses.push(h);
+    // turn 1: single-word seed, invalid model output 3x, and a fallback with
+    // nothing usable -> total failure latches with no name.
+    h.faux.setResponses([
+      fauxInvalidOutput(),
+      fauxInvalidOutput(),
+      fauxInvalidOutput(),
+      mainResponse(),
+    ]);
+    await h.session.prompt("x");
+    expect(h.sessionManager.getSessionName()).toBeUndefined();
+
+    // turn 2 hits the interval: the latched done re-arms and naming recovers.
+    h.faux.setResponses([mainResponse(), fauxWindowSession("Second Turn", "Second Turn")]);
+    await h.session.prompt("second turn here");
+    expect(h.sessionManager.getSessionName()).toBe("Second Turn");
+  });
 });
 
 describe("integration: naming pipeline (Group C)", () => {
@@ -233,6 +255,14 @@ describe("integration: naming pipeline (Group C)", () => {
     ]);
     await h.session.prompt("fix oauth");
     expect(h.sessionManager.getSessionName()).toBeDefined();
+  });
+
+  it("oversized input is truncated, naming still lands", async () => {
+    const h = await createHarness();
+    harnesses.push(h);
+    h.faux.setResponses([fauxWindowSession("OAuth fix", "Fix the OAuth callback"), mainResponse()]);
+    await h.session.prompt(`fix oauth please ${"padding ".repeat(20000)}`);
+    expect(h.sessionManager.getSessionName()).toBe("Fix the OAuth callback");
   });
 });
 

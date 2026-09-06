@@ -15,7 +15,6 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import type { AgentSessionEvent } from "@earendil-works/pi-coding-agent";
 import { createInMemoryModelRegistry, getModelRuntime } from "./model-runtime-helpers.js";
-import { ConfigSchema, validateConfig } from "../../src/config.js";
 import piAutoNameFactory from "../../src/index.js";
 
 function createTempDir(): string {
@@ -90,6 +89,18 @@ export interface HarnessOptions {
 
 export async function createHarness(options: HarnessOptions = {}): Promise<Harness> {
   const tempDir = createTempDir();
+
+  // Hermetic user-global config: loadConfig merges ~/.config UNDER the
+  // project file, so keys the test does not set (notably the no-default
+  // optionals window/sessionNameMaxLength) would leak in from a real
+  // user-global file and change behavior (e.g. flipping isExplicit).
+  // Point XDG at an empty per-harness dir BEFORE src/config.ts first loads
+  // (it caches the resolved user path at module top level, and it loads
+  // lazily — hence the dynamic import below).
+  const xdgDir = join(tempDir, "xdg-config");
+  mkdirSync(xdgDir, { recursive: true });
+  process.env.XDG_CONFIG_HOME = xdgDir;
+  const { ConfigSchema, validateConfig } = await import("../../src/config.js");
 
   const faux = createFauxCore({ provider: "faux", models: [{ id: "faux-1" }] });
   const withAuth = options.withAuth ?? true;

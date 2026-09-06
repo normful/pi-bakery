@@ -264,10 +264,12 @@ export default function (pi: ExtensionAPI): void {
   }
 
   /**
-   * Total-failure handling. Any naming failure latches `done` (renameOnce's
-   * finally sets it), so there is no temporary title and no mid-session retry:
-   * the session simply keeps its current / pi-derived default name and the
-   * initial rename does not land this session.
+   * Total-failure handling for the initial rename. Latching `done`
+   * (renameOnce's finally sets it) stops the input path from retrying: the
+   * session simply keeps its current name and the initial rename does not
+   * land this turn. This is not a permanent lockout — a configured
+   * `reRenameEveryNTurns` interval re-arms `done` on its turns, so a
+   * transient failure (model down on turn one) can still recover later.
    */
   async function handleFailure(reason: GenerateFailureReason): Promise<void> {
     debug("renameOnce: name generation failed — latching done (no retry)", { reason });
