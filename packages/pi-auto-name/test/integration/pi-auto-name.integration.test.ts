@@ -326,3 +326,66 @@ describe("integration: resume/reload provenance (Group F)", () => {
     expect(h.sessionManager.getSessionName()).toBe("User Picked");
   });
 });
+
+describe("integration: deferred UI paths (Group G)", () => {
+  async function waitForName(h: Harness, timeoutMs = 5000): Promise<string | undefined> {
+    const deadline = Date.now() + timeoutMs;
+    for (;;) {
+      const name = h.sessionManager.getSessionName();
+      if (name !== undefined || Date.now() > deadline) return name;
+      await new Promise((r) => setTimeout(r, 25));
+    }
+  }
+
+  it("deferred first-input rename lands without blocking the turn", async () => {
+    const h = await createHarness({ config: { initialRenameTrigger: "first-input" }, ui: true });
+    harnesses.push(h);
+    // Either order of the shared-queue draw still lands the session name:
+    // whoever draws a naming response first uses it, the other echoes it.
+    h.faux.setResponses([
+      fauxWindowSession("OAuth fix", "Fix the OAuth callback"),
+      fauxWindowSession("OAuth fix", "Fix the OAuth callback"),
+      mainResponse(),
+    ]);
+    await h.session.prompt("fix oauth please");
+    expect(await waitForName(h)).toBe("Fix the OAuth callback");
+  });
+
+  it("second input while deferred naming is parked is skipped; first rename wins", async () => {
+    const h = await createHarness({ config: { initialRenameTrigger: "first-input" }, ui: true });
+    harnesses.push(h);
+    let namingCalls = 0;
+    let releaseNaming!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      releaseNaming = resolve;
+    });
+    // Route by context content so the shared-queue draw order cannot matter:
+    // naming calls carry the WINDOW:/SESSION: format, main calls do not.
+    // The first naming call parks; a second (from a missed skip) would
+    // return a DIFFERENT name so the assertions discriminate.
+    // NOTE: queue entries are consumed per call, so the factory is queued
+    // once per expected call (first naming + two mains, plus margin).
+    const routeByContext = async (context: unknown) => {
+      const text = JSON.stringify(context);
+      if (text.includes("WINDOW:")) {
+        namingCalls += 1;
+        if (namingCalls === 1) await gate;
+        return namingCalls === 1
+          ? fauxWindowSession("First Deferred", "First Deferred")
+          : fauxWindowSession("Second Deferred", "Second Deferred");
+      }
+      if (text.includes('"text":"second"')) return mainResponse("second ok");
+      return mainResponse("first ok");
+    };
+    h.faux.setResponses([routeByContext, routeByContext, routeByContext, routeByContext]);
+    await h.session.prompt("first");
+    await h.session.prompt("second");
+    // naming#1 is still parked on the gate: nothing may have renamed yet. A
+    // missed inflight skip would let naming#2 run free and land here.
+    await new Promise((r) => setTimeout(r, 1000));
+    expect(h.sessionManager.getSessionName()).toBeUndefined();
+    releaseNaming();
+    expect(await waitForName(h)).toBe("First Deferred");
+    expect(h.eventsOfType("session_info_changed" as never).length).toBe(1);
+  });
+});
