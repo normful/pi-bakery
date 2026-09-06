@@ -13,6 +13,7 @@ import {
   resolveNamingAnchor,
   parseGeneratedNames,
   splitIntoProviderAndModelId,
+  resolveMaxTokens,
   sanitizeWindowName,
   sanitizeSessionName,
   windowNameBudget,
@@ -331,7 +332,8 @@ describe("generateNames", () => {
     expect(text).toContain("First user message:\nFix OAuth");
     expect(text).toContain("Recent user messages:");
     expect(text).toContain(EN.responseFormat);
-    expect((options as any).maxTokens).toBe(120);
+    expect((options as any).maxTokens).toBe(resolveMaxTokens(mkConfig()));
+    expect((options as any).maxTokens).toBe(2048);
     expect((options as any).cacheRetention).toBe("none");
     expect((options as any).timeoutMs).toBe(30_000);
   });

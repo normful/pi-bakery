@@ -77,6 +77,23 @@ export function sessionNameBudget(cfg: Config): number {
   return cfg.sessionNameMaxLength ?? DEFAULT_MAX_SESSION_NAME_CHARS;
 }
 
+/**
+ * Token budget for the naming LLM call.
+ *
+ * Fixed 2048 tokens — generous for the 2-line `WINDOW`/`SESSION` output
+ * (worst ~3 tok/char + labels) and leaves headroom when a provider counts
+ * thinking/reasoning against the same ceiling. Grounded:
+ * - Anthropic `max_tokens` includes `budget_tokens` (platform.claude.com)
+ * - OpenAI `max_completion_tokens`/`max_output_tokens` includes `reasoning_tokens` (platform.openai.com)
+ * - Gemini `maxOutputTokens` includes `thoughts` (ai.google.dev) — 2048 avoids
+ *   the empty-response truncation seen with 35-435 caps on gemini-2.5/3 flash.
+ * `pi-ai` adds `thinkingBudget` on top when `reasoning` is set, so this is
+ * answer-only; keep it constant — no need to scale with W/S.
+ */
+export function resolveMaxTokens(_cfg: Config): number {
+  return 2048;
+}
+
 function buildTopicProjectPrompt(input: {
   projectName?: string;
   cwd: string;
@@ -450,8 +467,8 @@ async function completeOnce(
       },
     ],
   };
-  const streamOptions = {
-    maxTokens: 120,
+  const streamOptions: ModelsApiStreamOptions<Api> & {
+    maxTokens: options.maxTokens,
     maxRetries: 0,
     cacheRetention: "none" as const,
     timeoutMs: options.timeoutMs,
@@ -547,7 +564,8 @@ async function attemptOnce(
   }
 
   // Step 4: the LLM call itself — the site that can throw ModelsError.
-  debug("generateNames: attempt", { attempt, model: modelRef });
+  const maxTokens = resolveMaxTokens(cfg);
+  debug("generateNames: attempt", { attempt, model: modelRef, maxTokens });
   const { ModelsError } = await piAi();
   let response: AssistantMessage;
   try {
@@ -556,7 +574,7 @@ async function attemptOnce(
       model,
       systemPromptFor(cfg.namingStyle, locale, cfg),
       fullPrompt,
-      { timeoutMs: options.timeoutMs ?? 30_000, signal: session.signal },
+      { timeoutMs: options.timeoutMs ?? 30_000, signal: session.signal, maxTokens },
     );
   } catch (error) {
     if (error instanceof ModelsError) {
