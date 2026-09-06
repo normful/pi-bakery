@@ -41,6 +41,19 @@ interface RenameOptions {
   currentInput?: string;
 }
 
+/**
+ * The signal a rename fetch runs with: the event ctx's signal when pi
+ * provides one, combined with the generation signal so a session
+ * replacement/reload preempts the fetch. ctx.signal is expected to be
+ * undefined at both registered triggers (they fire while idle), in which
+ * case the generation signal alone applies.
+ */
+function namingSignal(ctxSignal: AbortSignal | undefined, generation: AbortSignal): AbortSignal {
+  if (!ctxSignal) return generation;
+  if (typeof AbortSignal.any === "function") return AbortSignal.any([ctxSignal, generation]);
+  return ctxSignal;
+}
+
 export default function (pi: ExtensionAPI): void {
   // NB: no action calls (appendEntry / registerEntryRenderer / ...) here — during
   // extension loading the runtime actions are throwing stubs. initDebug only
@@ -50,6 +63,15 @@ export default function (pi: ExtensionAPI): void {
   let state: RenameState = createState();
   let cfg: Config | undefined;
   let lifecycle = { active: true };
+  /**
+   * Per-generation abort controller. Aborted on `session_shutdown` — every
+   * replacement path (reload/new/resume/fork/quit) emits it to the old runner
+   * before invalidation — and re-minted on `session_start`, so a naming fetch
+   * from a replaced session is preempted at the provider boundary instead of
+   * running to `timeoutMs`. Its signal flows into every rename via
+   * prepareRename (see namingSignal); abort classification lives in naming.ts.
+   */
+  let generationController = new AbortController();
 
   /**
    * Delayed initialization: capture cwd before yielding, then load config
@@ -141,11 +163,11 @@ export default function (pi: ExtensionAPI): void {
         modelRegistry: ctx.modelRegistry,
         model: ctx.model,
         // NOTE: ctx.signal is expected to be undefined here — both callers
-        // (input, agent_settled) run while the agent is idle, so there is no
-        // in-flight run to cancel. Intentional: lifecycle.active is the
-        // cancellation mechanism (checked after each pipeline step), and
-        // timeoutMs bounds the LLM call. See NamingSession.signal.
-        signal: ctx.signal,
+        // (input, agent_settled) run while the agent is idle. Preemption
+        // across session replacement/reload comes from the generation
+        // signal; lifecycle.active remains the post-step guard.
+        // See NamingSession.signal.
+        signal: namingSignal(ctx.signal, generationController.signal),
       },
     };
   }
@@ -193,6 +215,14 @@ export default function (pi: ExtensionAPI): void {
     debug("renameOnce: generateNames result", result);
 
     if (!result.ok) {
+      // Aborted by session replacement/reload mid-fetch: this run belongs to
+      // a dead session. Exit silently — no failure handling, no fallback
+      // (which would rename the wrong session), no done-latching here beyond
+      // the caller's standard reset of its own (possibly detached) state.
+      if (result.reason === "aborted") {
+        debug("renameOnce: naming aborted (session replaced) — exiting silently");
+        return;
+      }
       await handleFailure(result.reason);
       return;
     }
@@ -283,6 +313,11 @@ export default function (pi: ExtensionAPI): void {
   pi.on("session_start", async (event, ctx) => {
     lifecycle.active = false;
     lifecycle = { active: true };
+    // Re-mint for the new generation. Normally already-fresh (a reloaded
+    // factory gets a new closure), but a shared closure across replacement
+    // would otherwise inherit an aborted controller and fail every rename.
+    generationController.abort();
+    generationController = new AbortController();
     const run = lifecycle;
     state = createState();
     cfg = undefined;
@@ -443,5 +478,9 @@ export default function (pi: ExtensionAPI): void {
 
   pi.on("session_shutdown", async () => {
     lifecycle.active = false;
+    // Preempt any in-flight naming fetch from this (now dead) generation at
+    // the provider boundary. The pipeline classifies the abort and exits
+    // silently (see naming.ts); post-step lifecycle checks remain as backup.
+    generationController.abort();
   });
 }

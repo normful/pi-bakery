@@ -495,6 +495,43 @@ describe("generateNames", () => {
     expect(result).toEqual({ ok: false, reason: "request_failed" });
   });
 
+  it("classifies a thrown AbortError as aborted (silent stale exit)", async () => {
+    const complete = vi.fn(async () => {
+      throw new DOMException("fetch aborted", "AbortError");
+    });
+    const result = await generateNames(mkCtx({}, complete), mkConfig(), mkContext(), [], "/p", {
+      exec: vi.fn(),
+    } as any);
+    expect(result).toEqual({ ok: false, reason: "aborted" });
+    expect(complete).toHaveBeenCalledTimes(1); // never retried
+  });
+
+  it("classifies stopReason aborted as aborted without retry or fallback", async () => {
+    const complete = vi.fn(async () => mkResponse("", "aborted"));
+    const result = await generateNames(mkCtx({}, complete), mkConfig(), mkContext(), [], "/p", {
+      exec: vi.fn(),
+    } as any);
+    expect(result).toEqual({ ok: false, reason: "aborted" });
+    expect(complete).toHaveBeenCalledTimes(1);
+  });
+
+  it("classifies a generic throw under a pre-aborted signal as aborted", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const complete = vi.fn(async () => {
+      throw new Error("socket hang up");
+    });
+    const result = await generateNames(
+      mkCtx({ signal: controller.signal }, complete),
+      mkConfig(),
+      mkContext(),
+      [],
+      "/p",
+      { exec: vi.fn() } as any,
+    );
+    expect(result).toEqual({ ok: false, reason: "aborted" });
+  });
+
   it("falls back to provider.stream + runtime auth when ModelRegistry.complete is missing", async () => {
     const resultMock = vi.fn(async () =>
       mkResponse("WINDOW: OAuth refresh\nSESSION: Fix the OAuth callback retry"),

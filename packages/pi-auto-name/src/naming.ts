@@ -37,14 +37,13 @@ export interface NamingSession {
   modelRegistry: ModelRegistry;
   model: Model<Api> | undefined;
   /**
-   * AbortSignal captured from the triggering event ctx. Both registered
-   * triggers (`input`, `agent_settled`) fire while idle — before `_runAgentPrompt`
-   * starts and after `finishRun()` nulled `activeRun` — so this is expected to
-   * be `undefined` and naming is intentionally non-cancellable. Cancellation
-   * across session replacement/reload is handled by the caller's lifecycle
-   * guard (`activeSession.active`), with `timeoutMs` (10s UI / 30s headless)
-   * as the only in-flight bound. Forwarded when defined so a future in-flight
-   * trigger (e.g. `agent_end`) would cancel for free.
+   * AbortSignal for the naming fetch. The caller combines the triggering
+   * event ctx's signal (expected `undefined`: both registered triggers
+   * fire while idle) with the per-generation signal, which aborts on
+   * `session_shutdown` — so a session replacement/reload preempts the
+   * in-flight fetch instead of leaving it to run to `timeoutMs`. An abort
+   * surfaces as `reason: "aborted"`, which callers must exit silently (never
+   * latch `done`, never fall back): the run belongs to a dead session.
    */
   signal: AbortSignal | undefined;
 }
@@ -421,7 +420,8 @@ export type GenerateFailureReason =
   | "missing_model"
   | "missing_auth"
   | "request_failed"
-  | "invalid_output";
+  | "invalid_output"
+  | "aborted";
 
 export type GenerateNamesResult =
   | { ok: true; names: GeneratedNames }
@@ -571,7 +571,24 @@ type AttemptResult =
   | { ok: false; kind: "missing_model" }
   | { ok: false; kind: "missing_auth" }
   | { ok: false; kind: "request_failed" }
+  | { ok: false; kind: "aborted" }
   | { ok: false; kind: "retry" };
+
+/**
+ * True for provider abort rejections (fetch-style AbortError). Checked by
+ * error name rather than instanceof so cross-realm/adapter-wrapped aborts
+ * still classify. A pre-aborted session signal also forces this path, so an
+ * adapter that throws a generic error on abort still exits silently.
+ */
+function isAbortError(error: unknown, signal: AbortSignal | undefined): boolean {
+  if (signal?.aborted) return true;
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "name" in error &&
+    (error as { name: unknown }).name === "AbortError"
+  );
+}
 
 /**
  * Run a single naming attempt. Each risky step is wrapped in its own small
@@ -648,6 +665,14 @@ async function attemptOnce(
       { timeoutMs: options.timeoutMs ?? 30_000, signal: session.signal, maxTokens },
     );
   } catch (error) {
+    // Aborted by session replacement/reload (or an in-flight trigger): the
+    // run is stale, not failed — exit for silent handling upstream. Never
+    // retry (the signal stays aborted) and never report as request_failed
+    // (which would latch done on a session this run no longer belongs to).
+    if (isAbortError(error, session.signal)) {
+      debug("generateNames: aborted mid-flight — exiting for silent handling");
+      return { ok: false, kind: "aborted" };
+    }
     if (error instanceof ModelsError) {
       debug("generateNames: missing_auth (ModelsError)", {
         code: error.code,
@@ -657,6 +682,15 @@ async function attemptOnce(
     }
     debug("generateNames: request_failed", String(error));
     return { ok: false, kind: "request_failed" };
+  }
+
+  // An aborted stopReason means the session moved on mid-fetch: same silent
+  // handling as a thrown abort — never retry, never fall through to the
+  // last-message fallback (which would rename a session this run no longer
+  // belongs to).
+  if (response.stopReason === "aborted") {
+    debug("generateNames: aborted (stopReason) — exiting for silent handling");
+    return { ok: false, kind: "aborted" };
   }
 
   // Only error/retry responses are diagnostic noise worth recording; a clean
@@ -770,6 +804,8 @@ export async function generateNames(
         return { ok: false, reason: "missing_auth" };
       case "request_failed":
         return { ok: false, reason: "request_failed" };
+      case "aborted":
+        return { ok: false, reason: "aborted" };
       case "retry":
         continue; // invalid / non-stop output → try again
     }
