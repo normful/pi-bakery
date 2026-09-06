@@ -22,15 +22,29 @@ export interface DebugEntryData {
 
 let pi: ExtensionAPI | undefined;
 let rendererRegistered = false;
+/**
+ * The api instance the renderer was registered on. Reloads and session
+ * replacements create a new Extension (fresh entryRenderers map) and invoke
+ * the factory again with a new api object, so registration must be tracked
+ * per api instance — never by the module flag alone.
+ */
+let registeredPi: ExtensionAPI | undefined;
 
 /**
- * Bind the pi API so debug() can append entries. Call once at extension load.
- * Deliberately performs no action calls: during extension loading the runtime
- * actions are throwing stubs (initialized only by runner.initialize()), so the
- * entry renderer is registered lazily on the first append instead.
+ * Bind the pi API so debug() can append entries. Called at extension load and
+ * again on every reload/session replacement (fresh Extension + api object).
+ * Resets the registration flag so the next debug() re-registers the renderer
+ * on the new Extension's map. Deliberately performs no action calls: during
+ * extension loading the runtime actions are throwing stubs (initialized only
+ * by runner.initialize()), so the entry renderer is registered lazily on the
+ * first append instead.
  */
 export function initDebug(api: ExtensionAPI): void {
   pi = api;
+  // Always reset: the new Extension owns a fresh entryRenderers map even when
+  // the module itself is cached (jiti) and this api object is identical.
+  rendererRegistered = false;
+  registeredPi = undefined;
 }
 
 /** Whether debug logging is enabled (for gating extra diagnostic work). */
@@ -39,9 +53,10 @@ export const debugEnabled = DEBUG;
 /** Log a debug line (no-op unless PI_AUTO_NAME_DEBUG is set and pi is bound). */
 export function debug(...args: unknown[]): void {
   if (!DEBUG || !pi) return;
-  if (!rendererRegistered) {
+  if (!rendererRegistered || registeredPi !== pi) {
     pi.registerEntryRenderer<DebugEntryData>(DEBUG_ENTRY_TYPE, renderDebugEntry);
     rendererRegistered = true;
+    registeredPi = pi;
   }
   const [msg, data] = args;
   pi.appendEntry(DEBUG_ENTRY_TYPE, {
