@@ -12,7 +12,7 @@ export interface LocaleStrings {
   /** Natural style — user-side rules block (prepended to the naming context). */
   naturalRules: string;
   /** Full user-prompt templates; labels are baked in, values are {placeholders}. */
-  topicProjectPromptTemplate: string; // {language} {maxChars} {projectLines} {projectLine} {cwd} {firstUserBlock} {firstAssistantBlock} {conversationBlock} {conversationBlock}
+  topicProjectPromptTemplate: string; // {language} {windowMaxChars} {sessionMaxChars} {topicBudget} {projectName} {separator} {projectLines} {projectLine} {cwd} {firstUserBlock} {firstAssistantBlock} {conversationBlock}
   namingContextTemplate: string; // {firstUserMessageLabel} {first} {recent}
   conversationSection: string; // "\n\nConversation:\n{conversation}" (full-conversation depth only)
   /** Short shared labels used to assemble conditional lines. */
@@ -74,7 +74,8 @@ Use plain text, no quotes, no markdown, no trailing punctuation, no extra text.`
   topicProjectPromptTemplate:
     "Generate two terminal tab titles for this Pi conversation.\n" +
     "Language: {language}.\n" +
-    "SESSION maximum characters: {maxChars}.\n" +
+    'WINDOW maximum characters: {windowMaxChars} (must include "{separator}{projectName}" suffix; keep topic <= {topicBudget} chars).\n' +
+    "SESSION maximum characters: {sessionMaxChars}.\n" +
     "Output rules:\n" +
     "- Output exactly two lines: WINDOW and SESSION, each on a single line.\n" +
     "- Do not use Markdown, bullets, code fences, or quotes.\n" +
@@ -141,7 +142,8 @@ SESSION: 不超过 {sessionMaxChars} 个字符、用连字符分隔的名称。
   topicProjectPromptTemplate:
     "为这次 Pi 对话生成两个终端标签页标题。\n" +
     "语言：{language}。\n" +
-    "SESSION 最大字符数：{maxChars}。\n" +
+    "WINDOW 最大字符数：{windowMaxChars}（必须包含“{separator}{projectName}”后缀；主题 <= {topicBudget} 个字符）。\n" +
+    "SESSION 最大字符数：{sessionMaxChars}。\n" +
     "输出规则：\n" +
     "- 恰好输出两行：WINDOW 和 SESSION，各占一行。\n" +
     "- 不要使用标记语言、列表、代码块或引号。\n" +
@@ -207,7 +209,8 @@ SESSION: 不超過 {sessionMaxChars} 個字元、用連字號分隔的名稱。
   topicProjectPromptTemplate:
     "為這次 Pi 對話產生兩個終端機分頁標題。\n" +
     "語言：{language}。\n" +
-    "SESSION 最大字元數：{maxChars}。\n" +
+    "WINDOW 最大字元數：{windowMaxChars}（必須包含「{separator}{projectName}」後綴；主題 <= {topicBudget} 個字元）。\n" +
+    "SESSION 最大字元數：{sessionMaxChars}。\n" +
     "輸出規則：\n" +
     "- 恰好輸出兩行：WINDOW 和 SESSION，各佔一行。\n" +
     "- 不要使用標記語言、清單、程式碼區塊或引號。\n" +
@@ -273,7 +276,8 @@ WINDOWは具体的な対象（ファイル・関数・サービス・サブシ�
   topicProjectPromptTemplate:
     "このPiの会話について、2つのターミナルタブのタイトルを生成してください。\n" +
     "言語：{language}。\n" +
-    "SESSION最大文字数：{maxChars}。\n" +
+    "WINDOW最大文字数：{windowMaxChars}（“{separator}{projectName}”接尾辞を含むこと；トピック <= {topicBudget}文字）。\n" +
+    "SESSION最大文字数：{sessionMaxChars}。\n" +
     "出力ルール：\n" +
     "- 正確に2行（WINDOWとSESSION）を、それぞれ1行ずつ出力してください。\n" +
     "- Markdown・箇条書き・コードブロック・引用符は使わないでください。\n" +
@@ -340,7 +344,8 @@ WINDOW를 구체적인 대상(파일·함수·서비스·하위 시스템·브�
   topicProjectPromptTemplate:
     "이 Pi 대화에 대한 터미널 탭 제목 두 개를 생성하세요.\n" +
     "언어: {language}.\n" +
-    "SESSION 최대 문자 수: {maxChars}.\n" +
+    'WINDOW 최대 문자 수: {windowMaxChars}("{separator}{projectName}" 접미사 포함; 토픽 <= {topicBudget}자).\n' +
+    "SESSION 최대 문자 수: {sessionMaxChars}.\n" +
     "출력 규칙:\n" +
     "- 정확히 두 줄(WINDOW와 SESSION)을 각각 한 줄씩 출력하세요.\n" +
     "- Markdown·불릿·코드 블록·따옴표를 사용하지 마세요.\n" +
@@ -406,7 +411,8 @@ Use texto simples, sem aspas, sem markdown, sem pontuação final, sem texto ext
   topicProjectPromptTemplate:
     "Gere dois títulos de abas do terminal para esta conversa do Pi.\n" +
     "Idioma: {language}.\n" +
-    "Máximo de caracteres de SESSION: {maxChars}.\n" +
+    'Máximo de caracteres de WINDOW: {windowMaxChars} (deve incluir o sufixo "{separator}{projectName}"; mantenha o tópico <= {topicBudget} caracteres).\n' +
+    "Máximo de caracteres de SESSION: {sessionMaxChars}.\n" +
     "Regras de saída:\n" +
     "- Produza exatamente duas linhas: WINDOW e SESSION, cada uma em uma única linha.\n" +
     "- Não use Markdown, marcadores, blocos de código ou aspas.\n" +
@@ -474,7 +480,8 @@ Use texto sin formato, sin comillas, sin markdown, sin puntuación final, sin te
   topicProjectPromptTemplate:
     "Genere dos títulos de pestañas del terminal para esta conversación de Pi.\n" +
     "Idioma: {language}.\n" +
-    "Máximo de caracteres de SESSION: {maxChars}.\n" +
+    'Máximo de caracteres de WINDOW: {windowMaxChars} (debe incluir el sufijo "{separator}{projectName}"; mantenga el tema <= {topicBudget} caracteres).\n' +
+    "Máximo de caracteres de SESSION: {sessionMaxChars}.\n" +
     "Reglas de salida:\n" +
     "- Produzca exactamente dos líneas: WINDOW y SESSION, cada una en una sola línea.\n" +
     "- No use Markdown, viñetas, bloques de código ni comillas.\n" +
@@ -542,7 +549,8 @@ Verwenden Sie Klartext, keine Anführungszeichen, kein Markdown, keine Satzzeich
   topicProjectPromptTemplate:
     "Generieren Sie zwei Terminal-Tab-Titel für dieses Pi-Gespräch.\n" +
     "Sprache: {language}.\n" +
-    "SESSION maximale Zeichen: {maxChars}.\n" +
+    'WINDOW maximale Zeichen: {windowMaxChars} (muss das Suffix "{separator}{projectName}" enthalten; Thema <= {topicBudget} Zeichen).\n' +
+    "SESSION maximale Zeichen: {sessionMaxChars}.\n" +
     "Ausgaberegeln:\n" +
     "- Geben Sie genau zwei Zeilen aus: WINDOW und SESSION, jeweils in einer einzigen Zeile.\n" +
     "- Verwenden Sie kein Markdown, keine Aufzählungszeichen, keine Codeblöcke und keine Anführungszeichen.\n" +
@@ -610,7 +618,8 @@ Utilisez du texte brut, sans guillemets, sans markdown, sans ponctuation finale,
   topicProjectPromptTemplate:
     "Générez deux titres d'onglets du terminal pour cette conversation Pi.\n" +
     "Langue : {language}.\n" +
-    "Maximum de caractères de SESSION : {maxChars}.\n" +
+    'Maximum de caractères de WINDOW : {windowMaxChars} (doit inclure le suffixe "{separator}{projectName}" ; gardez le sujet <= {topicBudget} caractères).\n' +
+    "Maximum de caractères de SESSION : {sessionMaxChars}.\n" +
     "Règles de sortie :\n" +
     "- Produisez exactement deux lignes : WINDOW et SESSION, chacune sur une seule ligne.\n" +
     "- N'utilisez pas de Markdown, de puces, de blocs de code ni de guillemets.\n" +
@@ -678,7 +687,8 @@ Gunakan teks biasa, tanpa tanda kutip, tanpa markdown, tanpa tanda baca di akhir
   topicProjectPromptTemplate:
     "Buat dua judul tab terminal untuk percakapan Pi ini.\n" +
     "Bahasa: {language}.\n" +
-    "Karakter maksimum SESSION: {maxChars}.\n" +
+    'Karakter maksimum WINDOW: {windowMaxChars} (harus menyertakan akhiran "{separator}{projectName}"; jaga topik <= {topicBudget} karakter).\n' +
+    "Karakter maksimum SESSION: {sessionMaxChars}.\n" +
     "Aturan keluaran:\n" +
     "- Keluarkan tepat dua baris: WINDOW dan SESSION, masing-masing pada satu baris.\n" +
     "- Jangan gunakan Markdown, poin, blok kode, atau tanda kutip.\n" +
@@ -745,7 +755,8 @@ Dùng văn bản thuần, không dấu ngoặc kép, không markdown, không d�
   topicProjectPromptTemplate:
     "Tạo hai tiêu đề tab thiết bị đầu cuối cho cuộc trò chuyện Pi này.\n" +
     "Ngôn ngữ: {language}.\n" +
-    "Số ký tự tối đa của SESSION: {maxChars}.\n" +
+    'Số ký tự tối đa của WINDOW: {windowMaxChars} (phải bao gồm hậu tố "{separator}{projectName}"; giữ chủ đề <= {topicBudget} ký tự).\n' +
+    "Số ký tự tối đa của SESSION: {sessionMaxChars}.\n" +
     "Quy tắc đầu ra:\n" +
     "- Chỉ xuất ra chính xác hai dòng: WINDOW và SESSION, mỗi dòng trên một dòng.\n" +
     "- Không dùng Markdown, gạch đầu dòng, khối mã hoặc dấu ngoặc kép.\n" +
@@ -813,7 +824,8 @@ Düz metin kullanın; tırnak işareti, markdown, sonda noktalama veya fazladan 
   topicProjectPromptTemplate:
     "Bu Pi konuşması için iki terminal sekme başlığı oluşturun.\n" +
     "Dil: {language}.\n" +
-    "SESSION maksimum karakter: {maxChars}.\n" +
+    'WINDOW maksimum karakter: {windowMaxChars} ("{separator}{projectName}" sonekini içermelidir; konu <= {topicBudget} karakter).\n' +
+    "SESSION maksimum karakter: {sessionMaxChars}.\n" +
     "Çıktı kuralları:\n" +
     "- Tam olarak iki satır çıkarın: WINDOW ve SESSION, her biri tek bir satırda.\n" +
     "- Markdown, madde işareti, kod bloğu veya tırnak işareti kullanmayın.\n" +
@@ -879,7 +891,8 @@ Użyj zwykłego tekstu: bez cudzysłowów, bez markdownu, bez interpunkcji na ko
   topicProjectPromptTemplate:
     "Wygeneruj dwa tytuły kart terminala dla tej rozmowy Pi.\n" +
     "Język: {language}.\n" +
-    "Maksymalna liczba znaków SESSION: {maxChars}.\n" +
+    'Maksymalna liczba znaków WINDOW: {windowMaxChars} (musi zawierać przyrostek "{separator}{projectName}"; temat <= {topicBudget} znaków).\n' +
+    "Maksymalna liczba znaków SESSION: {sessionMaxChars}.\n" +
     "Zasady wyjścia:\n" +
     "- Wypisz dokładnie dwie linie: WINDOW i SESSION, każdą w jednej linii.\n" +
     "- Nie używaj markdownu, wypunktowań, bloków kodu ani cudzysłowów.\n" +
@@ -947,7 +960,8 @@ SESSION: назва в нижньому регістрі, розділена д�
   topicProjectPromptTemplate:
     "Згенеруйте два заголовки вкладок термінала для цієї розмови Pi.\n" +
     "Мова: {language}.\n" +
-    "Максимальна кількість символів SESSION: {maxChars}.\n" +
+    'Максимальна кількість символів WINDOW: {windowMaxChars} (повинен містити суфікс "{separator}{projectName}"; тема <= {topicBudget} символів).\n' +
+    "Максимальна кількість символів SESSION: {sessionMaxChars}.\n" +
     "Правила виводу:\n" +
     "- Виведіть рівно два рядки: WINDOW і SESSION, кожен в одному рядку.\n" +
     "- Не використовуйте Markdown, маркери, блоки коду або лапки.\n" +
@@ -1015,7 +1029,8 @@ WINDOW را به یک موجودیت مشخص (فایل، تابع، سرویس�
   topicProjectPromptTemplate:
     "برای این گفتگوی Pi دو عنوان تب پایانه تولید کنید.\n" +
     "زبان: {language}.\n" +
-    "حداکثر کاراکتر SESSION: {maxChars}.\n" +
+    'حداکثر کاراکتر WINDOW: {windowMaxChars} (باید شامل پسوند "{separator}{projectName}" باشد؛ موضوع <= {topicBudget} کاراکتر).\n' +
+    "حداکثر کاراکتر SESSION: {sessionMaxChars}.\n" +
     "قوانین خروجی:\n" +
     "- دقیقاً دو خط خروجی دهید: WINDOW و SESSION، هر یک در یک خط.\n" +
     "- از Markdown، گلوله، بلوک کد یا نقل‌قول استفاده نکنید.\n" +
@@ -1081,7 +1096,8 @@ SESSION: اسم مفصول بشرطات أقل من {sessionMaxChars} حرفًا
   topicProjectPromptTemplate:
     "ولّد عنوانين لعلامات تبويب الطرفية لهذه المحادثة في Pi.\n" +
     "اللغة: {language}.\n" +
-    "الحد الأقصى لأحرف SESSION: {maxChars}.\n" +
+    'الحد الأقصى لأحرف WINDOW: {windowMaxChars} (يجب أن يتضمن اللاحقة "{separator}{projectName}"؛ حافظ على الموضوع <= {topicBudget} حرفًا).\n' +
+    "الحد الأقصى لأحرف SESSION: {sessionMaxChars}.\n" +
     "قواعد الإخراج:\n" +
     "- أخرج سطرين بالضبط: WINDOW وSESSION، كل واحد في سطر واحد.\n" +
     "- لا تستخدم ماركداون أو نقاطًا أو كتل أكواد أو اقتباسات.\n" +
@@ -1147,7 +1163,8 @@ WINDOW को किसी विशिष्ट इकाई (फ़ाइल, 
   topicProjectPromptTemplate:
     "इस Pi बातचीत के लिए दो टर्मिनल टैब शीर्षक बनाएँ।\n" +
     "भाषा: {language}।\n" +
-    "SESSION अधिकतम वर्ण: {maxChars}।\n" +
+    'WINDOW अधिकतम वर्ण: {windowMaxChars} ("{separator}{projectName}" प्रत्यय शामिल होना चाहिए; विषय <= {topicBudget} वर्ण)।\n' +
+    "SESSION अधिकतम वर्ण: {sessionMaxChars}।\n" +
     "आउटपुट नियम:\n" +
     "- ठीक दो पंक्तियाँ आउटपुट करें: WINDOW और SESSION, प्रत्येक एक पंक्ति में।\n" +
     "- मार्कडाउन, बुलेट, कोड ब्लॉक या उद्धरण चिह्न का उपयोग न करें।\n" +
@@ -1213,7 +1230,8 @@ Usa testo semplice, niente virgolette, niente markdown, niente punteggiatura fin
   topicProjectPromptTemplate:
     "Genera due titoli di schede del terminale per questa conversazione Pi.\n" +
     "Lingua: {language}.\n" +
-    "Massimo di caratteri di SESSION: {maxChars}.\n" +
+    'Massimo di caratteri di WINDOW: {windowMaxChars} (deve includere il suffisso "{separator}{projectName}"; mantieni l\'argomento <= {topicBudget} caratteri).\n' +
+    "Massimo di caratteri di SESSION: {sessionMaxChars}.\n" +
     "Regole di output:\n" +
     "- Produci esattamente due righe: WINDOW e SESSION, ciascuna su una riga.\n" +
     "- Non usare Markdown, elenchi puntati, blocchi di codice o virgolette.\n" +
@@ -1281,7 +1299,8 @@ Gebruik gewone tekst: geen aanhalingstekens, geen markdown, geen leestekens aan 
   topicProjectPromptTemplate:
     "Genereer twee titels voor terminaltabbladen voor dit Pi-gesprek.\n" +
     "Taal: {language}.\n" +
-    "Maximum aantal tekens van SESSION: {maxChars}.\n" +
+    'Maximum aantal tekens van WINDOW: {windowMaxChars} (moet het achtervoegsel "{separator}{projectName}" bevatten; houd het onderwerp <= {topicBudget} tekens).\n' +
+    "Maximum aantal tekens van SESSION: {sessionMaxChars}.\n" +
     "Uitvoerregels:\n" +
     "- Geef exact twee regels uit: WINDOW en SESSION, elk op één regel.\n" +
     "- Gebruik geen Markdown, opsommingstekens, codeblokken of aanhalingstekens.\n" +
@@ -1349,7 +1368,8 @@ SESSION: ชื่อคั่นด้วยเครื่องหมาย�
   topicProjectPromptTemplate:
     "สร้างชื่อแท็บเทอร์มินัลสองชื่อสำหรับบทสนทนา Pi นี้\n" +
     "ภาษา: {language}\n" +
-    "จำนวนตัวอักษรสูงสุดของ SESSION: {maxChars}\n" +
+    'จำนวนตัวอักษรสูงสุดของ WINDOW: {windowMaxChars} (ต้องมีส่วนต่อท้าย "{separator}{projectName}"; หัวข้อ <= {topicBudget} ตัวอักษร)\n' +
+    "จำนวนตัวอักษรสูงสุดของ SESSION: {sessionMaxChars}\n" +
     "กฎผลลัพธ์:\n" +
     "- แสดงผลสองบรรทัดเท่านั้น: WINDOW และ SESSION แต่ละบรรทัดต่อหนึ่งบรรทัด\n" +
     "- ห้ามใช้มาร์กดาวน์ หัวข้อย่อย บล็อกโค้ด หรือเครื่องหมายคำพูด\n" +

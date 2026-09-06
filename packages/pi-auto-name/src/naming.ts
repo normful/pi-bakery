@@ -15,7 +15,9 @@ import {
   ISO_FALLBACK_RE,
   WINDOW_WORD_MIN,
   buildProjectSuffixTitle,
+  cleanLine,
   cleanTitle,
+  codePointLength,
   compactWindowName,
   normalizeTitle,
   sanitizeSlug,
@@ -102,6 +104,9 @@ function buildTopicProjectPrompt(input: {
   conversation?: string;
   separator: string;
   maxChars: number;
+  windowMaxChars: number;
+  sessionMaxChars: number;
+  topicBudget: number;
   language: string;
   locale: LocaleStrings;
 }): string {
@@ -109,6 +114,11 @@ function buildTopicProjectPrompt(input: {
   return fill(locale.topicProjectPromptTemplate, {
     language: input.language,
     maxChars: input.maxChars,
+    windowMaxChars: input.windowMaxChars,
+    sessionMaxChars: input.sessionMaxChars,
+    topicBudget: input.topicBudget,
+    projectName: input.projectName ?? "",
+    separator: input.separator,
     projectLines: input.projectName
       ? fill(locale.projectSuffixLines, {
           separator: input.separator,
@@ -220,16 +230,23 @@ function renderPrompt(
   const format = `\n\n${locale.responseFormat}`;
 
   if (style === "topic-project") {
+    const projectName = basename(cwd).trim() || undefined;
+    const W = windowNameBudget(cfg);
+    const S = sessionNameBudget(cfg);
+    const topicBudget = Math.max(0, W - codePointLength(`｜${projectName ?? ""}`));
     return (
       anchorBlock +
       buildTopicProjectPrompt({
-        projectName: basename(cwd).trim() || undefined,
+        projectName,
         cwd,
         firstUserMessage: first || undefined,
         firstAssistantMessage: context.firstAssistantMessage,
         conversation: context.fullText,
         separator: "｜",
-        maxChars: sessionNameBudget(cfg),
+        maxChars: S,
+        windowMaxChars: W,
+        sessionMaxChars: S,
+        topicBudget,
         language,
         locale,
       }) +
@@ -301,7 +318,35 @@ export function sanitizeWindowName(
   raw: string,
   maxChars: number,
   cwd: string,
+  opts?: { isExplicit?: boolean },
 ): string | undefined {
+  const isExplicit = opts?.isExplicit ?? false;
+  if (isExplicit) {
+    switch (style) {
+      case "natural": {
+        // Hard cut after minimal cleaning — may cut mid-word, no word floor.
+        const lines = raw.split(/\r?\n/).map(cleanLine).filter(Boolean);
+        const cleaned = lines[0] ?? cleanLine(raw);
+        if (!cleaned) return undefined;
+        return truncateToMax(cleaned, maxChars) || undefined;
+      }
+      case "slug": {
+        const s = sanitizeSlug(raw);
+        if (!s) return undefined;
+        const truncated = truncateToMax(s, maxChars);
+        // Hard cut may leave trailing hyphen (e.g. "fix-oauth-issue" @10 -> "fix-oauth-"); trim it
+        return truncated.replace(/-+$/, "").trim() || undefined;
+      }
+      case "topic-project": {
+        const projectName = basename(cwd).trim();
+        // Do not pre-truncate topic to maxChars — let buildProjectSuffixTitle budget it as 1b
+        const rawTopic = cleanTitle(raw, Infinity) ?? "";
+        const topic = topicWithoutProject(rawTopic, projectName, "｜");
+        if (!topic && !projectName) return undefined;
+        return buildProjectSuffixTitle(topic, projectName, "｜", maxChars) || undefined;
+      }
+    }
+  }
   switch (style) {
     case "natural": {
       // 2-4 whole words, dropped to fit maxChars; undefined below the word
@@ -310,7 +355,9 @@ export function sanitizeWindowName(
     }
     case "slug": {
       const s = sanitizeSlug(raw);
-      return s ? truncateToMax(s, maxChars) : undefined;
+      if (!s) return undefined;
+      const truncated = truncateToMax(s, maxChars);
+      return truncated.replace(/-+$/, "").trim() || undefined;
     }
     case "topic-project": {
       const projectName = basename(cwd).trim();
@@ -455,7 +502,11 @@ async function completeOnce(
   model: Model<Api>,
   systemPrompt: string,
   userText: string,
-  options: { timeoutMs: number; signal?: AbortSignal },
+  options: {
+    timeoutMs: number;
+    signal?: AbortSignal;
+    maxTokens: number;
+  },
 ): Promise<AssistantMessage> {
   const context: Context = {
     systemPrompt,
@@ -468,6 +519,9 @@ async function completeOnce(
     ],
   };
   const streamOptions: ModelsApiStreamOptions<Api> & {
+    timeoutMs: number;
+    signal?: AbortSignal;
+  } = {
     maxTokens: options.maxTokens,
     maxRetries: 0,
     cacheRetention: "none" as const,
@@ -608,7 +662,10 @@ async function attemptOnce(
       .join("\n")
       .trim();
     const parsed = parseGeneratedNames(raw);
-    windowName = sanitizeWindowName(style, parsed.window ?? "", windowNameBudget(cfg), cwd);
+    const isExplicit = cfg.windowNameMaxLength !== undefined;
+    windowName = sanitizeWindowName(style, parsed.window ?? "", windowNameBudget(cfg), cwd, {
+      isExplicit,
+    });
     sessionName = sanitizeSessionName(style, parsed.session ?? "", sessionNameBudget(cfg));
     debug("generateNames: parsed output", {
       raw: raw.slice(0, 120),
@@ -671,7 +728,10 @@ export async function generateNames(
   }
 
   // Last-message fallback: sanitize the latest user message into both names.
-  const fallbackWindow = sanitizeWindowName(style, seed, windowNameBudget(cfg), cwd);
+  const isExplicit = cfg.windowNameMaxLength !== undefined;
+  const fallbackWindow = sanitizeWindowName(style, seed, windowNameBudget(cfg), cwd, {
+    isExplicit,
+  });
   const fallbackSession = sanitizeSessionName(style, seed, sessionNameBudget(cfg));
   if (fallbackWindow && fallbackSession) {
     debug("generateNames: last-message fallback", {

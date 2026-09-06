@@ -13,6 +13,7 @@ import {
   resolveNamingAnchor,
   parseGeneratedNames,
   splitIntoProviderAndModelId,
+  resolveModel,
   resolveMaxTokens,
   sanitizeWindowName,
   sanitizeSessionName,
@@ -228,6 +229,62 @@ describe("sanitizeWindowName", () => {
   });
 });
 
+describe("sanitizeWindowName explicit isExplicit=true hard cut (1b for topic-project)", () => {
+  it("natural explicit hard cuts mid-word vs default whole-word drop", () => {
+    // default (isExplicit false / omitted) drops whole words to fit
+    expect(sanitizeWindowName("natural", "Fix the OAuth callback", 10, "/p")).toBe("Fix the");
+    expect(
+      sanitizeWindowName("natural", "Fix the OAuth callback", 10, "/p", { isExplicit: false }),
+    ).toBe("Fix the");
+    // explicit hard cuts at code-point boundary (may cut mid-word)
+    expect(
+      sanitizeWindowName("natural", "Fix the OAuth callback", 10, "/p", { isExplicit: true }),
+    ).toBe("Fix the OA");
+    // 4-arg compat preserves default smart behavior
+    expect(sanitizeWindowName("natural", "Fix the OAuth callback now please", 10, "/p")).toBe(
+      "Fix the",
+    );
+  });
+
+  it("topic-project explicit suffix-preserving hard cut (1b)", () => {
+    // W=12, project=pi-bakery (suffix len 10) => topicBudget 2 => "Fi｜pi-bakery"
+    expect(
+      sanitizeWindowName("topic-project", "Fix auth retry loop", 12, "/p/pi-bakery", {
+        isExplicit: true,
+      }),
+    ).toBe("Fi｜pi-bakery");
+    // pure truncate would be "Fix auth ret" — ensure suffix preserved
+    expect(
+      sanitizeWindowName("topic-project", "Fix auth retry loop", 12, "/p/pi-bakery", {
+        isExplicit: true,
+      }),
+    ).not.toBe("Fix auth ret");
+  });
+
+  it("topic-project explicit project alone exceeds W -> tailToMax", () => {
+    expect(
+      sanitizeWindowName("topic-project", "anything", 6, "/p/pi-bakery", { isExplicit: true }),
+    ).toBe("bakery");
+    expect(sanitizeWindowName("topic-project", "anything", 6, "/p/pi-bakery")).toBe("bakery");
+  });
+
+  it("topic-project explicit empty topic returns project", () => {
+    expect(sanitizeWindowName("topic-project", "", 24, "/p/pi-bakery", { isExplicit: true })).toBe(
+      "pi-bakery",
+    );
+    expect(
+      sanitizeWindowName("topic-project", '""', 24, "/p/pi-bakery", { isExplicit: true }),
+    ).toBe("pi-bakery");
+  });
+
+  it("slug explicit still hard cuts (no behavior change)", () => {
+    expect(sanitizeWindowName("slug", "Fix OAuth issue", 10, "/p", { isExplicit: true })).toBe(
+      "fix-oauth",
+    );
+    expect(sanitizeWindowName("slug", "Fix OAuth issue", 10, "/p")).toBe("fix-oauth");
+  });
+});
+
 describe("sanitizeSessionName", () => {
   it("slug: slugifies to at most 60 chars", () => {
     expect(sanitizeSessionName("slug", "Fix OAuth issue", 60)).toBe("fix-oauth-issue");
@@ -336,6 +393,8 @@ describe("generateNames", () => {
     expect((options as any).maxTokens).toBe(2048);
     expect((options as any).cacheRetention).toBe("none");
     expect((options as any).timeoutMs).toBe(30_000);
+    expect((options as any).reasoning).toBeUndefined();
+    expect("reasoning" in (options as any)).toBe(false);
   });
 
   it("prepends the dedup wrapper when existing titles exist", async () => {
@@ -583,6 +642,48 @@ describe("budget pass-through ({windowMaxChars}/{sessionMaxChars})", () => {
   });
 });
 
+describe("topic-project prompt explicit window budgeting", () => {
+  it("includes WINDOW maximum and topicBudget for explicit W=12", async () => {
+    const complete = mkComplete();
+    await generateNames(
+      mkCtx({}, complete),
+      mkConfig({
+        namingStyle: "topic-project",
+        windowNameMaxLength: 12,
+        sessionNameMaxLength: 200,
+      }),
+      mkContext({ firstUserMessage: "Fix auth" }),
+      [],
+      "/tmp/pi-bakery",
+      { exec: vi.fn() } as any,
+    );
+    const text = (complete.mock.calls[0][1] as any).messages[0].content[0].text;
+    expect(text).toContain("WINDOW maximum characters: 12");
+    expect(text).toContain("keep topic <= 2 chars");
+    expect(text).toContain("SESSION maximum characters: 200");
+    expect(text).toContain("pi-bakery");
+  });
+
+  it("shows W=30 when windowNameMaxLength undefined", async () => {
+    const complete = mkComplete();
+    await generateNames(
+      mkCtx({}, complete),
+      mkConfig({
+        namingStyle: "topic-project",
+        windowNameMaxLength: undefined,
+        sessionNameMaxLength: 200,
+      }),
+      mkContext({ firstUserMessage: "Fix auth" }),
+      [],
+      "/p/pi-bakery",
+      { exec: vi.fn() } as any,
+    );
+    const text = (complete.mock.calls[0][1] as any).messages[0].content[0].text;
+    expect(text).toContain("WINDOW maximum characters: 30");
+    expect(text).toContain("SESSION maximum characters: 200");
+  });
+});
+
 describe("splitIntoProviderAndModelId", () => {
   it("parses provider/modelId with slash", () => {
     expect(splitIntoProviderAndModelId("anthropic/claude-sonnet-4")).toEqual({
@@ -648,6 +749,46 @@ describe("resolveModel", () => {
   });
 });
 
+describe("generateNames does not send reasoning", () => {
+  it("never sends reasoning via ModelRegistry.complete", async () => {
+    const complete = mkComplete();
+    await generateNames(mkCtx({}, complete), mkConfig(), mkContext(), [], "/p", {
+      exec: vi.fn(),
+    } as any);
+    const options = complete.mock.calls[0][2] as any;
+    expect(options.reasoning).toBeUndefined();
+    expect("reasoning" in options).toBe(false);
+  });
+
+  it("never sends reasoning via fallback provider.stream", async () => {
+    const resultMock = vi.fn(async () =>
+      mkResponse("WINDOW: OAuth refresh\nSESSION: Fix the OAuth callback retry"),
+    );
+    const stream = vi.fn(() => ({ result: resultMock }));
+    const ctx = mkCtx({
+      modelRegistry: {
+        find: vi.fn(() => undefined),
+        getProvider: vi.fn(() => ({ stream })),
+        getApiKeyAndHeaders: vi.fn(async () => ({
+          ok: true as const,
+          apiKey: "k",
+          headers: {},
+          env: {},
+        })),
+      } as any,
+    });
+    await generateNames(ctx, mkConfig(), mkContext(), [], "/p", {
+      exec: vi.fn(),
+    } as any);
+    expect(stream).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.not.objectContaining({ reasoning: expect.anything() }),
+    );
+    expect((stream.mock.calls[0] as unknown as any[])[2].reasoning).toBeUndefined();
+  });
+});
+
 describe("language directive ({language} → natural/slug system prompt)", () => {
   it("injects the localized directive into the natural system prompt and user turn", async () => {
     const complete = mkComplete();
@@ -695,5 +836,110 @@ describe("language directive ({language} → natural/slug system prompt)", () =>
     const { systemPrompt, messages } = complete.mock.calls[0][1] as any;
     expect(systemPrompt).not.toContain("Tạo tên bằng tiếng Việt");
     expect(messages[0].content[0].text).toContain("Ngôn ngữ: vi");
+  });
+});
+
+describe("resolveMaxTokens", () => {
+  // Fixed 2048 — generous for visible output + thinking headroom (see src/naming.ts).
+  // No longer scales with W/S, so any config returns the same constant.
+  it("always returns 2048 regardless of window/session budgets", () => {
+    expect(resolveMaxTokens(mkConfig())).toBe(2048);
+    expect(resolveMaxTokens(mkConfig({ windowNameMaxLength: 30, sessionNameMaxLength: 200 }))).toBe(
+      2048,
+    );
+    expect(resolveMaxTokens(mkConfig({ windowNameMaxLength: 10, sessionNameMaxLength: 50 }))).toBe(
+      2048,
+    );
+    expect(
+      resolveMaxTokens(mkConfig({ windowNameMaxLength: 100, sessionNameMaxLength: 500 })),
+    ).toBe(2048);
+    expect(
+      resolveMaxTokens(mkConfig({ windowNameMaxLength: 500, sessionNameMaxLength: 2000 })),
+    ).toBe(2048);
+    expect(resolveMaxTokens(mkConfig({ windowNameMaxLength: 1, sessionNameMaxLength: 1 }))).toBe(
+      2048,
+    );
+  });
+});
+
+describe("generateNames maxTokens plumbing", () => {
+  // Fixed 2048 — always, regardless of W/S. See resolveMaxTokens comment.
+  it("sends 2048 via ModelRegistry.complete", async () => {
+    const complete = mkComplete();
+    await generateNames(mkCtx({}, complete), mkConfig(), mkContext(), [], "/p", {
+      exec: vi.fn(),
+    } as any);
+    const opts = complete.mock.calls[0][2] as any;
+    expect(opts.maxTokens).toBe(2048);
+    expect(opts.maxTokens).toBe(resolveMaxTokens(mkConfig()));
+    expect(opts.maxTokens).not.toBe(120);
+  });
+
+  it("sends 2048 even for relaxed budgets via ModelRegistry.complete", async () => {
+    const complete = mkComplete();
+    await generateNames(
+      mkCtx({}, complete),
+      mkConfig({ windowNameMaxLength: 100, sessionNameMaxLength: 500 }),
+      mkContext(),
+      [],
+      "/p",
+      { exec: vi.fn() } as any,
+    );
+    expect((complete.mock.calls[0][2] as any).maxTokens).toBe(2048);
+    expect((complete.mock.calls[0][2] as any).maxTokens).toBe(
+      resolveMaxTokens(mkConfig({ windowNameMaxLength: 100, sessionNameMaxLength: 500 })),
+    );
+  });
+
+  it("sends 2048 via fallback provider.stream", async () => {
+    const resultMock = vi.fn(async () =>
+      mkResponse("WINDOW: OAuth refresh\nSESSION: Fix the OAuth callback retry"),
+    );
+    const stream = vi.fn(() => ({ result: resultMock }));
+    const ctx = mkCtx({
+      modelRegistry: {
+        find: vi.fn(() => undefined),
+        getProvider: vi.fn(() => ({ stream })),
+        getApiKeyAndHeaders: vi.fn(async () => ({
+          ok: true as const,
+          apiKey: "k",
+          headers: {},
+          env: {},
+        })),
+      } as any,
+    });
+    await generateNames(ctx, mkConfig(), mkContext(), [], "/p", { exec: vi.fn() } as any);
+    const opts = (stream as any).mock.calls[0][2] as any;
+    expect(opts.maxTokens).toBe(2048);
+    expect(opts.maxTokens).toBe(resolveMaxTokens(mkConfig()));
+    expect(opts.maxTokens).not.toBe(120);
+  });
+
+  it("sends 2048 even for relaxed budgets via fallback provider.stream", async () => {
+    const resultMock = vi.fn(async () =>
+      mkResponse("WINDOW: OAuth refresh\nSESSION: Fix the OAuth callback retry"),
+    );
+    const stream = vi.fn(() => ({ result: resultMock }));
+    const ctx = mkCtx({
+      modelRegistry: {
+        find: vi.fn(() => undefined),
+        getProvider: vi.fn(() => ({ stream })),
+        getApiKeyAndHeaders: vi.fn(async () => ({
+          ok: true as const,
+          apiKey: "k",
+          headers: {},
+          env: {},
+        })),
+      } as any,
+    });
+    await generateNames(
+      ctx,
+      mkConfig({ windowNameMaxLength: 100, sessionNameMaxLength: 500 }),
+      mkContext(),
+      [],
+      "/p",
+      { exec: vi.fn() } as any,
+    );
+    expect((stream as any).mock.calls[0][2].maxTokens).toBe(2048);
   });
 });

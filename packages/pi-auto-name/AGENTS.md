@@ -59,8 +59,8 @@ runs in this order:
 - Every table implements **all 15 `LocaleStrings` fields** as non-empty
   strings.
 - Every `{placeholder}` used by the naming templates is preserved verbatim:
-  `{language} {maxChars} {projectLines} {projectLine} {cwd} {firstUserBlock}
-{firstAssistantBlock}` in `topicProjectPromptTemplate`,
+  `{language} {windowMaxChars} {sessionMaxChars} {topicBudget} {projectName} {separator} {maxChars} {projectLines} {projectLine} {cwd} {firstUserBlock}
+{firstAssistantBlock}` in `topicProjectPromptTemplate` (where `{maxChars}` is the legacy alias for `{sessionMaxChars}`),
   `{firstUserMessageLabel} {first} {recent}` in `namingContextTemplate`,
   `{conversation}` in `conversationSection`,
   `{separator} {projectName}` in `projectSuffixLines`, and
@@ -72,8 +72,8 @@ runs in this order:
   instruction scaffolding is translated.
 - **Lengths are parametric, not hardcoded.** Every string that states a WINDOW /
   SESSION size (`naturalSystemPrompt`, `slugSystemPrompt`,
-  `topicProjectSystemPrompt`, `naturalRules`) uses the `{windowMaxChars}` and
-  `{sessionMaxChars}` placeholders instead of literal numbers. `naming.ts`
+  `topicProjectSystemPrompt`, `naturalRules`, `topicProjectPromptTemplate`) uses the `{windowMaxChars}` and
+  `{sessionMaxChars}` placeholders instead of literal numbers; `topicProjectPromptTemplate` additionally uses `{topicBudget}` (derived as `max(0, windowMaxChars - codePointLength("｜"+projectName))`) and `{projectName}`/`{separator}`. `naming.ts`
   fills them with the effective `windowNameBudget(cfg)` /
   `sessionNameBudget(cfg)` (from `windowNameMaxLength` / `sessionNameMaxLength`
   config, falling back to the `DEFAULT_MAX_*_NAME_CHARS` constants), so the

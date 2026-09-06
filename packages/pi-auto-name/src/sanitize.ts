@@ -98,7 +98,7 @@ export function cleanTitle(raw: string, maxChars: number): string | null {
 
 // --- natural style ---------------------------------------------------------
 
-function cleanLine(line: string): string {
+export function cleanLine(line: string): string {
   return line
     .replace(CONTROL_CHARS_RE, "")
     .trim()

@@ -53,7 +53,11 @@ describe("English table (en) content", () => {
 
   it("keeps every {placeholder} used by the naming templates", () => {
     expect(en.topicProjectPromptTemplate).toContain("{language}");
-    expect(en.topicProjectPromptTemplate).toContain("{maxChars}");
+    expect(en.topicProjectPromptTemplate).toContain("{windowMaxChars}");
+    expect(en.topicProjectPromptTemplate).toContain("{sessionMaxChars}");
+    expect(en.topicProjectPromptTemplate).toContain("{topicBudget}");
+    expect(en.topicProjectPromptTemplate).toContain("{projectName}");
+    expect(en.topicProjectPromptTemplate).toContain("{separator}");
     expect(en.topicProjectPromptTemplate).toContain("{projectLines}");
     expect(en.topicProjectPromptTemplate).toContain("{projectLine}");
     expect(en.topicProjectPromptTemplate).toContain("{cwd}");
@@ -121,7 +125,11 @@ describe("CJK tables (zh / zh-hant / ja / ko)", () => {
       const t = LOCALE_STRINGS[key];
       const template = t.topicProjectPromptTemplate;
       expect(template, `${key}`).toContain("{language}");
-      expect(template, `${key}`).toContain("{maxChars}");
+      expect(template, `${key}`).toContain("{windowMaxChars}");
+      expect(template, `${key}`).toContain("{sessionMaxChars}");
+      expect(template, `${key}`).toContain("{topicBudget}");
+      expect(template, `${key}`).toContain("{projectName}");
+      expect(template, `${key}`).toContain("{separator}");
       expect(template, `${key}`).toContain("{projectLines}");
       expect(template, `${key}`).toContain("{projectLine}");
       expect(template, `${key}`).toContain("{cwd}");
@@ -158,7 +166,11 @@ describe("pt-br table (Brazilian Portuguese)", () => {
   it("keeps every {placeholder} used by the naming templates", () => {
     const template = t.topicProjectPromptTemplate;
     expect(template).toContain("{language}");
-    expect(template).toContain("{maxChars}");
+    expect(template).toContain("{windowMaxChars}");
+    expect(template).toContain("{sessionMaxChars}");
+    expect(template).toContain("{topicBudget}");
+    expect(template).toContain("{projectName}");
+    expect(template).toContain("{separator}");
     expect(template).toContain("{projectLines}");
     expect(template).toContain("{projectLine}");
     expect(template).toContain("{cwd}");
@@ -204,7 +216,11 @@ describe("es / de / fr tables (Spanish / German / French)", () => {
       const t = LOCALE_STRINGS[key];
       const template = t.topicProjectPromptTemplate;
       expect(template, `${key}`).toContain("{language}");
-      expect(template, `${key}`).toContain("{maxChars}");
+      expect(template, `${key}`).toContain("{windowMaxChars}");
+      expect(template, `${key}`).toContain("{sessionMaxChars}");
+      expect(template, `${key}`).toContain("{topicBudget}");
+      expect(template, `${key}`).toContain("{projectName}");
+      expect(template, `${key}`).toContain("{separator}");
       expect(template, `${key}`).toContain("{projectLines}");
       expect(template, `${key}`).toContain("{projectLine}");
       expect(template, `${key}`).toContain("{cwd}");
@@ -263,7 +279,11 @@ describe("id / vi / tr / pl / uk tables (Indonesian / Vietnamese / Turkish / Pol
       const t = LOCALE_STRINGS[key];
       const template = t.topicProjectPromptTemplate;
       expect(template, `${key}`).toContain("{language}");
-      expect(template, `${key}`).toContain("{maxChars}");
+      expect(template, `${key}`).toContain("{windowMaxChars}");
+      expect(template, `${key}`).toContain("{sessionMaxChars}");
+      expect(template, `${key}`).toContain("{topicBudget}");
+      expect(template, `${key}`).toContain("{projectName}");
+      expect(template, `${key}`).toContain("{separator}");
       expect(template, `${key}`).toContain("{projectLines}");
       expect(template, `${key}`).toContain("{projectLine}");
       expect(template, `${key}`).toContain("{cwd}");
@@ -322,7 +342,11 @@ describe("fa / ar / hi / it / nl / th tables (Persian / Arabic / Hindi / Italian
       const t = LOCALE_STRINGS[key];
       const template = t.topicProjectPromptTemplate;
       expect(template, `${key}`).toContain("{language}");
-      expect(template, `${key}`).toContain("{maxChars}");
+      expect(template, `${key}`).toContain("{windowMaxChars}");
+      expect(template, `${key}`).toContain("{sessionMaxChars}");
+      expect(template, `${key}`).toContain("{topicBudget}");
+      expect(template, `${key}`).toContain("{projectName}");
+      expect(template, `${key}`).toContain("{separator}");
       expect(template, `${key}`).toContain("{projectLines}");
       expect(template, `${key}`).toContain("{projectLine}");
       expect(template, `${key}`).toContain("{cwd}");
