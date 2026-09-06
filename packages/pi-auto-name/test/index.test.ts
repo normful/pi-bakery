@@ -424,7 +424,11 @@ describe("turn-interval re-rename", () => {
     expect(mocks.generateNames).toHaveBeenCalledTimes(1);
 
     h.ctx.hasUI = true;
-    // Fire-and-forget re-rename — must not block and must carry the UI budget.
+    // Settled turn 1 belongs to the initial rename — no re-rename yet.
+    await h.handlers.get("agent_settled")!({}, h.ctx);
+    expect(mocks.generateNames).toHaveBeenCalledTimes(1);
+    // Settled turn 2 hits the interval: fire-and-forget re-rename — must not
+    // block and must carry the UI budget.
     await h.handlers.get("agent_settled")!({}, h.ctx);
     await vi.waitFor(() => expect(mocks.generateNames).toHaveBeenCalledTimes(2));
     const lastCall = mocks.generateNames.mock.calls[mocks.generateNames.mock.calls.length - 1];
@@ -439,6 +443,10 @@ describe("turn-interval re-rename", () => {
     expect(mocks.generateNames).toHaveBeenCalledTimes(1);
 
     h.ctx.hasUI = true;
+    // Settled turn 1 belongs to the initial rename — no re-rename yet.
+    await h.handlers.get("agent_settled")!({}, h.ctx);
+    expect(mocks.generateNames).toHaveBeenCalledTimes(1);
+
     let releaseGeneration!: (result: {
       ok: true;
       names: { windowName: string; sessionName: string };

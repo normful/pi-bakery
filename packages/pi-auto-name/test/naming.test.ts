@@ -365,6 +365,21 @@ describe("generateNames", () => {
     }
   });
 
+  it("derives the window from a usable session when the window is degenerate", async () => {
+    // A single-word WINDOW is below the natural floor, but the SESSION is
+    // usable — salvage it instead of burning retries and losing the name.
+    const complete = mkComplete(() => mkResponse("WINDOW: W1\nSESSION: Name 1"));
+    const result = await generateNames(mkCtx({}, complete), mkConfig(), mkContext(), [], "/p", {
+      exec: vi.fn(),
+    } as any);
+    expect(complete).toHaveBeenCalledTimes(1);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.names.sessionName).toBe("Name 1");
+      expect(result.names.windowName).toBe("Name 1");
+    }
+  });
+
   it("uses the locale system prompt and the naming context template", async () => {
     const complete = mkComplete();
     await generateNames(

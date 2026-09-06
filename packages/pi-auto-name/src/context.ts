@@ -38,9 +38,18 @@ function getFirstAssistantMessage(entries: readonly SessionEntry[]): string | un
   return undefined;
 }
 
-/** Depth "first" + "recent": first + last 3 user messages. */
+/** Depth "first" + "recent": first + last 3 user messages.
+ *
+ * `currentInput` is the in-progress user turn being handled: the `input`
+ * event fires before pi appends the message to the transcript, so without it
+ * the very first turn has no user message yet and the context is undefined
+ * (the initial rename silently never runs). The synthetic entry uses
+ * `entries.length` as its index — out of range for real entries — so it can
+ * never collide with the first message's index in the recent filter below.
+ */
 function getUserMessageContext(
   entries: readonly SessionEntry[],
+  currentInput?: string,
 ): { firstUserMessage: string; recentUserMessages: string[] } | undefined {
   const userMessages: { index: number; text: string }[] = [];
   for (const [index, entry] of entries.entries()) {
@@ -48,6 +57,8 @@ function getUserMessageContext(
     const text = userMessageText(entry.message);
     if (text) userMessages.push({ index, text });
   }
+  const cleanInput = currentInput?.trim();
+  if (cleanInput) userMessages.push({ index: entries.length, text: cleanInput });
   const firstMessage = userMessages[0];
   if (!firstMessage) return undefined;
   const recentMessages = userMessages.slice(-3).filter((m) => m.index !== firstMessage.index);
@@ -118,15 +129,29 @@ function buildConversationText(entries: readonly SessionEntry[]): string {
  * Deferring a session-bound read past an await is what lets a session
  * replacement/reload (which invalidates the ctx) slip in between — avoid that
  * by reading everything up front.
+ *
+ * `currentInput` carries the in-progress user turn (only the `input` handler
+ * passes it): that event fires before pi appends the message, so the first
+ * turn would otherwise have no seed at all.
  */
-export function buildContext(ctx: ExtensionContext, cfg: Config): NamingContext | undefined {
+export function buildContext(
+  ctx: ExtensionContext,
+  cfg: Config,
+  currentInput?: string,
+): NamingContext | undefined {
   // Compaction-aware view: pre-compaction summarized entries are excluded so
   // "full-conversation" depth does not include stale or duplicated conversation.
   const entries = ctx.sessionManager.buildContextEntries();
+  const cleanInput = currentInput?.trim() || undefined;
 
   if (cfg.namingContextDepth === "full-conversation") {
-    const fullText = buildConversationText(entries);
-    const firstCtx = getUserMessageContext(entries);
+    const base = buildConversationText(entries);
+    const fullText = cleanInput
+      ? base
+        ? `${base}\n\nUser: ${cleanInput}`
+        : `User: ${cleanInput}`
+      : base;
+    const firstCtx = getUserMessageContext(entries, cleanInput);
     if (!firstCtx && !fullText) return undefined;
     return {
       firstUserMessage: firstCtx?.firstUserMessage ?? "",
@@ -136,7 +161,7 @@ export function buildContext(ctx: ExtensionContext, cfg: Config): NamingContext 
     };
   }
 
-  const firstCtx = getUserMessageContext(entries);
+  const firstCtx = getUserMessageContext(entries, cleanInput);
   if (!firstCtx) return undefined;
   return {
     firstUserMessage: firstCtx.firstUserMessage,

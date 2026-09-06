@@ -655,6 +655,8 @@ async function attemptOnce(
   // Step 5: parse + sanitize the output.
   let windowName: string | undefined;
   let sessionName: string | undefined;
+  let parsedSession: string | undefined;
+  const isExplicit = cfg.windowNameMaxLength !== undefined;
   try {
     const raw = response.content
       .filter((b): b is { type: "text"; text: string } => b.type === "text")
@@ -662,7 +664,7 @@ async function attemptOnce(
       .join("\n")
       .trim();
     const parsed = parseGeneratedNames(raw);
-    const isExplicit = cfg.windowNameMaxLength !== undefined;
+    parsedSession = parsed.session;
     windowName = sanitizeWindowName(style, parsed.window ?? "", windowNameBudget(cfg), cwd, {
       isExplicit,
     });
@@ -679,6 +681,22 @@ async function attemptOnce(
   }
   if (windowName && sessionName) {
     return { ok: true, names: { windowName, sessionName } };
+  }
+  // Salvage: the session name is the primary product (pi session + session
+  // list) while the window is an auxiliary surface label. When the model
+  // returns a usable session with a degenerate window (e.g. a single word
+  // below the natural floor), derive the window from the session raw instead
+  // of discarding both — retrying would burn another call for a name we
+  // already have, and the last-message fallback would lose the model's
+  // session entirely.
+  if (!windowName && sessionName && parsedSession) {
+    const derived = sanitizeWindowName(style, parsedSession, windowNameBudget(cfg), cwd, {
+      isExplicit,
+    });
+    if (derived) {
+      debug("generateNames: derived window from session", { derived });
+      return { ok: true, names: { windowName: derived, sessionName } };
+    }
   }
   debug("generateNames: invalid output — retrying");
   return { ok: false, kind: "retry" };

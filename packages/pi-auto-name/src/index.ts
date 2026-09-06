@@ -31,6 +31,16 @@ interface PreparedRename {
   session: NamingSession;
 }
 
+/**
+ * Options for a rename run. `currentInput` carries the in-progress user turn
+ * — only the `input` handler sets it (it fires before pi appends the
+ * message); `agent_settled` handlers leave it unset and read the transcript.
+ */
+interface RenameOptions {
+  timeoutMs?: number;
+  currentInput?: string;
+}
+
 export default function (pi: ExtensionAPI): void {
   // NB: no action calls (appendEntry / registerEntryRenderer / ...) here — during
   // extension loading the runtime actions are throwing stubs. initDebug only
@@ -67,7 +77,7 @@ export default function (pi: ExtensionAPI): void {
    */
   function prepareRename(
     ctx: ExtensionContext,
-    options: { timeoutMs?: number } | undefined,
+    options: RenameOptions | undefined,
   ): PreparedRename | undefined {
     // cfg is read synchronously so this preparation remains before the next
     // await in every caller. config(cwd) has already populated the cache.
@@ -97,10 +107,13 @@ export default function (pi: ExtensionAPI): void {
       return undefined;
     }
 
-    // Build the naming context synchronously with the fresh ctx.
+    // Build the naming context synchronously with the fresh ctx. The
+    // in-progress user turn is threaded in explicitly: the `input` event
+    // fires before pi appends the message, so the transcript alone has no
+    // seed on the very first turn.
     let context: NamingContext | undefined;
     try {
-      context = buildContext(ctx, c);
+      context = buildContext(ctx, c, options?.currentInput);
     } catch (error) {
       debug("renameOnce: buildContext failed", String(error));
       return undefined;
@@ -216,10 +229,7 @@ export default function (pi: ExtensionAPI): void {
    * (`agent_settled` and `input`), so any error propagates to the runtime, which
    * wraps the handler await in try/catch and reports it rather than crashing.
    */
-  async function renameOnce(
-    ctx: ExtensionContext,
-    options?: { timeoutMs?: number },
-  ): Promise<void> {
+  async function renameOnce(ctx: ExtensionContext, options?: RenameOptions): Promise<void> {
     const p = prepareRename(ctx, options);
     if (!p) return;
     try {
@@ -238,7 +248,7 @@ export default function (pi: ExtensionAPI): void {
    * (which would crash pi). If the session is replaced/reloaded mid-flight,
    * the rename for the replaced session is then simply skipped.
    */
-  function renameOnceDeferred(ctx: ExtensionContext, options?: { timeoutMs?: number }): void {
+  function renameOnceDeferred(ctx: ExtensionContext, options?: RenameOptions): void {
     const p = prepareRename(ctx, options);
     if (!p) return;
     void (async () => {
@@ -322,12 +332,14 @@ export default function (pi: ExtensionAPI): void {
     // prepare synchronously (fresh ctx) and defer only the LLM + apply with a
     // shorter naming budget so the rename lands before the agent gets far into
     // its turn. Headless (RPC/print) awaits the full budget (§4 rule 5 note;
-    // Gap 5).
+    // Gap 5). Either way the in-progress turn is threaded in as the seed: the
+    // `input` event fires before pi appends the message, so the transcript
+    // alone has nothing to name on the very first turn.
     if (ctx.hasUI) {
-      renameOnceDeferred(ctx, { timeoutMs: UI_RENAME_TIMEOUT_MS });
+      renameOnceDeferred(ctx, { timeoutMs: UI_RENAME_TIMEOUT_MS, currentInput: text });
       return;
     }
-    await renameOnce(ctx);
+    await renameOnce(ctx, { currentInput: text });
   });
 
   /**
@@ -365,8 +377,17 @@ export default function (pi: ExtensionAPI): void {
     // Turn-interval re-rename. agent_settled counts real user-facing turns
     // (one input = one settled turn), so reRenameEveryNTurns behaves exactly
     // as its name implies — no per-continuation churn, and it fires at the
-    // settled boundary rather than mid-turn.
-    if (c.reRenameEveryNTurns > 0 && state.done && state.turnsSeen % c.reRenameEveryNTurns === 0) {
+    // settled boundary rather than mid-turn. The first settled turn belongs
+    // to the initial rename (landed at its input, or just above at its
+    // settle), so intervals start counting from turn 2: without this, N=1
+    // would re-rename on the very turn the initial rename landed and
+    // overwrite it.
+    if (
+      c.reRenameEveryNTurns > 0 &&
+      state.done &&
+      state.turnsSeen > 1 &&
+      state.turnsSeen % c.reRenameEveryNTurns === 0
+    ) {
       const currentName = pi.getSessionName();
       const blocked = state.inflight || state.autoRenameLocked;
       const replaceable = canReplace(currentName, c.replaceExistingName);

@@ -44,6 +44,22 @@ describe("extractText behavior through buildContext", () => {
     const ctx = mkCtx([msg("assistant", "Hi, how can I help?")]);
     expect(await buildContext(ctx, cfg("first-user-message"))).toBeUndefined();
   });
+
+  it("seeds the context from the in-progress input when the transcript is empty", async () => {
+    // The `input` event fires before pi appends the message, so the first
+    // turn has no user message yet without the threaded input.
+    const ctx = mkCtx([]);
+    const out = await buildContext(ctx, cfg("recent-user-messages"), "fix oauth please");
+    expect(out?.firstUserMessage).toBe("fix oauth please");
+    expect(out?.recentUserMessages).toEqual([]);
+  });
+
+  it("appends the in-progress input after existing messages", async () => {
+    const ctx = mkCtx([msg("user", "first"), msg("assistant", "ok")]);
+    const out = await buildContext(ctx, cfg("recent-user-messages"), "second");
+    expect(out?.firstUserMessage).toBe("first");
+    expect(out?.recentUserMessages).toEqual(["second"]);
+  });
 });
 
 describe("recent-user-messages depth", () => {
