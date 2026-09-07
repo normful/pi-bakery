@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-09-07
+
 ### Added
 
 - Initial release: dims agent output in the Pi TUI while the agent is running (faint/invisible `#0a0a0a`), keeping the input editor readable. `/dim` and `/undim` commands; dim enabled by default. Handles mid-dim theme switches, permission-gate prompts, and binary-safe stdout streaming.
@@ -15,3 +17,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Fixed
 
 - `saveThemeOriginals` now stores per-theme originals in `originalsByTheme` (matching v13). Without this, `restoreTheme` never found the originals and the TUI theme stayed dimmed after the agent settled.
+
+[Unreleased]: https://github.com/normful/pi-bakery/compare/<v0.1.0-tag>...HEAD
+[0.1.0]: https://github.com/normful/pi-bakery/releases/tag/<v0.1.0-tag>
