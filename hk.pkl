@@ -18,6 +18,21 @@ local hygiene = new Mapping<String, Step> {
 
 local lint = new Mapping<String, Step> {
   ["lint"] = (Builtins.vp_check) {
+    // `vp check` exits non-zero when it ends up with no lintable targets:
+    // it ignores package-lock.json, and markdown/JSON produce no oxlint
+    // targets. The builtin's own glob includes those, so docs-only or
+    // lockfile-only changesets failed pre-push. Restrict the step to files
+    // oxlint actually lints; hk then skips the step for TS-free changesets.
+    glob = List(
+      "**/*.js",
+      "**/*.mjs",
+      "**/*.cjs",
+      "**/*.ts",
+      "**/*.mts",
+      "**/*.cts",
+      "**/*.jsx",
+      "**/*.tsx",
+    )
     check = "npx vp check {{files}}"
     fix = "npx vp check --fix {{files}}"
   }
