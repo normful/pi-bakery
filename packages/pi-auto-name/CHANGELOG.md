@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-09-07
+
+### Added
+
+- Explicit window-name budgeting: when `windowNameMaxLength` is set, the window name is cut hard to that length instead of dropping to undefined below the word floor, and the `topic-project` prompt now tells the model the exact topic budget left after the project suffix so short budgets still produce usable names.
+
+### Fixed
+
+- First-input rename now fires reliably by threading the in-progress turn into the naming context, interval re-renames start after the initial turn so they no longer overwrite the just-landed name, and a degenerate single-word window derives from the session name instead of discarding both names.
+- Resume and reload now reconcile persisted provenance: established names are not re-renamed and external renames the user locked stay locked.
+- Session shutdown or replacement aborts in-flight naming immediately instead of running to timeout or renaming the successor session.
+- Pasted large logs no longer inflate every naming call: each first, recent, and assistant message is truncated head and tail with a marker.
+- Hung model retries no longer stall headless first input for the full retries-times-timeout: the whole retry loop is bounded and then falls through to the network-free last-message fallback.
+- Multiplexer detection (`HERDR`, `TMUX`, `ZELLIJ`) is read fresh on every rename so reloads pick up the current environment, and the provider stream fallback forwards per-credential `baseUrl` so custom hosts are no longer missed.
+
 ## [1.0.2] - 2026-08-08
 
 ### Fixed
@@ -30,6 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - First public release: automatically names the Pi session and the containing tmux window, herdr pane and tab, and zellij pane and tab from the conversation, in your language (26 options) and one of three styles (`natural`, `slug`, `topic-project`), configurable via `~/.config/pi-auto-name/config.json` or a per-project `.pi/pi-auto-name.json` with per-surface toggles, length limits, duplicate-name avoidance, and optional re-renaming every N turns.
 
 [Unreleased]: https://github.com/normful/pi-bakery/compare/<latest-tag>...HEAD
+[1.1.0]: https://github.com/normful/pi-bakery/compare/<v1.0.2-tag>...<v1.1.0-tag>
 [1.0.2]: https://github.com/normful/pi-bakery/compare/<v1.0.1-tag>...<v1.0.2-tag>
 [1.0.1]: https://github.com/normful/pi-bakery/compare/<v1.0.0-tag>...<v1.0.1-tag>
 [1.0.0]: https://github.com/normful/pi-bakery/releases/tag/<v1.0.0-tag>
