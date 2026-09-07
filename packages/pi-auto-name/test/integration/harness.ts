@@ -67,6 +67,74 @@ function loadRuntimeCompatRegistry(): NestedCompatRegistry {
   return runtimeRequire(compatPath) as NestedCompatRegistry;
 }
 
+export interface ExecCall {
+  command: string;
+  args: string[];
+}
+
+/**
+ * Multiplexer env vars that route surface renames at the real session.
+ * src/surfaces.ts reads these live from process.env on every call and falls
+ * back to `herdr pane current` when HERDR_PANE_ID is missing — so a harness
+ * that inherits the developer's shell env renames the developer's real
+ * herdr tab/pane when `npm run test` runs inside a multiplexer. Cleared for
+ * the lifetime of any live harness (refcounted: tests may hold several).
+ */
+const SURFACE_ENV_VARS = [
+  "HERDR_ENV",
+  "HERDR_PANE_ID",
+  "HERDR_TAB_ID",
+  "TMUX",
+  "TMUX_PANE",
+  "ZELLIJ",
+  "ZELLIJ_PANE_ID",
+] as const;
+
+let surfaceEnvDepth = 0;
+let savedSurfaceEnv: Record<string, string | undefined> | undefined;
+
+function clearSurfaceEnv(): void {
+  if (surfaceEnvDepth === 0) {
+    savedSurfaceEnv = {};
+    for (const key of SURFACE_ENV_VARS) {
+      savedSurfaceEnv[key] = process.env[key];
+      delete process.env[key];
+    }
+  }
+  surfaceEnvDepth += 1;
+}
+
+function restoreSurfaceEnv(): void {
+  surfaceEnvDepth -= 1;
+  if (surfaceEnvDepth === 0 && savedSurfaceEnv) {
+    for (const key of SURFACE_ENV_VARS) {
+      const value = savedSurfaceEnv[key];
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+    savedSurfaceEnv = undefined;
+  }
+}
+
+/** Multiplexer binaries the extension shells out to via pi.exec. */
+function isMultiplexerCommand(command: string): boolean {
+  return command === "herdr" || command === "tmux" || command === "zellij";
+}
+
+/**
+ * Test default: external surfaces stay off. The in-memory session rename
+ * (renamePiSession) is hermetic and stays on so naming assertions keep
+ * working; herdr/tmux/zellij renames spawn real processes and must be
+ * opt-in per test via `config.surfaces` (partial overrides still win).
+ */
+const TEST_SURFACE_DEFAULTS = {
+  renameHerdrPane: false,
+  renameHerdrTab: false,
+  renameTmuxWindow: false,
+  renameZellijPane: false,
+  renameZellijTab: false,
+};
+
 export interface Harness {
   session: AgentSession;
   sessionManager: SessionManager;
@@ -78,6 +146,8 @@ export interface Harness {
     type: T,
   ): Extract<AgentSessionEvent, { type: T }>[];
   tempDir: string;
+  /** Multiplexer spawns the extension attempted (herdr/tmux/zellij only). */
+  execCalls: ExecCall[];
   cleanup: () => void;
   writeConfig: (patch: Record<string, unknown>) => void;
   /** Re-register the faux api streams (session.reload() wipes the registry). */
@@ -94,6 +164,9 @@ export interface HarnessOptions {
 }
 
 export async function createHarness(options: HarnessOptions = {}): Promise<Harness> {
+  // Never let surface renames escape to the developer's real multiplexer
+  // session (see SURFACE_ENV_VARS). Restored in cleanup().
+  clearSurfaceEnv();
   const tempDir = createTempDir();
 
   // Hermetic user-global config: loadConfig merges ~/.config UNDER the
@@ -200,21 +273,53 @@ export async function createHarness(options: HarnessOptions = {}): Promise<Harne
   // Always write a complete project config (schema defaults under the test's
   // overrides) so a user-global ~/.config file can never leak keys the test
   // did not set (namingModel, reRenameEveryNTurns, ...) into the run.
+  // External multiplexer surfaces default off in tests (TEST_SURFACE_DEFAULTS);
+  // the caller's `config.surfaces` partial still wins per field.
   {
     const piDir = join(tempDir, ".pi");
     mkdirSync(piDir, { recursive: true });
     const fullDefaults = validateConfig(ConfigSchema, {}) as unknown as Record<string, unknown>;
     writeFileSync(
       join(piDir, "pi-auto-name.json"),
-      JSON.stringify(deepMerge(fullDefaults, options.config ?? {})),
+      JSON.stringify(
+        deepMerge(
+          deepMerge(fullDefaults, { surfaces: TEST_SURFACE_DEFAULTS }),
+          options.config ?? {},
+        ),
+      ),
     );
   }
+
+  // Block multiplexer spawns at the extension boundary: the extension under
+  // test receives a pi object whose exec records herdr/tmux/zellij calls and
+  // throws (every surfaces.ts call site treats failure as skip-and-debug-log,
+  // so naming still lands). All other commands (notably `git` for the naming
+  // anchor) delegate to the real exec. Prototype delegation keeps every other
+  // ExtensionAPI member (including getters) intact.
+  const execCalls: ExecCall[] = [];
+  const guardedFactory = ((pi: Record<string, unknown>) => {
+    const realExec = pi["exec"] as (
+      command: string,
+      args: string[],
+      options?: unknown,
+    ) => Promise<unknown>;
+    const exec = async (command: string, args: string[], options?: unknown): Promise<unknown> => {
+      if (isMultiplexerCommand(command)) {
+        execCalls.push({ command, args });
+        throw new Error(`blocked in tests: ${command} ${args.join(" ")}`);
+      }
+      return realExec(command, args, options);
+    };
+    return (piAutoNameFactory as (pi: unknown) => unknown)(
+      Object.create(pi, { exec: { value: exec } }),
+    );
+  }) as never;
 
   const resourceLoader = new DefaultResourceLoader({
     cwd: tempDir,
     agentDir: tempDir,
     settingsManager,
-    extensionFactories: [piAutoNameFactory as never],
+    extensionFactories: [guardedFactory],
   });
   await resourceLoader.reload();
 
@@ -255,9 +360,11 @@ export async function createHarness(options: HarnessOptions = {}): Promise<Harne
       return events.filter((e): e is Extract<AgentSessionEvent, { type: T }> => e.type === type);
     },
     tempDir,
+    execCalls,
     cleanup() {
       session.dispose();
       compatRegistry.unregisterApiProviders(apiSourceId);
+      restoreSurfaceEnv();
       if (existsSync(tempDir)) rmSync(tempDir, { recursive: true, force: true });
     },
     writeConfig,

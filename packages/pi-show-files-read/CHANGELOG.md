@@ -27,8 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - Initial release: tracks every file the agent reads in the current session and lists them in read order via `/files-read`, with deduplication and a clean slate on each new session.
 
-[Unreleased]: https://github.com/normful/pi-bakery/compare/<latest-tag>...HEAD
-[0.5.0]: https://github.com/normful/pi-bakery/compare/<v0.4.0-tag>...<v0.5.0-tag>
-[0.4.0]: https://github.com/normful/pi-bakery/compare/<v0.2.0-tag>...<v0.4.0-tag>
-[0.2.0]: https://github.com/normful/pi-bakery/compare/<v0.1.0-tag>...<v0.2.0-tag>
-[0.1.0]: https://github.com/normful/pi-bakery/releases/tag/<v0.1.0-tag>
+[Unreleased]: https://github.com/normful/pi-bakery/commits/main/packages/pi-show-files-read
+[0.5.0]: https://www.npmjs.com/package/@normful/pi-show-files-read/v/0.5.0
+[0.4.0]: https://www.npmjs.com/package/@normful/pi-show-files-read/v/0.4.0
+[0.2.0]: https://www.npmjs.com/package/@normful/pi-show-files-read/v/0.2.0
+[0.1.0]: https://www.npmjs.com/package/@normful/pi-show-files-read/v/0.1.0
