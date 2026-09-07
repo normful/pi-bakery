@@ -67,3 +67,9 @@ Detects secrets via [betterleaks](https://github.com/betterleaks/betterleaks) an
     <img src="./videos/stop-secrets-leaks-demo.gif" alt="pi-stop-secrets-leaks demo" width="800">
   </a>
 </p>
+
+## [`@normful/pi-dim`](./packages/pi-dim)
+
+Dims text so it's hidden while agent is running. Helps break a bad habit of reading running agent text.
+
+[![pi-dim screenshot](./screenshots/dim.png)](https://github.com/normful/pi-bakery/tree/main/packages/pi-dim)
