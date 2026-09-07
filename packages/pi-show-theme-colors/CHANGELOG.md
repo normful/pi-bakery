@@ -15,6 +15,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - Initial release: `/theme-colors` displays every color available in the active Pi theme.
 
-[Unreleased]: https://github.com/normful/pi-bakery/compare/<latest-tag>...HEAD
-[0.3.0]: https://github.com/normful/pi-bakery/compare/<v0.2.0-tag>...<v0.3.0-tag>
-[0.2.0]: https://github.com/normful/pi-bakery/releases/tag/<v0.2.0-tag>
+[Unreleased]: https://github.com/normful/pi-bakery/commits/main/packages/pi-show-theme-colors
+[0.3.0]: https://www.npmjs.com/package/@normful/pi-show-theme-colors/v/0.3.0
+[0.2.0]: https://www.npmjs.com/package/@normful/pi-show-theme-colors/v/0.2.0
