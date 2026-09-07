@@ -18,5 +18,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - `saveThemeOriginals` now stores per-theme originals in `originalsByTheme` (matching v13). Without this, `restoreTheme` never found the originals and the TUI theme stayed dimmed after the agent settled.
 
-[Unreleased]: https://github.com/normful/pi-bakery/compare/<v0.1.0-tag>...HEAD
-[0.1.0]: https://github.com/normful/pi-bakery/releases/tag/<v0.1.0-tag>
+[Unreleased]: https://github.com/normful/pi-bakery/commits/main/packages/pi-dim
+[0.1.0]: https://www.npmjs.com/package/@normful/pi-dim/v/0.1.0
