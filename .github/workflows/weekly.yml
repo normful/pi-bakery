@@ -33,3 +33,7 @@ jobs:
 
       - name: Test (vp test)
         run: npm test
+        env:
+          # Opt in to the pi-parrot Tier 2 PTY test (real TUI suspend/resume
+          # via node-pty; skipped without this variable).
+          PI_PARROT_PTY: "1"

@@ -1,0 +1,44 @@
+{
+  "name": "@normful/pi-parrot",
+  "version": "0.1.0",
+  "private": false,
+  "description": "Open the last AI response in your external editor, then send the edited text back to the chat",
+  "keywords": [
+    "pi",
+    "pi-coding-agent",
+    "pi-extension",
+    "pi-package"
+  ],
+  "bugs": {
+    "url": "https://github.com/normful/pi-bakery/issues"
+  },
+  "license": "MIT",
+  "author": "Norman Sue",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/normful/pi-bakery.git",
+    "directory": "packages/pi-parrot"
+  },
+  "type": "module",
+  "dependencies": {
+    "@juicesharp/rpiv-config": "2.3.1",
+    "typebox": "1.1.38"
+  },
+  "devDependencies": {
+    "node-pty": "1.1.0",
+    "typescript": "7.0.2",
+    "vite-plus": "^0.2.5"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-agent-core": "*",
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*"
+  },
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ],
+    "image": "https://media.githubusercontent.com/media/normful/pi-bakery/main/screenshots/parrot.png"
+  }
+}
