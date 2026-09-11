@@ -65,14 +65,96 @@ export function clearScreen() {
 }
 
 /**
+ * Split an editor command into argv without invoking a shell.
+ *
+ * Supports what editors need (`code -w`, `"my editor" --wait`,
+ * `editor 'quoted arg'`): POSIX-like single/double quotes and backslash
+ * escapes. Shell metacharacters (`;`, `|`, `$()`, redirections, ...) are
+ * NOT interpreted — they stay literal argv text, so a malicious editor
+ * value fails to spawn instead of executing extra commands.
+ */
+export function parseEditorCommand(command: string): string[] {
+  const args: string[] = [];
+  let current = "";
+  let inSingle = false;
+  let inDouble = false;
+  let hasToken = false;
+
+  const push = () => {
+    if (hasToken) {
+      args.push(current);
+      current = "";
+      hasToken = false;
+    }
+  };
+
+  for (let i = 0; i < command.length; i++) {
+    const ch = command[i]!;
+
+    if (inSingle) {
+      if (ch === "'") inSingle = false;
+      else {
+        current += ch;
+        hasToken = true;
+      }
+      continue;
+    }
+
+    if (inDouble) {
+      if (ch === '"') inDouble = false;
+      else if (ch === "\\" && i + 1 < command.length) {
+        const next = command[i + 1]!;
+        if (next === '"' || next === "\\" || next === "$" || next === "`") {
+          current += next;
+          i++;
+        } else {
+          current += ch;
+        }
+        hasToken = true;
+      } else {
+        current += ch;
+        hasToken = true;
+      }
+      continue;
+    }
+
+    if (ch === "'") {
+      inSingle = true;
+      hasToken = true;
+    } else if (ch === '"') {
+      inDouble = true;
+      hasToken = true;
+    } else if (ch === "\\" && i + 1 < command.length) {
+      current += command[i + 1]!;
+      i++;
+      hasToken = true;
+    } else if (ch === " " || ch === "\t" || ch === "\n") {
+      push();
+    } else {
+      current += ch;
+      hasToken = true;
+    }
+  }
+  push();
+
+  return args;
+}
+
+/**
  * Run the external editor on the given file path.
  * Handles TUI suspension, terminal setup, and result parsing.
+ *
+ * The editor is spawned directly with no shell: the command is split with
+ * {@link parseEditorCommand} and the file path is passed as an argv
+ * element, so editor values containing shell metacharacters cannot inject
+ * extra commands.
  */
 export function runEditor(filePath: string, configuredEditor = ""): EditorResult {
   clearScreen();
 
   const editorCmd = getEditorCommand(configuredEditor);
-  if (!editorCmd) {
+  const [executable, ...editorArgs] = parseEditorCommand(editorCmd);
+  if (!executable) {
     return {
       content: null,
       error:
@@ -85,10 +167,10 @@ export function runEditor(filePath: string, configuredEditor = ""): EditorResult
   let errorMessage: string | null = null;
 
   try {
-    const result = spawnSync(editorCmd, [filePath], {
+    const result = spawnSync(executable, [...editorArgs, filePath], {
       stdio: "inherit",
       env: process.env,
-      shell: true,
+      shell: false,
     });
     exitCode = result.status;
 
