@@ -19,9 +19,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        # Temporary: repo sets loglevel=silent, which hides the real error
-        # when `npm ci` fails. Verbose until the install failure is fixed.
-        run: npm ci --loglevel=verbose
+        run: npm ci
 
       - name: Typecheck
         run: npm run typecheck
