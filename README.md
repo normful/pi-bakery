@@ -73,3 +73,7 @@ Detects secrets via [betterleaks](https://github.com/betterleaks/betterleaks) an
 Dims text so it's hidden while agent is running. Helps break a bad habit of reading running agent text.
 
 [![pi-dim screenshot](./screenshots/dim.png)](https://github.com/normful/pi-bakery/tree/main/packages/pi-dim)
+
+## [`@normful/pi-parrot`](./packages/pi-parrot)
+
+The `/parrot` command opens the last AI response in your external editor — save and exit to send the edited text back to the chat.
