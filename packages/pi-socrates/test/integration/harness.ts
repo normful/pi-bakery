@@ -101,6 +101,7 @@ function runtimeCompatPath(): string {
 
 interface ThemeModule {
   getThemeByName: (name: string) => Theme | undefined;
+  setThemeInstance: (theme: Theme) => void;
 }
 
 export function loadThemeModule(): ThemeModule {

@@ -3,7 +3,7 @@ vi.setConfig({ testTimeout: 15000 });
 import { fauxAssistantMessage, fauxToolCall } from "@earendil-works/pi-ai";
 import { visibleWidth } from "@earendil-works/pi-tui";
 import type { SessionEntry } from "@earendil-works/pi-coding-agent";
-import { createHarness, loadBuiltInTheme } from "./harness.js";
+import { createHarness, loadBuiltInTheme, loadThemeModule } from "./harness.js";
 import type { Harness } from "./harness.js";
 import { askSingleQuestionWithInlineNote } from "../../src/ask-inline-ui.js";
 import { askQuestionsWithTabs } from "../../src/ask-tabs-ui.js";
@@ -371,6 +371,60 @@ describe("integration: render width safety (INT-5)", () => {
     expect(wideTabs.some((line) => visibleWidth(line) > 79)).toBe(true);
     for (const line of narrowTabs) {
       expect(visibleWidth(line)).toBeLessThanOrEqual(79);
+    }
+  });
+});
+
+describe("integration: Markdown code-block syntax highlighting (INT-6)", () => {
+  it("highlights a fenced code block rendered through the real theme", async () => {
+    const themeKey = Symbol.for("@earendil-works/pi-coding-agent:theme");
+    const mod = loadThemeModule();
+    const theme = loadBuiltInTheme();
+
+    // highlightCode resolves colors against pi's global theme. Mimic pi
+    // startup by installing the real built-in theme as the global instance.
+    const globals = globalThis as unknown as Record<symbol, unknown>;
+    const previousGlobalTheme = globals[themeKey];
+    mod.setThemeInstance(theme);
+    try {
+      let renderedLines: string[] = [];
+      await askSingleQuestionWithInlineNote(
+        {
+          custom: async (factory: never) => {
+            const tui = { requestRender() {} };
+            const component = await (
+              factory as (
+                tui: unknown,
+                theme: unknown,
+                kb: unknown,
+                done: (v: unknown) => void,
+              ) => Promise<{ render: (w: number) => string[] }>
+            )(tui, theme, {}, () => {});
+            renderedLines = component.render(100);
+            return { cancelled: true } as never;
+          },
+        } as never,
+        {
+          id: "highlight",
+          question: "Which snippet should we ship?",
+          markdownCtx: "```ts\nconst answer = 42;\n```",
+          options: [{ label: "A" }, { label: "B" }],
+          multi: false,
+          recommended: 0,
+        } as never,
+      );
+
+      const rendered = renderedLines.join("\n");
+      // highlight.js colors the `const` keyword. Plain code-block styling would
+      // only emit the mdCodeBlock color, which is a different ANSI sequence.
+      expect(rendered).toContain(theme.getFgAnsi("syntaxKeyword"));
+      expect(rendered).toContain("answer");
+    } finally {
+      if (previousGlobalTheme === undefined) {
+        delete globals[themeKey];
+      } else {
+        globals[themeKey] = previousGlobalTheme;
+      }
     }
   });
 });
