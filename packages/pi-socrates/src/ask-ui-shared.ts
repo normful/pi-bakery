@@ -9,7 +9,7 @@ import {
   type MarkdownTheme,
   type TUI,
 } from "@earendil-works/pi-tui";
-import type { Theme } from "@earendil-works/pi-coding-agent";
+import { highlightCode, type Theme } from "@earendil-works/pi-coding-agent";
 import {
   INLINE_NOTE_WRAP_PADDING,
   buildWrappedOptionLabelWithInlineNote,
@@ -65,6 +65,16 @@ export function createMarkdownTheme(theme: Theme): MarkdownTheme {
     italic: (text) => theme.italic(text),
     strikethrough: (text) => theme.strikethrough(text),
     underline: (text) => theme.underline(text),
+    highlightCode: (source, lang) => {
+      try {
+        return highlightCode(source, lang);
+      } catch {
+        // highlightCode styles with pi's global theme, which is not
+        // initialized in every context (e.g. unit tests that inject their own
+        // theme). Fall back to the injected theme so code blocks still render.
+        return source.split("\n").map((line) => theme.fg("mdCodeBlock", line));
+      }
+    },
   };
 }
 

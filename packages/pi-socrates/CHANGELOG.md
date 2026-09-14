@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Fenced code blocks inside question text, context, and option labels now render with syntax highlighting instead of plain code-block color.
+
 ## [0.1.1] - 2026-10-01
 
 ### Changed
