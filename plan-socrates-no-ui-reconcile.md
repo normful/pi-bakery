@@ -244,8 +244,16 @@ Pending digit buffer: when `pendingDigitBuffer` is non-empty, append ` · tab N�
 - `d` clears the cursor option's note in the existing map:
   single-question → `noteByOptionIndex`; tabs → `noteByQuestionByOption[q][cursor]`
   (this includes the Other option's note). Never touches selection.
-- Apply the exact hint strings from 2.2 (and the ` · tab N…` pending segment). Update
-  the existing hint assertions accordingly (see RED 7).
+- Apply the exact hint strings from 2.2 (and the ` · tab N…` pending segment). Current
+  hint sites to replace (line numbers pre-change):
+  - `src/ask-inline-ui.ts`: `139` (editing), `146` (closed + has note), `153` (closed, no note)
+  - `src/ask-tabs-ui.ts`: `292` (Submit tab), `343` (editing), `351` (multi), `358` (single)
+  - Update the existing hint assertions accordingly (see RED 7).
+- New render branch required: the pinned tabs question-tab hints have a **has-note**
+  variant (`d clear` present) that the current tabs renderer does not produce — it only
+  branches editing vs. not. Add the same `getQuestionNote(q, cursor).trim().length > 0`
+  branch the single-question renderer already has (`ask-inline-ui.ts:145`). The Submit-tab
+  hint never includes `d clear`.
 
 ## 2.4 Tests (unit + integration), red → green
 
@@ -271,17 +279,21 @@ Tabs UI:
 11. `d` clears the current option's note on a question tab; no-op on the Submit tab.
 12. digits typed while the note editor is open stay as note text (no jump, no buffer hint).
 13. the pending-digit footer segment (` · tab 1…`) appears while waiting, on the exact
-    hint line for that state (2.2).
+    hint line for that state (2.2) — cover both a question tab and the Submit tab.
 14. a pending-digit timer is cleared on cancel (spy on `tui.requestRender`; advance
     timers after `Ctrl-C`; assert no late calls).
+15. the `d clear` segment appears in the hint **only** when the cursor option has a note
+    (both UIs): assert exact pinned strings from 2.2 with and without a note.
 
 ### GREEN 4 — implement 2.1 + 2.2 + 2.3 until RED 6 is green.
 
 ### RED 7 — update hint-sensitive assertions
-- `test/ask-ui-interaction.test.ts` and `test/ask-ui.test.ts`: replace assertions on the
-  old footer text (e.g. `Tab edit note`, `Typing note inline`, `↑↓ move`) with the exact
-  strings pinned in 2.2, or relax to leading substrings. Render at width ≥ 80 where the
-  assertion is on a tail segment.
+- `test/ask-ui-interaction.test.ts`: lines `63`, `233`, `282` assert `Typing note inline`
+  → replace with `Editing note` (or the full pinned editing string). Line `132` asserts
+  `Tab edit note` → replace with the pinned closed + has-note string.
+- Assert the full pinned strings (2.2) at width ≥ 80 where a tail segment is involved;
+  at the narrow widths these tests use (26/28/32), assert only the leading substring
+  (`Editing note`, `↑↓/jk`).
 
 ### RED 8 — integration keybind coverage in
 `packages/pi-socrates/test/integration/socrates.integration.test.ts` (new describe)
