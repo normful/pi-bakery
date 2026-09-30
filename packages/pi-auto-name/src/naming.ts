@@ -549,7 +549,12 @@ async function completeOnce(
   if (!provider) throw new ModelsError("provider", `Unknown provider: ${model.provider}`);
   const auth = await modelRegistry.getApiKeyAndHeaders(model);
   if (!auth.ok) throw new ModelsError("auth", auth.error);
-  const stream = provider.stream(model, context, {
+  // This branch only runs on hosts whose `ModelRegistry` predates `complete`
+  // (pi 0.84.0), and every such host also predates the branded
+  // `TranscriptContext` (pi 0.86.0): they take the raw `Context` and still read
+  // its `systemPrompt`. `provider.stream` is typed against the newer parameter,
+  // so assert the older host's contract instead of re-deriving it.
+  const stream = provider.stream(model, context as Parameters<typeof provider.stream>[1], {
     ...streamOptions,
     apiKey: auth.apiKey,
     headers: auth.headers,

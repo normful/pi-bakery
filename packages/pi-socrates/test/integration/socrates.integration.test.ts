@@ -3,7 +3,7 @@ vi.setConfig({ testTimeout: 15000 });
 import { fauxAssistantMessage, fauxToolCall } from "@earendil-works/pi-ai";
 import { visibleWidth } from "@earendil-works/pi-tui";
 import type { SessionEntry } from "@earendil-works/pi-coding-agent";
-import { createHarness, loadThemeModule } from "./harness.js";
+import { createHarness, loadBuiltInTheme } from "./harness.js";
 import type { Harness } from "./harness.js";
 import { askSingleQuestionWithInlineNote } from "../../src/ask-inline-ui.js";
 import { askQuestionsWithTabs } from "../../src/ask-tabs-ui.js";
@@ -28,11 +28,20 @@ function toolResultText(branch: SessionEntry[]): string[] {
   return branch
     .filter((e) => e.type === "message")
     .flatMap((e) => {
-      const message = (
-        e as unknown as { message?: { content?: Array<{ type: string; text?: string }> } }
-      ).message;
-      const content = message?.content ?? [];
-      return content.filter((c) => c.type === "text").map((c) => c.text ?? "");
+      const content = (e as unknown as { message?: { content?: unknown } }).message?.content;
+      // `content` is `string | ContentBlock[]`. pi 0.99.1 records prompt changes
+      // as transcript system messages, so the branch now holds a message whose
+      // content is a bare string.
+      if (typeof content === "string") return [content];
+      if (!Array.isArray(content)) return [];
+      return content
+        .filter(
+          (block): block is { type: string; text?: string } =>
+            typeof block === "object" &&
+            block !== null &&
+            (block as { type?: unknown }).type === "text",
+        )
+        .map((block) => block.text ?? "");
     });
 }
 
@@ -274,9 +283,7 @@ describe("integration: cancel, validation, non-TUI guard (INT-4)", () => {
 
 describe("integration: render width safety (INT-5)", () => {
   it("keeps lines within width on the real theme", async () => {
-    const mod = loadThemeModule();
-    const theme = mod.getThemeByName(mod.getDefaultTheme());
-    if (!theme) throw new Error("could not load the default built-in theme for tests");
+    const theme = loadBuiltInTheme();
 
     let wideSingle: string[] = [];
     let narrowSingle: string[] = [];
