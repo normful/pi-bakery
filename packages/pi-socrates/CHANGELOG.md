@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-01
+
 ### Changed
 
 - `typebox` is now declared as a host-provided peer dependency rather than bundled, so Pi supplies its own copy and no longer logs a host-provided-dependency warning for this extension.
@@ -18,4 +20,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Structured `socrates` tool for asking the user questions with a single-select picker, multi-select and multi-question tab flows with a Submit review tab, and inline note editing.
 
 [Unreleased]: https://github.com/normful/pi-bakery/commits/main/packages/pi-socrates
+[0.1.1]: https://www.npmjs.com/package/@normful/pi-socrates/v/0.1.1
 [0.1.0]: https://www.npmjs.com/package/@normful/pi-socrates/v/0.1.0
