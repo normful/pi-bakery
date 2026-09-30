@@ -532,64 +532,7 @@ describe("generateNames", () => {
     expect(result).toEqual({ ok: false, reason: "aborted" });
   });
 
-  it("falls back to provider.stream + runtime auth when ModelRegistry.complete is missing", async () => {
-    const resultMock = vi.fn(async () =>
-      mkResponse("WINDOW: OAuth refresh\nSESSION: Fix the OAuth callback retry"),
-    );
-    const stream = vi.fn(() => ({ result: resultMock }));
-    const ctx = mkCtx({
-      modelRegistry: {
-        find: vi.fn(() => undefined),
-        getProvider: vi.fn(() => ({ stream })),
-        getApiKeyAndHeaders: vi.fn(async () => ({
-          ok: true,
-          apiKey: "runtime-key",
-          headers: { "X-Runtime": "v" },
-        })),
-      } as any,
-    });
-    const result = await generateNames(
-      ctx,
-      mkConfig({ namingStyle: "slug" }),
-      mkContext(),
-      [],
-      "/p",
-      { exec: vi.fn() } as any,
-    );
-    expect(result.ok).toBe(true);
-    expect(stream).toHaveBeenCalledWith(
-      expect.objectContaining({ provider: "anthropic" }),
-      expect.objectContaining({ messages: expect.any(Array) }),
-      expect.objectContaining({ apiKey: "runtime-key", headers: { "X-Runtime": "v" } }),
-    );
-    expect(resultMock).toHaveBeenCalledTimes(1);
-  });
-
-  it("missing_auth when runtime auth resolution fails in the fallback", async () => {
-    const ctx = mkCtx({
-      modelRegistry: {
-        find: vi.fn(() => undefined),
-        getProvider: vi.fn(() => ({ stream: vi.fn() })),
-        getApiKeyAndHeaders: vi.fn(async () => ({ ok: false, error: "no key" })),
-      } as any,
-    });
-    const result = await generateNames(ctx, mkConfig(), mkContext(), [], "/p", {
-      exec: vi.fn(),
-    } as any);
-    expect(result).toEqual({ ok: false, reason: "missing_auth" });
-  });
-
-  it("missing_auth when the provider cannot be resolved in the fallback", async () => {
-    const ctx = mkCtx({
-      modelRegistry: { find: vi.fn(() => undefined), getProvider: vi.fn(() => undefined) } as any,
-    });
-    const result = await generateNames(ctx, mkConfig(), mkContext(), [], "/p", {
-      exec: vi.fn(),
-    } as any);
-    expect(result).toEqual({ ok: false, reason: "missing_auth" });
-  });
-
-  it("returns invalid_output when the fallback produces nothing usable", async () => {
+  it("returns invalid_output when the model produces nothing usable", async () => {
     const complete = vi.fn(async () => mkResponse("WINDOW: single\nSESSION: word"));
     const result = await generateNames(
       mkCtx({}, complete),
@@ -831,34 +774,6 @@ describe("generateNames does not send reasoning", () => {
     expect(options.reasoning).toBeUndefined();
     expect("reasoning" in options).toBe(false);
   });
-
-  it("never sends reasoning via fallback provider.stream", async () => {
-    const resultMock = vi.fn(async () =>
-      mkResponse("WINDOW: OAuth refresh\nSESSION: Fix the OAuth callback retry"),
-    );
-    const stream = vi.fn(() => ({ result: resultMock }));
-    const ctx = mkCtx({
-      modelRegistry: {
-        find: vi.fn(() => undefined),
-        getProvider: vi.fn(() => ({ stream })),
-        getApiKeyAndHeaders: vi.fn(async () => ({
-          ok: true as const,
-          apiKey: "k",
-          headers: {},
-          env: {},
-        })),
-      } as any,
-    });
-    await generateNames(ctx, mkConfig(), mkContext(), [], "/p", {
-      exec: vi.fn(),
-    } as any);
-    expect(stream).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.anything(),
-      expect.not.objectContaining({ reasoning: expect.anything() }),
-    );
-    expect((stream.mock.calls[0] as unknown as any[])[2].reasoning).toBeUndefined();
-  });
 });
 
 describe("language directive ({language} → natural/slug system prompt)", () => {
@@ -961,57 +876,5 @@ describe("generateNames maxTokens plumbing", () => {
     expect((complete.mock.calls[0][2] as any).maxTokens).toBe(
       resolveMaxTokens(mkConfig({ windowNameMaxLength: 100, sessionNameMaxLength: 500 })),
     );
-  });
-
-  it("sends 2048 via fallback provider.stream", async () => {
-    const resultMock = vi.fn(async () =>
-      mkResponse("WINDOW: OAuth refresh\nSESSION: Fix the OAuth callback retry"),
-    );
-    const stream = vi.fn(() => ({ result: resultMock }));
-    const ctx = mkCtx({
-      modelRegistry: {
-        find: vi.fn(() => undefined),
-        getProvider: vi.fn(() => ({ stream })),
-        getApiKeyAndHeaders: vi.fn(async () => ({
-          ok: true as const,
-          apiKey: "k",
-          headers: {},
-          env: {},
-        })),
-      } as any,
-    });
-    await generateNames(ctx, mkConfig(), mkContext(), [], "/p", { exec: vi.fn() } as any);
-    const opts = (stream as any).mock.calls[0][2] as any;
-    expect(opts.maxTokens).toBe(2048);
-    expect(opts.maxTokens).toBe(resolveMaxTokens(mkConfig()));
-    expect(opts.maxTokens).not.toBe(120);
-  });
-
-  it("sends 2048 even for relaxed budgets via fallback provider.stream", async () => {
-    const resultMock = vi.fn(async () =>
-      mkResponse("WINDOW: OAuth refresh\nSESSION: Fix the OAuth callback retry"),
-    );
-    const stream = vi.fn(() => ({ result: resultMock }));
-    const ctx = mkCtx({
-      modelRegistry: {
-        find: vi.fn(() => undefined),
-        getProvider: vi.fn(() => ({ stream })),
-        getApiKeyAndHeaders: vi.fn(async () => ({
-          ok: true as const,
-          apiKey: "k",
-          headers: {},
-          env: {},
-        })),
-      } as any,
-    });
-    await generateNames(
-      ctx,
-      mkConfig({ windowNameMaxLength: 100, sessionNameMaxLength: 500 }),
-      mkContext(),
-      [],
-      "/p",
-      { exec: vi.fn() } as any,
-    );
-    expect((stream as any).mock.calls[0][2].maxTokens).toBe(2048);
   });
 });

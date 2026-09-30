@@ -481,31 +481,18 @@ export function parseGeneratedNames(value: string): {
 }
 
 /**
- * Single naming LLM call, in order of preference:
+ * Single naming LLM call: `ctx.modelRegistry.complete`, which delegates to
+ * ModelRuntime.complete and so routes through pi's runtime - ALL providers
+ * (built-in and custom) plus pi's credential store. A fresh `createModels()`
+ * cannot see extension-registered providers, which was the original
+ * "Unknown provider" failure.
  *
- * 1. `ctx.modelRegistry.complete` — pi-mono main exposes it (delegating to
- *    ModelRuntime.complete), routing through pi's runtime: ALL providers
- *    (built-in + custom providers) and pi's credential
- *    store. A fresh `createModels()` cannot see extension-registered providers
- *    — that was the original "Unknown provider" failure.
- * 2. Published pi builds (ModelRegistry without `complete`): stream through
- *    the runtime provider (`getProvider`) with runtime-resolved auth
- *    (`getApiKeyAndHeaders`) injected — same provider catalog and auth pi
- *    itself uses, without a separate credential store.
+ * This package requires pi 0.84.0 or newer, the release that added `complete`
+ * to `ModelRegistry`; earlier hosts are not supported.
  *
  * Failures surface as `stopReason: "error"` messages (never thrown) per
  * pi-ai's contract; the retry/fallback loop in generateNames handles them.
  */
-// The npm-published @earendil-works/pi-coding-agent types lag pi-mono source
-// (ModelRegistry.complete landed after the 0.83.0 publish), so widen the facade
-// type locally; pi-mono main has it at runtime.
-type ModelRegistryWithComplete = ModelRegistry & {
-  complete<TApi extends Api>(
-    model: Model<TApi>,
-    context: Context,
-    options?: ModelsApiStreamOptions<TApi>,
-  ): Promise<AssistantMessage>;
-};
 
 async function completeOnce(
   modelRegistry: ModelRegistry,
@@ -539,35 +526,7 @@ async function completeOnce(
     signal: options.signal,
   };
 
-  const registry = modelRegistry as ModelRegistryWithComplete;
-  if (typeof registry.complete === "function") {
-    return registry.complete(model, context, streamOptions);
-  }
-
-  const { ModelsError } = await piAi();
-  const provider = modelRegistry.getProvider(model.provider);
-  if (!provider) throw new ModelsError("provider", `Unknown provider: ${model.provider}`);
-  const auth = await modelRegistry.getApiKeyAndHeaders(model);
-  if (!auth.ok) throw new ModelsError("auth", auth.error);
-  // This branch only runs on hosts whose `ModelRegistry` predates `complete`
-  // (pi 0.84.0), and every such host also predates the branded
-  // `TranscriptContext` (pi 0.86.0): they take the raw `Context` and still read
-  // its `systemPrompt`. `provider.stream` is typed against the newer parameter,
-  // so assert the older host's contract instead of re-deriving it.
-  const stream = provider.stream(model, context as Parameters<typeof provider.stream>[1], {
-    ...streamOptions,
-    apiKey: auth.apiKey,
-    headers: auth.headers,
-    env: auth.env,
-    // Per-credential baseUrl overlay (e.g. Copilot-style providers resolve it
-    // via auth.json/models.json "$ENV(...)"). ModelRuntime.prepareRequest
-    // applies it on the complete() path; the fallback must forward it too or
-    // the request hits the default host.
-    ...("baseUrl" in auth && typeof auth.baseUrl === "string" && auth.baseUrl
-      ? { baseUrl: auth.baseUrl }
-      : {}),
-  });
-  return stream.result();
+  return modelRegistry.complete(model, context, streamOptions);
 }
 
 /** The outcome of one generateNames attempt, so the retry loop stays small. */
