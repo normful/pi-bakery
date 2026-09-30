@@ -1,6 +1,6 @@
 {
   "name": "@normful/pi-parrot",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": false,
   "description": "Open the last AI response in your external editor, then send the edited text back to the chat",
   "keywords": [
