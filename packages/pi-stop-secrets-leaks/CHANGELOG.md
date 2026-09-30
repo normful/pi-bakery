@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-01
+
 ### Added
 
 - The guidance injected at agent start now names the files that contain detected secrets, so the model avoids reading them.
@@ -18,4 +20,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Initial release: scans project files and environment variables at session start and tool result text reactively with betterleaks, redacting secret values by position before they reach the LLM and replacing them with `«🔒 $S_NN»` placeholders; secret values are never stored or logged. Commands: `/stop-secrets-leaks-status`, `/stop-secrets-leaks-toggle`, `/stop-secrets-leaks-rescan`, `/stop-secrets-leaks-config`.
 
 [Unreleased]: https://github.com/normful/pi-bakery/commits/main/packages/pi-stop-secrets-leaks
+[0.3.0]: https://www.npmjs.com/package/@normful/pi-stop-secrets-leaks/v/0.3.0
 [0.2.0]: https://www.npmjs.com/package/@normful/pi-stop-secrets-leaks/v/0.2.0
