@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-10-01
+
+### Removed
+
+- **Breaking:** Pi host support below 0.84.0. Naming now calls `ModelRegistry.complete` unconditionally, and the fallback that streamed through `provider.stream` when that method was missing is removed. On a host older than pi 0.84.0 every naming attempt fails with `request_failed` and no name is generated, so update pi to 0.84.0 or newer.
+
 ## [1.1.1] - 2026-10-01
 
 ### Changed
@@ -51,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - First public release: automatically names the Pi session and the containing tmux window, herdr pane and tab, and zellij pane and tab from the conversation, in your language (26 options) and one of three styles (`natural`, `slug`, `topic-project`), configurable via `~/.config/pi-auto-name/config.json` or a per-project `.pi/pi-auto-name.json` with per-surface toggles, length limits, duplicate-name avoidance, and optional re-renaming every N turns.
 
 [Unreleased]: https://github.com/normful/pi-bakery/commits/main/packages/pi-auto-name
+[2.0.0]: https://www.npmjs.com/package/@normful/pi-auto-name/v/2.0.0
 [1.1.1]: https://www.npmjs.com/package/@normful/pi-auto-name/v/1.1.1
 [1.1.0]: https://www.npmjs.com/package/@normful/pi-auto-name/v/1.1.0
 [1.0.2]: https://www.npmjs.com/package/@normful/pi-auto-name/v/1.0.2
