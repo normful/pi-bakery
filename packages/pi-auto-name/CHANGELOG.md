@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- `typebox` is now declared as a host-provided peer dependency rather than bundled, so Pi supplies its own copy and no longer logs a host-provided-dependency warning for this extension.
+
 ## [1.1.0] - 2026-09-07
 
 ### Added
