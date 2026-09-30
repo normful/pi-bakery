@@ -50,21 +50,30 @@ interface NestedCompatRegistry {
 
 /**
  * Load the `pi-ai/compat` api registry that `ModelRuntime` actually
- * dispatches through. The runtime resolves `@earendil-works/pi-ai` to its
- * nested copy under pi-coding-agent, so registering in the top-level copy
- * is invisible to it ("No API provider registered"). Reach the nested copy
- * by absolute file path (subpath resolution through its exports map fails
- * on this toolchain), mirroring model-runtime-helpers.
+ * dispatches through. Registering in the top-level copy is invisible to it
+ * when npm nests pi-ai under pi-coding-agent ("No API provider
+ * registered"), so reach whichever copy exists, mirroring
+ * model-runtime-helpers.
  */
 function loadRuntimeCompatRegistry(): NestedCompatRegistry {
-  const compatPath = fileURLToPath(
-    new URL(
-      "../../../../node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-ai/dist/compat.js",
-      import.meta.url,
-    ),
-  );
   const runtimeRequire = createRequire(import.meta.url);
-  return runtimeRequire(compatPath) as NestedCompatRegistry;
+  return runtimeRequire(runtimeCompatPath()) as NestedCompatRegistry;
+}
+
+/**
+ * Path to the `pi-ai/compat` module `ModelRuntime` dispatches through. A
+ * hardcoded nested path is required while npm nests pi-ai under
+ * pi-coding-agent (the host resolves that copy), and breaks once npm instead
+ * dedupes pi-ai to the top level, so take whichever copy exists.
+ */
+function runtimeCompatPath(): string {
+  const candidates = [
+    "../../../../node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-ai/dist/compat.js",
+    "../../../../node_modules/@earendil-works/pi-ai/dist/compat.js",
+  ].map((relative) => fileURLToPath(new URL(relative, import.meta.url)));
+  const found = candidates.find((candidate) => existsSync(candidate));
+  if (!found) throw new Error("could not locate pi-ai/compat under node_modules");
+  return found;
 }
 
 export interface ExecCall {

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-01
+
+Republished against the Pi 0.99.1 host packages. Nothing in the extension changed.
+
 ## [0.1.0] - 2026-09-07
 
 ### Added
@@ -19,4 +23,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - `saveThemeOriginals` now stores per-theme originals in `originalsByTheme` (matching v13). Without this, `restoreTheme` never found the originals and the TUI theme stayed dimmed after the agent settled.
 
 [Unreleased]: https://github.com/normful/pi-bakery/commits/main/packages/pi-dim
+[0.1.1]: https://www.npmjs.com/package/@normful/pi-dim/v/0.1.1
 [0.1.0]: https://www.npmjs.com/package/@normful/pi-dim/v/0.1.0

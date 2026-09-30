@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-10-01
+
+### Changed
+
+- `typebox` is now declared as a host-provided peer dependency rather than bundled, so Pi supplies its own copy and no longer logs a host-provided-dependency warning for this extension.
+
 ## [1.1.0] - 2026-09-07
 
 ### Added
@@ -45,6 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - First public release: automatically names the Pi session and the containing tmux window, herdr pane and tab, and zellij pane and tab from the conversation, in your language (26 options) and one of three styles (`natural`, `slug`, `topic-project`), configurable via `~/.config/pi-auto-name/config.json` or a per-project `.pi/pi-auto-name.json` with per-surface toggles, length limits, duplicate-name avoidance, and optional re-renaming every N turns.
 
 [Unreleased]: https://github.com/normful/pi-bakery/commits/main/packages/pi-auto-name
+[1.1.1]: https://www.npmjs.com/package/@normful/pi-auto-name/v/1.1.1
 [1.1.0]: https://www.npmjs.com/package/@normful/pi-auto-name/v/1.1.0
 [1.0.2]: https://www.npmjs.com/package/@normful/pi-auto-name/v/1.0.2
 [1.0.1]: https://www.npmjs.com/package/@normful/pi-auto-name/v/1.0.1

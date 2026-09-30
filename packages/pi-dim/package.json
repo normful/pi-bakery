@@ -1,6 +1,6 @@
 {
   "name": "@normful/pi-dim",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": false,
   "description": "Dims Pi TUI output while agent is running so that you avoid reading along",
   "keywords": [

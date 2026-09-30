@@ -9,7 +9,7 @@ import { findEditor, wrapEditorRender, restoreEditorRender } from "../../src/edi
 import { maybeMigrateTheme } from "../../src/theme-patch.js";
 import { installStdoutDim, uninstallStdoutDim } from "../../src/stdout-dim.js";
 import piDimFactory from "../../src/index.js";
-import { createHarness, loadThemeModule, THEME_KEY } from "./harness.js";
+import { createHarness, loadBuiltInTheme, loadThemeModule, THEME_KEY } from "./harness.js";
 
 const { dimStdoutText } = __dimScreenTest;
 const ESC = String.fromCharCode(27);
@@ -98,10 +98,7 @@ function fakeCtx(theme: Theme, idle = true) {
 }
 
 function freshTheme(): Theme {
-  const mod = loadThemeModule();
-  const theme = mod.getThemeByName(mod.getDefaultTheme());
-  if (!theme) throw new Error("could not load the default built-in theme for tests");
-  return theme;
+  return loadBuiltInTheme();
 }
 
 /** Snapshot observable theme behavior for byte-identical restore assertions. */
@@ -320,8 +317,8 @@ describe("integration: theme fidelity on a real Theme (Group B)", () => {
     const prev = saveGlobalTheme();
     try {
       const mod = loadThemeModule();
-      const t1 = mod.getThemeByName(mod.getDefaultTheme());
-      const t2 = mod.getThemeByName(mod.getDefaultTheme());
+      const t1 = loadBuiltInTheme();
+      const t2 = loadBuiltInTheme();
       if (!t1 || !t2) throw new Error("could not load built-in themes");
       expect(t1).not.toBe(t2);
       const before2 = snapshotTheme(t2);

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-10-01
+
+Republished against the Pi 0.99.1 host packages. Nothing in the extension changed.
+
 ## [0.3.1] - 2026-08-08
 
 ### Changed
@@ -24,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Initial release: replaces the default Pi TUI footer and adds an above-editor widget showing the working directory (hash-colored per path segment), git branch, active model and thinking level, context fill, token usage, live streaming CPS with per-phase breakdown, session cost, and cache/non-cache/output token ratio.
 
 [Unreleased]: https://github.com/normful/pi-bakery/commits/main/packages/pi-statusline
+[0.3.2]: https://www.npmjs.com/package/@normful/pi-statusline/v/0.3.2
 [0.3.1]: https://www.npmjs.com/package/@normful/pi-statusline/v/0.3.1
 [0.3.0]: https://www.npmjs.com/package/@normful/pi-statusline/v/0.3.0
 [0.2.0]: https://www.npmjs.com/package/@normful/pi-statusline/v/0.2.0

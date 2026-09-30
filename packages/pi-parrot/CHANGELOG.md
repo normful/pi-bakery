@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-01
+
+### Changed
+
+- `typebox` is now declared as a host-provided peer dependency rather than bundled, so Pi supplies its own copy and no longer logs a host-provided-dependency warning for this extension.
+
 ## [0.1.0] - 2026-09-11
 
 ### Added
@@ -16,4 +22,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - The editor is spawned directly with no shell, so file paths with spaces work and editor values containing shell metacharacters cannot inject extra commands.
 
 [Unreleased]: https://github.com/normful/pi-bakery/commits/main/packages/pi-parrot
+[0.2.0]: https://www.npmjs.com/package/@normful/pi-parrot/v/0.2.0
 [0.1.0]: https://www.npmjs.com/package/@normful/pi-parrot/v/0.1.0

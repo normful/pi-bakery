@@ -177,6 +177,12 @@ export function createStopSecretsLeaks(deps: StopSecretsDeps) {
             text: `${lastText.text}\n\u00AB\u{1F512}...\u00BB = Redacted secret`,
           };
         }
+        // Deliberately return `content` without `structuredContent`. Pi deletes
+        // `structuredContent` whenever a handler replaces `content` and leaves it
+        // unreplaced (see `ToolResultEventBase`), which is the safe outcome here: on Pi
+        // 0.99.1 the built-in bash tool declares an `outputSchema` whose `output` field
+        // carries the same stdout/stderr text unredacted. Programmatic callers lose the
+        // structured result on a redacted call rather than receiving an unredacted one.
         return { content: next };
       }
       return undefined;

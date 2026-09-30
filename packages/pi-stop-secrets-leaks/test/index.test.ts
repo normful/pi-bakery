@@ -390,7 +390,17 @@ describe("createStopSecretsLeaks — before_agent_start", () => {
       type: "before_agent_start",
       prompt: "hi",
       systemPrompt: "BASE",
-      systemPromptOptions: { cwd: "/tmp/work" },
+      systemPromptOptions: {
+        cwd: "/tmp/work",
+        selectedTools: [],
+        toolSnippets: {},
+        toolGuidelines: {},
+        promptGuidelines: [],
+        appendSystemPrompt: "",
+        sections: {},
+        contextFiles: [],
+        skills: [],
+      },
     });
     expect(result).toBeUndefined();
   });
@@ -424,7 +434,17 @@ describe("createStopSecretsLeaks — before_agent_start", () => {
       type: "before_agent_start",
       prompt: "hi",
       systemPrompt: "BASE",
-      systemPromptOptions: { cwd: "/tmp/work" },
+      systemPromptOptions: {
+        cwd: "/tmp/work",
+        selectedTools: [],
+        toolSnippets: {},
+        toolGuidelines: {},
+        promptGuidelines: [],
+        appendSystemPrompt: "",
+        sections: {},
+        contextFiles: [],
+        skills: [],
+      },
     });
     expect(result).toBeDefined();
     expect(result?.systemPrompt).toContain("BASE");

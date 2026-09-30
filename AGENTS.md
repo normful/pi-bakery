@@ -19,13 +19,15 @@ In each package directory under `packages/`:
   - `"description"`, `"keywords"`, `"license": "MIT"`, and `"author"`.
   - `"repository"` with `"directory": "packages/pi-<package-name-slug>"`, plus `"bugs"` pointing at the repo issues URL.
   - `"pi": { ... }` object property that declares Pi extension entry points.
-  - `"peerDependencies"` for:
+  - `"peerDependencies"` for the host-provided packages Pi supplies to every extension:
     - `@earendil-works/pi-agent-core` at a `"*"` semver range
     - `@earendil-works/pi-coding-agent` at a `"*"` semver range
     - `@earendil-works/pi-tui` at a `"*"` semver range
     - `@earendil-works/pi-ai` at a `"*"` semver range
-  - `"devDependencies"` for the build/test toolchain (`typescript`, `vite-plus`). This is the **one accepted exception** to the "DO NOT duplicate configuration across packages" rule: the toolchain is repeated per package so each workspace stays self-contained (local `npx` / editor resolution), while all _config files_ (`tsconfig.json`, `vite.config.ts`) and _scripts_ remain root-only.
-  - `"dependencies"` only when the extension genuinely needs a runtime library. Pin runtime deps to an **exact** version (e.g. `@spences10/pi-tui-modal` at `0.0.22`) so a published extension installs reproducibly.
+    - `typebox` at a `"*"` semver range
+  - **Never list a host-provided package in `dependencies`.** Pi aliases each of these specifiers to its own copy when loading extensions, so a bundled copy is dead weight that can also bypass the extension loader and create duplicate runtime modules. Pi logs an extension warning when it sees one in `dependencies`. The `"*"` range is deliberate: the host's copy is what runs, and Pi suppresses automatic peer installation for managed npm and git packages.
+  - `"devDependencies"` for the build/test toolchain (`typescript`, `vite-plus`). This is the **one accepted exception** to the "DO NOT duplicate configuration across packages" rule: the toolchain is repeated per package so each workspace stays self-contained (local `npx` / editor resolution), while all _config files_ (`tsconfig.json`, `vite.config.ts`) and _scripts_ remain root-only. The root workspace also pins every host-provided package in its own `devDependencies`, because a `"*"` peer supplies nothing locally and `tsc` and the test suite still need to resolve those specifiers. Keep the root `typebox` pin equal to the version the target Pi release ships (it is a direct dependency of `@earendil-works/pi-coding-agent`).
+  - `"dependencies"` only when the extension genuinely needs a runtime library, and never a host-provided one (see above). Pin runtime deps to an **exact** version (e.g. `@spences10/pi-tui-modal` at `0.0.22`) so a published extension installs reproducibly.
 - Must contain a `.npmignore` symlink pointing to the repo root's `.npmignore` (`ln -s ../../.npmignore packages/pi-<package-name-slug>/.npmignore`). The root `.npmignore` keeps `test/` and `AGENTS.md` out of the published tarball; npm only honors a `.npmignore` _inside_ the package being published, so the symlink is required.
 - Must contain a `LICENSE` that is an exact copy of the repo root's `LICENSE` (`cp LICENSE packages/pi-<package-name-slug>/LICENSE`). **Never write a LICENSE by hand** — the root file is the single source of truth (including the copyright year), so always copy it from there.
 - Must contain extension code as TypeScript files in a `packages/pi-<package-name-slug>/src/` directory.

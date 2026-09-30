@@ -83,22 +83,34 @@ interface NestedCompatRegistry {
 
 /**
  * Load the `pi-ai/compat` api registry that `ModelRuntime` actually
- * dispatches through (its nested copy under pi-coding-agent).
+ * dispatches through. Registering in the top-level copy is invisible to it
+ * when npm nests pi-ai under pi-coding-agent, so reach whichever copy exists.
  */
 function loadRuntimeCompatRegistry(): NestedCompatRegistry {
-  const compatPath = new URL(
-    "../../../../node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-ai/dist/compat.js",
-    import.meta.url,
-  ).pathname;
   const runtimeRequire = createRequire(import.meta.url);
-  return runtimeRequire(compatPath) as NestedCompatRegistry;
+  return runtimeRequire(runtimeCompatPath()) as NestedCompatRegistry;
+}
+
+/**
+ * Path to the `pi-ai/compat` module `ModelRuntime` dispatches through. A
+ * hardcoded nested path is required while npm nests pi-ai under
+ * pi-coding-agent (the host resolves that copy), and breaks once npm instead
+ * dedupes pi-ai to the top level, so take whichever copy exists.
+ */
+function runtimeCompatPath(): string {
+  const candidates = [
+    "../../../../node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-ai/dist/compat.js",
+    "../../../../node_modules/@earendil-works/pi-ai/dist/compat.js",
+  ].map((relative) => new URL(relative, import.meta.url).pathname);
+  const found = candidates.find((candidate) => existsSync(candidate));
+  if (!found) throw new Error("could not locate pi-ai/compat under node_modules");
+  return found;
 }
 
 // --- theme helper (same absolute-path trick as pi-dim's harness) ---
 
 interface ThemeModule {
   getThemeByName: (name: string) => Theme | undefined;
-  getDefaultTheme: () => string;
 }
 
 export function loadThemeModule(): ThemeModule {
@@ -110,10 +122,13 @@ export function loadThemeModule(): ThemeModule {
   return runtimeRequire(themePath) as ThemeModule;
 }
 
-function defaultTheme(): Theme {
-  const mod = loadThemeModule();
-  const theme = mod.getThemeByName(mod.getDefaultTheme());
-  if (!theme) throw new Error("could not load the default built-in theme for tests");
+/** pi 0.99.1 removed `getDefaultTheme()`. Both built-in themes ship with the CLI
+ * in every supported version, so name one explicitly: deriving it from the
+ * terminal background (what `getDefaultTheme()` did) made this fixture
+ * environment-dependent. */
+export function loadBuiltInTheme(): Theme {
+  const theme = loadThemeModule().getThemeByName("dark");
+  if (!theme) throw new Error("could not load the built-in dark theme for tests");
   return theme;
 }
 
@@ -151,7 +166,7 @@ export interface HarnessOptions {
 export async function createHarness(options: HarnessOptions = {}): Promise<Harness> {
   const tempDir = createTempDir();
   const mode = options.mode ?? "tui";
-  const theme = options.theme ?? defaultTheme();
+  const theme = options.theme ?? loadBuiltInTheme();
   const tuiEvents: TuiEvent[] = [];
   const notifyCalls: NotifyCall[] = [];
 
