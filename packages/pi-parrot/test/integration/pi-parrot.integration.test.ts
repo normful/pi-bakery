@@ -1,10 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 vi.setConfig({ testTimeout: 15000 });
-import { existsSync, readdirSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
+import { join } from "node:path";
 import { fauxAssistantMessage } from "@earendil-works/pi-ai";
 import type { SessionEntry } from "@earendil-works/pi-coding-agent";
 import parrotFactory, { PARROT_CUSTOM_MESSAGE_TYPE } from "../../src/index.js";
+import { userConfigPath } from "../../src/config.js";
 import { createHarness, installFakeEditor } from "./harness.js";
 import type { Harness } from "./harness.js";
 
@@ -83,6 +85,11 @@ async function runParrot(h: Harness, followUpText: string) {
   const before = new Set(parrotTempFiles());
   try {
     await h.session.prompt("/parrot");
+    // The edited text is handed to the session as a steer + follow-up turn, so
+    // its transcript entry and the triggered turn land after prompt() resolves.
+    // Waiting for idle here is what makes the "was it sent?" assertions
+    // deterministic instead of dependent on how many awaits the caller does.
+    await h.session.waitForIdle();
     return { stdout: stdout.recorded.join(""), before };
   } finally {
     stdout.restore();
@@ -312,6 +319,51 @@ describe("integration: preconditions (Group D)", () => {
       expect(h.tuiEvents).toEqual([]);
     } finally {
       h.cleanup();
+    }
+  });
+});
+
+// --- Group F: user-global config isolation ---
+
+describe("integration: user-global config isolation (Group F)", () => {
+  it("resolves the config under a hermetic XDG dir, not the developer's home", async () => {
+    const h = await createHarness({ mode: "tui" });
+    try {
+      // The developer's real file is `"editor": "nvim"` for at least one
+      // maintainer. Reading it here would run that editor for every other test
+      // in this file, which is how this suite used to hang instead of failing.
+      expect(userConfigPath()).not.toBe(join(homedir(), ".config", "pi-parrot", "config.json"));
+      expect(userConfigPath()).toBe(join(process.env.XDG_CONFIG_HOME!, "pi-parrot", "config.json"));
+    } finally {
+      h.cleanup();
+    }
+  });
+
+  it("prefers the configured editor over $VISUAL", async () => {
+    const configDir = mkdtempSync(join(tmpdir(), "pi-parrot-cfg-"));
+    try {
+      const configured = installFakeEditor(configDir, "ok");
+      const h = await createHarness({ mode: "tui", userConfig: { editor: configured.path } });
+      try {
+        await seedAssistantReply(h, "reply for the configured editor");
+
+        // A nonexistent $VISUAL: if precedence regressed, this is what would be
+        // spawned, so the run fails on the marker assertion instead of hanging.
+        process.env.VISUAL = join(configDir, "never-runs.sh");
+        process.env.PARROT_MARKER = configured.marker;
+        process.env.PARROT_PRISTINE_COPY = configured.pristineCopy;
+
+        await runParrot(h, "follow-up ok");
+
+        expect(existsSync(configured.marker)).toBe(true);
+        const sent = findParrotMessage(h.session.sessionManager.getBranch());
+        expect(sent).toBeDefined();
+        expect((sent as unknown as { content: string }).content).toContain("PARROT-EDITED");
+      } finally {
+        h.cleanup();
+      }
+    } finally {
+      rmSync(configDir, { recursive: true, force: true });
     }
   });
 });

@@ -18,7 +18,7 @@ import type {
 } from "@earendil-works/pi-coding-agent";
 import type { SessionEntry } from "@earendil-works/pi-coding-agent";
 import type { TextContent } from "@earendil-works/pi-ai";
-import { USER_CONFIG_PATH, isValidShortcutKey, loadConfig } from "./config.js";
+import { isValidShortcutKey, loadConfig, userConfigPath } from "./config.js";
 
 export const PARROT_DESCRIPTION =
   "Open last AI message in external editor, then send edited message after you save and exit external editor";
@@ -308,7 +308,7 @@ export default function (pi: ExtensionAPI) {
       // No ctx.ui at factory time; stdout is the only channel. The /parrot
       // command still registers below.
       console.warn(
-        `[pi-parrot] ignoring invalid shortcut ${JSON.stringify(cfg.shortcut)} in ${USER_CONFIG_PATH}; no shortcut registered`,
+        `[pi-parrot] ignoring invalid shortcut ${JSON.stringify(cfg.shortcut)} in ${userConfigPath()}; no shortcut registered`,
       );
     }
   }

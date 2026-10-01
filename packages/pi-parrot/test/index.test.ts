@@ -5,7 +5,7 @@ vi.mock("../src/config.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../src/config.js")>();
   return {
     ...actual,
-    USER_CONFIG_PATH: "/fake/home/.config/pi-parrot/config.json",
+    userConfigPath: vi.fn(() => "/fake/home/.config/pi-parrot/config.json"),
     loadConfig: vi.fn(() => ({ shortcut: "", editor: "" })),
   };
 });

@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, rmSync, chmodSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { createRequire } from "node:module";
 import { Agent } from "@earendil-works/pi-agent-core";
 import { createFauxCore, InMemoryCredentialStore } from "@earendil-works/pi-ai";
@@ -14,13 +14,33 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import type { CredentialStore } from "@earendil-works/pi-ai";
 import type { Theme } from "@earendil-works/pi-coding-agent";
-import parrotFactory from "../../src/index.js";
 
 function createTempDir(): string {
   const d = join(tmpdir(), `pi-parrot-int-${Date.now()}-${Math.random().toString(36).slice(2)}`);
   mkdirSync(d, { recursive: true });
   return d;
 }
+
+// --- hermetic user-global config ---
+
+/**
+ * `XDG_CONFIG_HOME` for this test file's harnesses.
+ *
+ * `src/config.ts` resolves its user-global path through `configPath("pi-parrot")`,
+ * which reads `XDG_CONFIG_HOME`, so pointing that at a scratch dir keeps a
+ * developer's real `~/.config/pi-parrot/config.json` out of the suite. Without
+ * this, a real `"editor": "nvim"` beats the fake `$VISUAL` script every test
+ * installs, and a real editor then waits on a terminal that no test provides —
+ * the run hangs instead of failing.
+ *
+ * Module-level rather than per-harness on purpose: one file's harnesses must
+ * agree on a single config location, and `createHarness` is called many times
+ * per file.
+ */
+const HERMETIC_XDG_DIR = join(
+  tmpdir(),
+  `pi-parrot-int-xdg-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+);
 
 // --- model runtime helpers (copied from pi-dim's harness so this
 // workspace stays self-contained) ---
@@ -161,6 +181,13 @@ export interface HarnessOptions {
   mode?: "tui" | "print";
   /** Real Theme instance used for ctx.ui.theme. Defaults to the built-in default theme. */
   theme?: Theme;
+  /**
+   * User-global config to present to the extension, written into the hermetic
+   * XDG dir before the factory loads. Omit for "no config file at all", which is
+   * what every test other than the precedence cases wants: the fake `$VISUAL`
+   * script must be the editor that runs.
+   */
+  userConfig?: { shortcut?: string; editor?: string };
 }
 
 export async function createHarness(options: HarnessOptions = {}): Promise<Harness> {
@@ -169,6 +196,20 @@ export async function createHarness(options: HarnessOptions = {}): Promise<Harne
   const theme = options.theme ?? loadBuiltInTheme();
   const tuiEvents: TuiEvent[] = [];
   const notifyCalls: NotifyCall[] = [];
+
+  // Pin the config location and its contents before importing the extension:
+  // the factory reads the config during bindExtensions below. Restored in
+  // cleanup(). The import is dynamic so a config written here is the one the
+  // module-level config path resolves to.
+  const previousXdgConfigHome = process.env.XDG_CONFIG_HOME;
+  process.env.XDG_CONFIG_HOME = HERMETIC_XDG_DIR;
+  const userConfigPath = join(HERMETIC_XDG_DIR, "pi-parrot", "config.json");
+  mkdirSync(dirname(userConfigPath), { recursive: true });
+  rmSync(userConfigPath, { force: true });
+  if (options.userConfig) {
+    writeFileSync(userConfigPath, `${JSON.stringify(options.userConfig, null, 2)}\n`, "utf-8");
+  }
+  const { default: parrotFactory } = await import("../../src/index.js");
 
   const faux = createFauxCore({ provider: "faux", models: [{ id: "faux-1" }] });
 
@@ -322,6 +363,9 @@ export async function createHarness(options: HarnessOptions = {}): Promise<Harne
     cleanup() {
       session.dispose();
       compatRegistry.unregisterApiProviders(apiSourceId);
+      rmSync(userConfigPath, { force: true });
+      if (previousXdgConfigHome === undefined) delete process.env.XDG_CONFIG_HOME;
+      else process.env.XDG_CONFIG_HOME = previousXdgConfigHome;
       if (existsSync(tempDir)) rmSync(tempDir, { recursive: true, force: true });
     },
   };

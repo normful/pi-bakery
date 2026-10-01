@@ -28,7 +28,20 @@ export function validateConfig<T extends TObject>(schema: T, value: unknown): St
   return rpivValidateConfig(schema as TObject, value) as Static<T>;
 }
 
-export const USER_CONFIG_PATH = configPath("pi-parrot"); // ~/.config/pi-parrot/config.json
+/**
+ * Absolute path of the user-global config file (`~/.config/pi-parrot/config.json`,
+ * honoring `XDG_CONFIG_HOME`).
+ *
+ * Resolved per call, not frozen at module load: `configPath` reads
+ * `XDG_CONFIG_HOME` when called, so a path captured at import time would pin
+ * whichever config the importing process happened to see. The integration
+ * harness imports `src/index.js` from more than one place, so freezing here
+ * made its hermetic `XDG_CONFIG_HOME` ineffective and let a developer's real
+ * config (e.g. `"editor": "nvim"`) into the suite.
+ */
+export function userConfigPath(): string {
+  return configPath("pi-parrot");
+}
 
 /**
  * Load user-global config only. Unlike pi-auto-name there is no project
@@ -37,7 +50,7 @@ export const USER_CONFIG_PATH = configPath("pi-parrot"); // ~/.config/pi-parrot/
  * where it is needed.
  */
 export function loadConfig(): Config {
-  return validateConfig(ConfigSchema, loadJsonConfig<Record<string, unknown>>(USER_CONFIG_PATH));
+  return validateConfig(ConfigSchema, loadJsonConfig<Record<string, unknown>>(userConfigPath()));
 }
 
 // --- shortcut KeyId validation (runtime mirror of the KeyId union) ---
