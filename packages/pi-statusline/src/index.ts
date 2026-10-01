@@ -20,8 +20,9 @@ import {
 } from "./render.js";
 import type { LastTurnAverages, Stats, TimerState, TurnCounts } from "./types.js";
 
-// These event types exist in the package internals but are not publicly exported,
-// so we define them locally.
+// Local mirrors of event types that @earendil-works/pi-coding-agent does export
+// (see its `dist/index.d.ts` re-exports). These began as local declarations from
+// before those exports existed; keep the shapes in sync with the host's.
 interface MessageStartEvent {
   type: "message_start";
   message: AgentMessage;
@@ -36,7 +37,7 @@ interface MessageEndEvent {
   message: AgentMessage;
 }
 
-// ModelSelectEvent is not exported from the package, so we define it locally
+// Mirror of the host's exported `ModelSelectEvent`, as above.
 interface ModelSelectEvent {
   type: "model_select";
   model: { provider: string; id: string };
