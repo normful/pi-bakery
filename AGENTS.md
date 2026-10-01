@@ -98,7 +98,7 @@ A commit fails if typecheck/lint/test fail, so run `npm run typecheck`, `npm tes
 
 ## Testing
 
-Tests are written with [vitest](https://vitest.dev) and run via [Vite Plus](https://github.com/nicholasgriffintn/vite-plus) (`vp`). No additional setup is needed — `vp` wraps vitest and is already in the root workspace.
+Tests are written with [vitest](https://vitest.dev) and run via [Vite Plus](https://viteplus.dev) (`vp`). No additional setup is needed — `vp` wraps vitest and is already in the root workspace.
 
 ```bash
 # Run all tests across all packages
