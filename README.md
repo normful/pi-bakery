@@ -6,6 +6,16 @@ Extensions for the [Pi coding agent](https://pi.dev). See each package's README 
   <img src="https://media.githubusercontent.com/media/normful/pi-bakery/refs/heads/main/pi-bakery.png" alt="pi-bakery" width="800">
 </p>
 
+## Installation
+
+Each extension is published to npm under the `@normful/` scope:
+
+```bash
+pi install npm:@normful/pi-auto-name
+```
+
+Some extensions need extra setup — `pi-stop-secrets-leaks` needs [betterleaks](https://github.com/betterleaks/betterleaks) — so check the package's README.
+
 ## [`@normful/pi-auto-name`](./packages/pi-auto-name)
 
 Automatically renames Pi sessions and terminal multiplexer surfaces (herdr/tmux/zellij) from the conversation.
@@ -77,3 +87,15 @@ Dims text so it's hidden while agent is running. Helps break a bad habit of read
 ## [`@normful/pi-parrot`](./packages/pi-parrot)
 
 The `/parrot` command opens the last AI response in your external editor — save and exit to send the edited text back to the chat.
+
+## [`@normful/pi-socrates`](./packages/pi-socrates)
+
+When Pi needs your input, it asks with an interactive picker instead of making you type a free-form reply. A single question shows a quick picker; multiple questions show tabs with a Submit tab to review everything before sending.
+
+## Development
+
+See [`AGENTS.md`](./AGENTS.md) for the workspace layout and commands, and [`CONTRIBUTING.md`](./CONTRIBUTING.md) for contribution expectations.
+
+## License
+
+MIT — see [`LICENSE`](./LICENSE).
