@@ -8,13 +8,13 @@ Extensions for the [Pi coding agent](https://pi.dev). See each package's README 
 
 ## Installation
 
-Every extension in this repo is published to npm under the `@normful/` scope. Install one with Pi's installer:
+Each extension is published to npm under the `@normful/` scope:
 
 ```bash
 pi install npm:@normful/pi-auto-name
 ```
 
-Substitute the name of any package listed below. Some extensions have extra prerequisites — for example, `pi-stop-secrets-leaks` needs [betterleaks](https://github.com/betterleaks/betterleaks) installed first — so check the package's README before installing.
+Some extensions need extra setup — `pi-stop-secrets-leaks` needs [betterleaks](https://github.com/betterleaks/betterleaks) — so check the package's README.
 
 ## [`@normful/pi-auto-name`](./packages/pi-auto-name)
 
@@ -94,29 +94,7 @@ When Pi needs your input, it asks with an interactive picker instead of making y
 
 ## Development
 
-This repo is an npm workspace: each extension is an independently installable package under `packages/`, published to npm under the `@normful/` scope. It uses **npm**, not pnpm or yarn.
-
-```bash
-npm install         # install workspace dependencies
-npm test            # run all tests across packages (vp test)
-npm run typecheck   # type-check without emitting (tsc)
-npm run lint        # lint (vp check)
-npm run lint:fix    # lint + autofix (vp check --fix)
-```
-
-`test`, `lint`, and `lint:fix` are wrapped by `./run-silent`, which prints only a `✔` line on success and the captured output on failure.
-
-Tests are written with [vitest](https://vitest.dev) and run via [Vite Plus](https://viteplus.dev) (`vp`), which is already configured in the root workspace.
-
-Git hooks are managed with [hk](https://hk.jdx.dev), configured in `hk.pkl`. Install them once per repo:
-
-```bash
-hk install
-```
-
-Pre-commit and pre-push then run hygiene checks plus project-wide typecheck, lint, and test.
-
-See [`AGENTS.md`](./AGENTS.md) for the package layout rules and [`CONTRIBUTING.md`](./CONTRIBUTING.md) for contribution expectations.
+See [`AGENTS.md`](./AGENTS.md) for the workspace layout and commands, and [`CONTRIBUTING.md`](./CONTRIBUTING.md) for contribution expectations.
 
 ## License
 
