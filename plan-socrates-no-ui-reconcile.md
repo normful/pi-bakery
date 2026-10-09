@@ -8,12 +8,14 @@ lists the test that must fail first, then the minimal implementation that makes 
 Run the RED step and confirm the expected failure before writing implementation code.
 
 ## Goal
+
 - Never show `socrates` tool when `!hasUI`.
 - Auto-restore when UI returns.
 - Keep tiny backstop in handler.
 - No new public event. No ownership check.
 
 ## Verified API facts (evidence)
+
 - `ExtensionContext.hasUI` exists, resolved at call time
   (`dist/core/extensions/types.d.ts:215`, `dist/core/extensions/runner.js:472`).
 - `ExtensionAPI.getActiveTools()` / `setActiveTools(names)` exist
@@ -89,7 +91,10 @@ function fakePi(active: string[]) {
   const state = { active: [...active], calls: [] as string[][] };
   return {
     getActiveTools: () => [...state.active],
-    setActiveTools: (names: string[]) => { state.calls.push([...names]); state.active = [...names]; },
+    setActiveTools: (names: string[]) => {
+      state.calls.push([...names]);
+      state.active = [...names];
+    },
     calls: state.calls,
     active: () => [...state.active],
   };
@@ -97,6 +102,7 @@ function fakePi(active: string[]) {
 ```
 
 Cases (each `expect` fails against the not-yet-written module):
+
 1. `!hasUI` + present → returns `true`; `active()` excludes `socrates`; other names and
    their order preserved; exactly one `setActiveTools` call.
 2. `hasUI` + absent → returns `true`; `active()` ends with `socrates`; other names preserved.
@@ -124,11 +130,12 @@ Cases (each `expect` fails against the not-yet-written module):
 ### RED 3 — harness support in `packages/pi-socrates/test/integration/harness.ts`
 
 Add to `Harness`:
+
 - `activeToolNames: () => string[]` → wraps `session.getActiveToolNames()`.
 - `bindMode: (mode: "tui" | "print") => Promise<void>` → calls `session.bindExtensions`
   again with the same captured `uiContext` for `tui`, and without `uiContext` for `print`.
   Only `print → tui` restore is supported via the public API (there is no public way to
-  *remove* a UI context once set; do not claim strip-on-rebind in tests).
+  _remove_ a UI context once set; do not claim strip-on-rebind in tests).
 
 ### RED 4 — `packages/pi-socrates/test/integration/reconcile.integration.test.ts` (new)
 
@@ -137,7 +144,10 @@ the `Context`, and `Context.tools` is the active tool list):
 
 ```ts
 h.faux.setResponses([
-  (context) => { seen.push((context.tools ?? []).map((t) => t.name)); return fauxAssistantMessage("ok"); },
+  (context) => {
+    seen.push((context.tools ?? []).map((t) => t.name));
+    return fauxAssistantMessage("ok");
+  },
 ]);
 ```
 
@@ -154,6 +164,7 @@ h.faux.setResponses([
   that the backstop string is unit-only.
 
 ### RED 5 — update the existing print-mode case in
+
 `packages/pi-socrates/test/integration/socrates.integration.test.ts`
 
 The current `"refuses in print mode without invoking the UI"` expects
@@ -173,23 +184,25 @@ the editor (`F7`); **no `Ctrl+U`** (it collides with pi-tui's `Editor`
 
 Applied per UI:
 
-| Key | Where | Action |
-| --- | --- | --- |
-| `j` / `k` | both UIs, editor closed | same as `Down` / `Up` |
-| `[` / `]` | tabs UI, editor closed | same as `Left` / `Right` |
-| digits | tabs UI, editor closed | jump: `1..Q` → question tab, `0` → Submit tab |
-| `d` | both UIs, editor closed | clear the cursor option's saved note |
-| `F7` | editor open (unchanged) | clear note text |
-| `[` `]` digits | single-question UI | no-op |
-| `d` on Submit tab | tabs UI | no-op |
+| Key               | Where                   | Action                                        |
+| ----------------- | ----------------------- | --------------------------------------------- |
+| `j` / `k`         | both UIs, editor closed | same as `Down` / `Up`                         |
+| `[` / `]`         | tabs UI, editor closed  | same as `Left` / `Right`                      |
+| digits            | tabs UI, editor closed  | jump: `1..Q` → question tab, `0` → Submit tab |
+| `d`               | both UIs, editor closed | clear the cursor option's saved note          |
+| `F7`              | editor open (unchanged) | clear note text                               |
+| `[` `]` digits    | single-question UI      | no-op                                         |
+| `d` on Submit tab | tabs UI                 | no-op                                         |
 
 ## 2.1 Digit-jump buffer (tabs UI only)
 
 Constants (in `ask-tabs-ui.ts`, exported for tests):
+
 - `DIGIT_JUMP_TIMEOUT_MS = 600`
 - `MAX_DIGIT_BUFFER_LENGTH = 2`
 
 Rules (locked):
+
 - `0` with an empty buffer → commit to the Submit tab immediately.
 - `1..9` → append to the buffer; start/refresh a `setTimeout(DIGIT_JUMP_TIMEOUT_MS)`
   that commits on expiry.
@@ -206,10 +219,11 @@ Rules (locked):
 ## 2.2 Pinned footer hints
 
 Convention: ASCII only, one word per action, grouped and ordered
-*navigate → act → annotate → exit*. Every string below includes its leading space and
+_navigate → act → annotate → exit_. Every string below includes its leading space and
 replaces the current `theme.fg("customMessageLabel", …)` text verbatim.
 
 Rules:
+
 - `d clear` appears **only** when the cursor option actually has a note.
 - `[/]` and digits never appear in the single-question UI.
 - Hints are clipped by `truncateToWidth`; tests assert leading substrings, or render at
@@ -217,26 +231,27 @@ Rules:
 
 Single-question (`src/ask-inline-ui.ts`):
 
-| State | Hint string |
-| --- | --- |
-| editor open | ` Editing note · Enter submit · Tab/Esc done · F7 clear` |
-| editor closed, cursor option has a note | ` ↑↓/jk · Enter pick · Tab note · d clear · F6 exit` |
-| editor closed, cursor option has no note | ` ↑↓/jk · Enter pick · Tab note · F6 exit` |
+| State                                    | Hint string                                              |
+| ---------------------------------------- | -------------------------------------------------------- |
+| editor open                              | ` Editing note · Enter submit · Tab/Esc done · F7 clear` |
+| editor closed, cursor option has a note  | ` ↑↓/jk · Enter pick · Tab note · d clear · F6 exit`     |
+| editor closed, cursor option has no note | ` ↑↓/jk · Enter pick · Tab note · F6 exit`               |
 
 Tabs (`src/ask-tabs-ui.ts`):
 
-| State | Hint string |
-| --- | --- |
-| question tab, editor open | ` Editing note · Enter save · Tab/Esc done · F7 clear` |
-| question tab, editor closed, cursor option has a note | ` ↑↓/jk · ←→/[] · 0-9 jump · Enter pick · Tab note · d clear · F6 exit` |
-| question tab, editor closed, cursor option has no note | ` ↑↓/jk · ←→/[] · 0-9 jump · Enter pick · Tab note · F6 exit` |
-| Submit tab | ` ←→/[] · 0-9 jump · Enter submit · F6 exit` |
+| State                                                  | Hint string                                                             |
+| ------------------------------------------------------ | ----------------------------------------------------------------------- |
+| question tab, editor open                              | ` Editing note · Enter save · Tab/Esc done · F7 clear`                  |
+| question tab, editor closed, cursor option has a note  | ` ↑↓/jk · ←→/[] · 0-9 jump · Enter pick · Tab note · d clear · F6 exit` |
+| question tab, editor closed, cursor option has no note | ` ↑↓/jk · ←→/[] · 0-9 jump · Enter pick · Tab note · F6 exit`           |
+| Submit tab                                             | ` ←→/[] · 0-9 jump · Enter submit · F6 exit`                            |
 
 Pending digit buffer: when `pendingDigitBuffer` is non-empty, append ` · tab N…`
 (N = the buffered digits) to the current line, e.g.
 ` ←→/[] · 0-9 jump · Enter submit · F6 exit · tab 1…`.
 
 ## 2.3 Implementation notes
+
 - Files: `src/ask-inline-ui.ts` `handleInput`, `src/ask-tabs-ui.ts` `handleInput`.
 - Reuse `matchesKey` with `Key.leftbracket` / `Key.rightbracket`; use `Key` for specials.
 - `d`/digit/`[`/`]` branches only in the **editor-closed** path; `F7` stays in
@@ -264,30 +279,20 @@ Use `vi.useFakeTimers()` for timeout cases; assert via `component.render(width)`
 (question text / `●` cursor marker / `— note:` presence / `Review answers`).
 
 Single-question UI:
+
 1. `j`/`k` move the cursor like `Down`/`Up`.
 2. `d` clears the current option's saved note; selection unchanged.
 3. `[`, `]`, and digits are no-ops.
 
-Tabs UI:
-4. `j`/`k` move the cursor like `Down`/`Up`.
-5. `[`/`]` switch question tabs like `Left`/`Right`.
-6. single digit (`1`) jumps after the timeout commits.
-7. two digits (`12`) jump immediately; a ≥10-question fixture proves tab 12 is reachable.
-8. `0` jumps to the Submit tab immediately.
-9. invalid two-digit (`13` with 2 questions) is ignored; no tab change.
-10. a non-digit key commits a pending digit before handling.
-11. `d` clears the current option's note on a question tab; no-op on the Submit tab.
-12. digits typed while the note editor is open stay as note text (no jump, no buffer hint).
-13. the pending-digit footer segment (` · tab 1…`) appears while waiting, on the exact
-    hint line for that state (2.2) — cover both a question tab and the Submit tab.
-14. a pending-digit timer is cleared on cancel (spy on `tui.requestRender`; advance
-    timers after `Ctrl-C`; assert no late calls).
-15. the `d clear` segment appears in the hint **only** when the cursor option has a note
-    (both UIs): assert exact pinned strings from 2.2 with and without a note.
+Tabs UI: 4. `j`/`k` move the cursor like `Down`/`Up`. 5. `[`/`]` switch question tabs like `Left`/`Right`. 6. single digit (`1`) jumps after the timeout commits. 7. two digits (`12`) jump immediately; a ≥10-question fixture proves tab 12 is reachable. 8. `0` jumps to the Submit tab immediately. 9. invalid two-digit (`13` with 2 questions) is ignored; no tab change. 10. a non-digit key commits a pending digit before handling. 11. `d` clears the current option's note on a question tab; no-op on the Submit tab. 12. digits typed while the note editor is open stay as note text (no jump, no buffer hint). 13. the pending-digit footer segment (` · tab 1…`) appears while waiting, on the exact
+hint line for that state (2.2) — cover both a question tab and the Submit tab. 14. a pending-digit timer is cleared on cancel (spy on `tui.requestRender`; advance
+timers after `Ctrl-C`; assert no late calls). 15. the `d clear` segment appears in the hint **only** when the cursor option has a note
+(both UIs): assert exact pinned strings from 2.2 with and without a note.
 
 ### GREEN 4 — implement 2.1 + 2.2 + 2.3 until RED 6 is green.
 
 ### RED 7 — update hint-sensitive assertions
+
 - `test/ask-ui-interaction.test.ts`: lines `63`, `233`, `282` assert `Typing note inline`
   → replace with `Editing note` (or the full pinned editing string). Line `132` asserts
   `Tab edit note` → replace with the pinned closed + has-note string.
@@ -296,7 +301,9 @@ Tabs UI:
   (`Editing note`, `↑↓/jk`).
 
 ### RED 8 — integration keybind coverage in
+
 `packages/pi-socrates/test/integration/socrates.integration.test.ts` (new describe)
+
 - **INT-K1** `runs the picker using only the new keys`: a 2-question flow driven by
   `j`/`k`, `[`/`]`, `d`, and `0` (Submit). Assert the stored answers, e.g.
   `auth: …`, `cache: …`, and a cleared note is absent.
@@ -309,6 +316,7 @@ Tabs UI:
 ---
 
 ## Non-goals
+
 - No `socrates:availability` event (only existing `herdr:blocked` stays).
 - No RPC dialog walker (option B), no plain-text question dump (option A), no subagent
   socket relay (option D).
@@ -318,18 +326,20 @@ Tabs UI:
   pattern.
 
 ## Verify
+
 - `npm run typecheck`
 - `npm test -- --project pi-socrates` (or `npm test -- packages/pi-socrates/`)
 - `npm run lint`
 
 ## Decisions locked
+
 - 1: `!hasUI` only (not `mode !== "tui"`).
 - 2: auto-restore.
 - 3: skip ownership check.
 - 4: backstop text = unavailable + plain-chat guidance (option B).
 - 5: skip availability event.
 - 6: backstop is unit-tested only; integration asserts "not offered" / `Tool socrates not
-  found` (1a).
+found` (1a).
 - 7: no `Ctrl+U`.
 - 8: digit buffer = `0` immediate, `1..9` wait, 2 digits commit immediately, timeout
   commits a single digit, invalid two-digit clears and ignores, non-digit key commits
@@ -338,7 +348,7 @@ Tabs UI:
 - 10: `d` clears the cursor option's note (incl. Other), no-op on Submit, never changes
   selection.
 - 11: footer hints pinned verbatim in 2.2 — concise one-word-per-action ASCII, grouped
-  *navigate → act → annotate → exit*, `d clear` shown only when a note exists,
+  _navigate → act → annotate → exit_, `d clear` shown only when a note exists,
   `Enter submit` (single) / `Enter save` (tabs) while editing. Full discoverability
   (option 6b); truncation at narrow widths accepted.
 - 12: new `test/reconcile.test.ts` and `test/ask-keybinds.test.ts`; extend `index.test.ts`,
@@ -346,6 +356,7 @@ Tabs UI:
 - 13: no keys-only footer + legend variant; the footer stays self-explanatory.
 
 ## Assumptions (unverified)
+
 - "Headless subagent runs emit `before_agent_start` per run" is **not verified**. No
   subagent runner exists in `@earendil-works/pi-coding-agent`; if subagents use a raw
   `Agent` rather than `AgentSession.prompt`, the reconciler will not run for them. Treat
