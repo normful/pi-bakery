@@ -383,6 +383,64 @@ describe("generateNames", () => {
     }
   });
 
+  it.each([
+    [
+      "natural",
+      "Обновление токена OAuth",
+      "Исправить обновление токена OAuth при повторном входе пользователя",
+    ],
+    [
+      "slug",
+      "обновление-токена-oauth",
+      "исправить-обновление-токена-oauth-при-повторном-входе-пользователя",
+    ],
+    [
+      "topic-project",
+      "Обновление токена OAuth｜p",
+      "Исправить обновление токена OAuth при повторном входе пользователя",
+    ],
+  ] as const)(
+    "renders Russian prompts and Cyrillic names in %s style",
+    async (namingStyle, windowName, sessionName) => {
+      const complete = mkComplete(() =>
+        mkResponse(
+          "WINDOW: Обновление токена OAuth\nSESSION: Исправить обновление токена OAuth при повторном входе пользователя",
+        ),
+      );
+      const result = await generateNames(
+        mkCtx({}, complete),
+        mkConfig({
+          namingStyle,
+          language: "ru-RU",
+          windowNameMaxLength: 25,
+          sessionNameMaxLength: 100,
+        }),
+        mkContext({ firstUserMessage: "Исправь обновление токена OAuth" }),
+        ["Старое название"],
+        "/p",
+        { exec: vi.fn() } as any,
+      );
+      expect(result).toMatchObject({
+        ok: true,
+        names: { windowName, sessionName },
+      });
+      const { systemPrompt, messages } = complete.mock.calls[0][1] as any;
+      expect(systemPrompt).toContain("до 25 символов");
+      expect(systemPrompt).toContain("до 100 символов");
+      const userPrompt = messages[0].content[0].text;
+      if (namingStyle === "topic-project") {
+        expect(userPrompt).toContain("Язык: ru-ru");
+      } else {
+        expect(systemPrompt).toContain("на русском языке (ru-ru)");
+      }
+      expect(userPrompt).toContain("Первое сообщение пользователя:");
+      expect(userPrompt).toContain("Не повторяй существующие названия сессий:");
+      expect(userPrompt).toContain("WINDOW:");
+      expect(userPrompt).toContain("SESSION:");
+      expect(`${systemPrompt}\n${userPrompt}`).not.toMatch(/\{\w+\}/);
+    },
+  );
+
   it("uses the locale system prompt and the naming context template", async () => {
     const complete = mkComplete();
     await generateNames(
