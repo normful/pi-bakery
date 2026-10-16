@@ -251,16 +251,17 @@ describe("es / de / fr tables (Spanish / German / French)", () => {
   });
 });
 
-describe("id / vi / tr / pl / uk tables (Indonesian / Vietnamese / Turkish / Polish / Ukrainian)", () => {
+describe("id / vi / tr / pl / uk / ru tables", () => {
   const LANGS = [
     ["id", "2-4 kata", "8-12 kata"],
     ["vi", "2-4 từ", "8-12 từ"],
     ["tr", "2-4 kelime", "8-12 kelime"],
     ["pl", "2-4 słowa", "8-12 słów"],
     ["uk", "2-4 слова", "8-12 слів"],
+    ["ru", "2-4 слова", "8-12 слов"],
   ] as const;
 
-  it("registers all five tables", () => {
+  it("registers every table", () => {
     for (const [key] of LANGS) {
       expect(LOCALE_STRINGS[key]).toBeDefined();
     }

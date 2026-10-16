@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Russian naming prompts for `ru` and regional variants, with a Russian README.
+
 ## [2.0.0] - 2026-10-01
 
 ### Removed
