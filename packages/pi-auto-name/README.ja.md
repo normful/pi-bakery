@@ -40,6 +40,8 @@ pi install npm:@normful/pi-auto-name
 
 一度設定するだけで完了です。設定して忘れてください。
 
+[手動で名前を変更](#manual-rename)
+
 ## 動作方法
 
 最初のユーザー入力（または最初の `agent_settled` イベント — 以下の構成を参照）の後、Pi セッションの名前を変更し、含まれるものの名前も変更します：
@@ -64,7 +66,9 @@ pi install npm:@normful/pi-auto-name
   "enabled": true,
   "initialRenameTrigger": "first-input",
   "language": "en",
+  "namingCase": "title",
   "namingContextDepth": "recent-user-messages",
+  "namingInstructions": "",
   "namingModel": "",
   "namingStyle": "natural",
   "replaceExistingName": "always",
@@ -93,7 +97,9 @@ pi install npm:@normful/pi-auto-name
 | `enabled`                   | `boolean` | `true`                              | `false` はこの拡張機能を完全に無効にします。                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `initialRenameTrigger`      | `string`  | <code>"first-input"</code>          | 最初のリネームが発火するタイミング：<br><ul><li><code>"first-input"</code> — 最初のプロンプトを送信した後</li><li><code>"first-agent-settled"</code> — 最初の LLM 実行が完了した後（最初の `agent_settled` イベントの後）。</li></ul>                                                                                                                                                                                                                                                       |
 | `language`                  | `string`  | `"en"`                              | 以下のいずれか：<code>en</code>、<code>es</code>、<code>de</code>、<code>fr</code>、<code>it</code>、<code>nl</code>、<code>pt</code>/<code>pt-BR</code>/<code>pt-PT</code>、<code>id</code>、<code>vi</code>、<code>tr</code>、<code>pl</code>、<code>uk</code>、<code>fa</code>、<code>ar</code>、<code>hi</code>、<code>zh</code>/<code>zh-CN</code>/<code>zh-Hans</code>、<code>zh-Hant</code>/<code>zh-TW</code>/<code>zh-HK</code>、<code>ja</code>、<code>ko</code>、<code>th</code> |
+| `namingCase`                | `string`  | `"title"`                           | 両方の `natural` 名の大文字表記をモデルに指示します: `"title"` または `"sentence"`. 固有名詞と略語を保持します. 他のスタイルや大文字・小文字の区別がない文字には影響しません.                                                                                                                                                                                                                                                                                                               |
 | `namingContextDepth`        | `string`  | <code>"recent-user-messages"</code> | 各リネームプロンプトで LLM に送信する会話の量：<br><ul><li><code>"first-user-message"</code> — 最初のユーザーメッセージのみ</li><li><code>"recent-user-messages"</code> — 最初のユーザーメッセージと最後の 3 件のユーザーメッセージ</li><li><code>"full-conversation"</code> — 会話全体（ユーザー、アシスタント、ツール呼び出しと結果）、約 60k 文字に制限し、冒頭（コア意図）と最新の末尾の両方を保持</li></ul>                                                                            |
+| `namingInstructions`        | `string`  | `""`                                | すべてのスタイルでモデルへの指示を追加し,組み込みプロンプトを補足します. `WINDOW:` / `SESSION:` 形式を維持してください. プロジェクト設定の空文字列はグローバル指示を消去します. フォールバック名には影響しません.                                                                                                                                                                                                                                                                           |
 | `namingModel`               | `string`  | <code>""</code>                     | リネーム LLM 呼び出しの <code>provider/modelId</code> オーバーライド。例：<code>"openrouter/nvidia/nemotron-3-nano-30b-a3b:free"</code>。空のままにして、構成済みの Pi デフォルトモデルとプロバイダーを使用してください。                                                                                                                                                                                                                                                                   |
 | `namingStyle`               | `string`  | <code>"natural"</code>              | 両方の名前に使用される命名スタイル：<br><ul><li><code>"natural"</code> — 自由形式の文</li><li><code>"slug"</code> — 小文字のハイフン区切り。</li><li><code>"topic-project"</code> — `<topic>｜<project>`、現在の作業ディレクトリから派生したプロジェクト</li></ul>                                                                                                                                                                                                                          |
 | `replaceExistingName`       | `string`  | <code>"always"</code>               | 既存の Pi セッション名、tmux ウィンドウ名、herdr パネル/タブ名、zellij パネル/タブ名をいつ上書きするか：<br><ul><li><code>"always"</code> — 常に上書き</li><li><code>"never"</code> — 上書きしない</li></ul>                                                                                                                                                                                                                                                                                |
@@ -101,13 +107,19 @@ pi install npm:@normful/pi-auto-name
 | `respectExternalRenames`    | `boolean` | `true`                              | `true` の場合、外部リネームが検出された後にこの拡張機能のリネームを無効にします（例：手動で `/name` を実行した後）。                                                                                                                                                                                                                                                                                                                                                                        |
 | `sessionNameMaxLength`      | `integer` | `200`                               | Pi セッション名の最大文字数制限。                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `skipSessionNameDedup`      | `boolean` | `false`                             | `true` はリネームプロンプトに既存の Pi セッション名を送信しないようにします。`false`（デフォルト）は重複を避けるために最大 15 個の既存セッション名を送信します。                                                                                                                                                                                                                                                                                                                            |
-| `surfaces.renamePiSession`  | `boolean` | `true`                              | `false` は Pi セッションのリネームを無効にします。                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `surfaces.renameHerdrPane`  | `boolean` | `true`                              | `false` は Pi が実行中の herdr パネルのリネームを無効にします。                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `surfaces.renameHerdrTab`   | `boolean` | `true`                              | `false` はこのプロセスが実行中の herdr タブのリネームを無効にします。                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `surfaces.renamePiSession`  | `boolean` | `true`                              | `false` は Pi セッションのリネームを無効にします。                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `surfaces.renameTmuxWindow` | `boolean` | `true`                              | `false` はこのプロセスが実行中の tmux ウィンドウのリネームを無効にします。                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `surfaces.renameZellijPane` | `boolean` | `true`                              | `false` はこのプロセスが実行中の zellij パネルのリネームを無効にします。                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `surfaces.renameZellijTab`  | `boolean` | `true`                              | `false` はこのプロセスが実行中の zellij タブのリネームを無効にします。                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `windowNameMaxLength`       | `integer` | `30`                                | 各ターミナル/フレームウィンドウ名の最大文字数（herdr パネル/タブ、tmux ウィンドウ、zellij パネル/タブ）。2 つの長さ調整ノブのうちの 1 つ。                                                                                                                                                                                                                                                                                                                                                  |
+
+<a id="manual-rename"></a>
+
+## 手動で名前を変更
+
+引数なしで `/rename` を実行すると,現在の会話と設定から名前を再生成します. 名前を直接指定するには `/name` を使います.
 
 ## デバッグ
 
@@ -117,6 +129,7 @@ pi install npm:@normful/pi-auto-name
 
 この拡張機能は、いくつかの他の類似拡張機能にインスピレーションを得ています：
 
+- <https://github.com/Mieluoxxx/pi-ext/tree/main/extensions/pi-session-rename>
 - <https://github.com/ssdiwu/pi-autoname>
 - <https://github.com/byteowlz/pi-agent-extensions/tree/main/pi-auto-rename>
 - <https://github.com/mkioutcc/pi-title-renamer>

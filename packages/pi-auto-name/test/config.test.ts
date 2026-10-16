@@ -19,6 +19,8 @@ const TOP_LEVEL_DEFAULTS: Partial<Config> = {
   replaceExistingName: "always",
   respectExternalRenames: true,
   namingStyle: "natural",
+  namingCase: "title",
+  namingInstructions: "",
   namingContextDepth: "recent-user-messages",
   skipSessionNameDedup: false,
   namingModel: "",
@@ -38,6 +40,8 @@ describe("ConfigSchema top-level defaults (via rpiv-config validateConfig)", () 
   it("accepts valid scalar overrides", () => {
     const cfg = validateConfig(ConfigSchema, {
       namingStyle: "slug",
+      namingCase: "sentence",
+      namingInstructions: "Mention the affected service.",
       language: "zh-CN",
       initialRenameTrigger: "first-agent-settled",
       reRenameEveryNTurns: 3,
@@ -45,6 +49,8 @@ describe("ConfigSchema top-level defaults (via rpiv-config validateConfig)", () 
       windowNameMaxLength: 25,
     });
     expect(cfg.namingStyle).toBe("slug");
+    expect(cfg.namingCase).toBe("sentence");
+    expect(cfg.namingInstructions).toBe("Mention the affected service.");
     expect(cfg.language).toBe("zh-CN");
     expect(cfg.initialRenameTrigger).toBe("first-agent-settled");
     expect(cfg.reRenameEveryNTurns).toBe(3);
@@ -92,8 +98,13 @@ describe("loadConfig (nested defaults deep-merged)", () => {
 
   it("loads the user-global base and the project override, project winning per field", () => {
     vi.mocked(loadJsonConfig)
-      .mockReturnValueOnce({ namingStyle: "slug", language: "fr" }) // user base
-      .mockReturnValueOnce({ language: "de" }); // project override
+      .mockReturnValueOnce({
+        namingStyle: "slug",
+        language: "fr",
+        namingCase: "sentence",
+        namingInstructions: "Global naming preference.",
+      })
+      .mockReturnValueOnce({ language: "de", namingInstructions: "" });
     const cfg = loadConfig("/some/project");
 
     expect(loadJsonConfig).toHaveBeenCalledTimes(2);
@@ -102,11 +113,13 @@ describe("loadConfig (nested defaults deep-merged)", () => {
       "/fake/home/.config/pi-auto-name/config.json",
     );
     const projectPath = vi.mocked(loadJsonConfig).mock.calls[1][0];
-    expect(projectPath).toContain("/some/project");
+    expect(projectPath.replaceAll("\\", "/")).toContain("/some/project");
     expect(projectPath.endsWith("pi-auto-name.json")).toBe(true);
 
     expect(cfg.namingStyle).toBe("slug"); // from user base
     expect(cfg.language).toBe("de"); // project wins
+    expect(cfg.namingCase).toBe("sentence");
+    expect(cfg.namingInstructions).toBe(""); // project can clear global instructions
   });
 
   it("deep-merges nested surface objects across user and project", () => {

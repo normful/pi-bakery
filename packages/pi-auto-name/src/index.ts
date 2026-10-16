@@ -15,6 +15,8 @@ import { collectExistingSessionNames } from "./dedup.js";
 import { applySessionName, logSurfacesEnv, syncSurfaces, windowNameForSync } from "./surfaces.js";
 import { debug, initDebug } from "./debug.js";
 
+type RenameFailureReason = string;
+
 /**
  * Everything a rename run needs from the event context, captured synchronously
  * after the generation guard and before the naming pipeline yields, so the
@@ -46,6 +48,7 @@ interface PreparedRename {
 interface RenameOptions {
   timeoutMs?: number;
   currentInput?: string;
+  manual?: boolean;
 }
 
 /**
@@ -95,7 +98,7 @@ export default function (pi: ExtensionAPI): void {
 
   /**
    * Guard checks + synchronous preparation, run after config loading confirms
-   * the event's generation is still current. Returns undefined when the rename is
+   * the event's generation is still current. Returns a reason when the rename is
    * skipped (disabled, done, inflight/locked, un-replaceable name, or no
    * naming context yet).
    *
@@ -108,11 +111,16 @@ export default function (pi: ExtensionAPI): void {
   function prepareRename(
     ctx: ExtensionContext,
     options: RenameOptions | undefined,
-  ): PreparedRename | undefined {
+  ): PreparedRename | RenameFailureReason {
     // cfg is read synchronously so this preparation remains before the next
     // await in every caller. config(cwd) has already populated the cache.
     const c = cfg as Config;
-    if (!c.enabled || state.done || state.inflight || state.autoRenameLocked) {
+    if (
+      !c.enabled ||
+      (!options?.manual && state.done) ||
+      state.inflight ||
+      state.autoRenameLocked
+    ) {
       // A completed initial rename (`done` or `!enabled`) is the expected
       // steady-state between re-renames — not worth logging on every input.
       // Log only the transient blocks that indicate something may be stuck.
@@ -124,7 +132,10 @@ export default function (pi: ExtensionAPI): void {
           autoRenameLocked: state.autoRenameLocked,
         });
       }
-      return undefined;
+      if (!c.enabled) return "pi-auto-name is disabled.";
+      if (state.inflight) return "A rename is already in progress.";
+      if (state.autoRenameLocked) return "Renaming is locked after an external rename.";
+      return "Automatic naming has already completed.";
     }
 
     const currentName = pi.getSessionName();
@@ -134,7 +145,7 @@ export default function (pi: ExtensionAPI): void {
         policy: c.replaceExistingName,
       });
       state.done = true;
-      return undefined;
+      return 'The current name is protected by replaceExistingName: "never".';
     }
 
     // Build the naming context synchronously with the fresh ctx. The
@@ -146,11 +157,11 @@ export default function (pi: ExtensionAPI): void {
       context = buildContext(ctx, c, options?.currentInput);
     } catch (error) {
       debug("renameOnce: buildContext failed", String(error));
-      return undefined;
+      return "Could not read the conversation for naming.";
     }
     if (!context) {
       debug("renameOnce: no naming context available");
-      return undefined;
+      return "No conversation is available to name yet.";
     }
 
     state.inflight = true;
@@ -189,7 +200,7 @@ export default function (pi: ExtensionAPI): void {
   async function completeRename(
     p: PreparedRename,
     options: { timeoutMs?: number } | undefined,
-  ): Promise<void> {
+  ): Promise<RenameFailureReason | undefined> {
     const { c, currentName } = p;
 
     // Step 1: collect existing sibling session names (dedup hints). A failure
@@ -207,7 +218,7 @@ export default function (pi: ExtensionAPI): void {
         titles = [];
       }
     }
-    if (p.generation.aborted) return;
+    if (p.generation.aborted) return "Naming was aborted.";
 
     // Step 2: generate the names (LLM + fallback) from the prebuilt context and
     // captured session refs. generateNames returns its failures rather than
@@ -219,7 +230,7 @@ export default function (pi: ExtensionAPI): void {
       debug("renameOnce: generateNames threw unexpectedly", String(error));
       throw error;
     }
-    if (p.generation.aborted) return;
+    if (p.generation.aborted) return "Naming was aborted.";
     debug("renameOnce: generateNames result", result);
 
     if (!result.ok) {
@@ -229,10 +240,10 @@ export default function (pi: ExtensionAPI): void {
       // the caller's standard reset of its own (possibly detached) state.
       if (result.reason === "aborted") {
         debug("renameOnce: naming aborted (session replaced) — exiting silently");
-        return;
+        return "Naming was aborted.";
       }
       await handleFailure(result.reason);
-      return;
+      return `Name generation failed: ${result.reason}.`;
     }
 
     // Step 3: apply the session name (race-guarded).
@@ -242,7 +253,7 @@ export default function (pi: ExtensionAPI): void {
           nameAtGenerationStart: p.state.nameAtGenerationStart,
           current: pi.getSessionName(),
         });
-        return;
+        return "The session name changed during generation; no names were applied.";
       }
       debug("renameOnce: applying names", {
         previous: currentName,
@@ -255,7 +266,7 @@ export default function (pi: ExtensionAPI): void {
       debug("renameOnce: applySessionName failed", String(error));
       throw error;
     }
-    if (p.generation.aborted) return;
+    if (p.generation.aborted) return "Naming was aborted.";
 
     // Step 4: sync surfaces to the generated window name.
     try {
@@ -271,12 +282,16 @@ export default function (pi: ExtensionAPI): void {
    * pipeline to completion. Fired inside the event dispatch for headless flows
    * (`agent_settled` and `input`), so any error propagates to the runtime, which
    * wraps the handler await in try/catch and reports it rather than crashing.
+   * Returns a skip/failure message, or undefined after a completed rename.
    */
-  async function renameOnce(ctx: ExtensionContext, options?: RenameOptions): Promise<void> {
+  async function renameOnce(
+    ctx: ExtensionContext,
+    options?: RenameOptions,
+  ): Promise<RenameFailureReason | undefined> {
     const p = prepareRename(ctx, options);
-    if (!p) return;
+    if (typeof p === "string") return p;
     try {
-      await completeRename(p, options);
+      return await completeRename(p, options);
     } finally {
       p.state.inflight = false;
       p.state.done = true;
@@ -293,7 +308,7 @@ export default function (pi: ExtensionAPI): void {
    */
   function renameOnceDeferred(ctx: ExtensionContext, options?: RenameOptions): void {
     const p = prepareRename(ctx, options);
-    if (!p) return;
+    if (typeof p === "string") return;
     void (async () => {
       try {
         await completeRename(p, options);
@@ -317,6 +332,39 @@ export default function (pi: ExtensionAPI): void {
   async function handleFailure(reason: GenerateFailureReason): Promise<void> {
     debug("renameOnce: name generation failed — latching done (no retry)", { reason });
   }
+
+  pi.registerCommand("rename", {
+    description: "Generate session and surface names using pi-auto-name settings",
+    handler: async (args, ctx) => {
+      const generation = generationController.signal;
+      if (generation.aborted) return;
+      if (args.trim()) {
+        ctx.ui.notify(
+          "Use /rename without arguments. Use /name to set a name directly.",
+          "warning",
+        );
+        return;
+      }
+      await config(ctx.cwd);
+      if (generation.aborted) return;
+      if (!ctx.isIdle()) {
+        ctx.ui.notify("Wait until the agent is idle, then run /rename again.", "warning");
+        return;
+      }
+      try {
+        const reason = await renameOnce(ctx, {
+          manual: true,
+          timeoutMs: ctx.hasUI ? UI_RENAME_TIMEOUT_MS : undefined,
+        });
+        if (generation.aborted) return;
+        ctx.ui.notify(reason ?? "Session naming completed.", reason ? "warning" : "info");
+      } catch (error) {
+        if (generation.aborted) return;
+        debug("rename: failed", String(error));
+        ctx.ui.notify("Rename failed. Enable PI_AUTO_NAME_DEBUG for details.", "error");
+      }
+    },
+  });
 
   pi.on("session_start", async (event, ctx) => {
     // Re-mint for the new generation, invalidating the previous one. Normally

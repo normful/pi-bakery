@@ -36,11 +36,14 @@ const { createModels, ModelsError } = vi.hoisted(() => ({
 
 vi.mock("@earendil-works/pi-ai", () => ({ createModels, ModelsError }));
 
-const EN = await import("../src/locales.js").then((m) => m.LOCALE_STRINGS.en);
+const { LOCALE_STRINGS } = await import("../src/locales.js");
+const EN = LOCALE_STRINGS.en;
 
 function mkConfig(overrides: Partial<Config> = {}): Config {
   return {
     namingStyle: "natural",
+    namingCase: "title",
+    namingInstructions: "",
     namingContextDepth: "recent-user-messages",
     namingModel: "",
     language: "en",
@@ -774,6 +777,123 @@ describe("generateNames does not send reasoning", () => {
     expect(options.reasoning).toBeUndefined();
     expect("reasoning" in options).toBe(false);
   });
+});
+
+describe("naming case and custom instructions", () => {
+  it.each(Object.entries(LOCALE_STRINGS))(
+    "uses sentence-case guidance in both natural prompts for %s",
+    async (language, locale) => {
+      const complete = mkComplete();
+      await generateNames(
+        mkCtx({}, complete),
+        mkConfig({ namingCase: "sentence", language }),
+        mkContext(),
+        [],
+        "/p",
+        { exec: vi.fn() } as any,
+      );
+      const { systemPrompt, messages } = complete.mock.calls[0][1] as any;
+      for (const prompt of [systemPrompt, messages[0].content[0].text]) {
+        expect(prompt).not.toContain("Title Case");
+        expect(prompt).not.toMatch(/\{\w+\}/);
+        if (locale.sentenceCase) expect(prompt).toContain(locale.sentenceCase);
+      }
+    },
+  );
+
+  it("keeps Title Case by default and preserves model-provided acronym casing", async () => {
+    const complete = mkComplete();
+    const result = await generateNames(mkCtx({}, complete), mkConfig(), mkContext(), [], "/p", {
+      exec: vi.fn(),
+    } as any);
+    const { systemPrompt, messages } = complete.mock.calls[0][1] as any;
+    expect(systemPrompt).toContain("in Title Case");
+    expect(messages[0].content[0].text).toContain("in Title Case");
+    expect(result).toMatchObject({
+      ok: true,
+      names: { sessionName: "Fix the OAuth callback retry" },
+    });
+  });
+
+  it.each(["natural", "slug", "topic-project"] as const)(
+    "appends custom instructions without replacing the %s prompt or context",
+    async (namingStyle) => {
+      const complete = mkComplete();
+      await generateNames(
+        mkCtx({}, complete),
+        mkConfig({ namingStyle, namingInstructions: "  Mention the affected service.  " }),
+        mkContext(),
+        [],
+        "/p",
+        { exec: vi.fn() } as any,
+      );
+      const { systemPrompt, messages } = complete.mock.calls[0][1] as any;
+      expect(systemPrompt).toContain("\n\nMention the affected service.\n\n");
+      expect(systemPrompt).toContain("200 characters");
+      expect(systemPrompt.endsWith(EN.responseFormat)).toBe(true);
+      expect(messages[0].content[0].text).toContain("Please fix the OAuth callback");
+    },
+  );
+
+  it("preserves model-provided proper nouns in sentence case", async () => {
+    const complete = mkComplete(() =>
+      mkResponse("WINDOW: Configure PostgreSQL TLS\nSESSION: Configure PostgreSQL TLS for OAuth"),
+    );
+    const result = await generateNames(
+      mkCtx({}, complete),
+      mkConfig({ namingCase: "sentence" }),
+      mkContext(),
+      [],
+      "/p",
+      { exec: vi.fn() } as any,
+    );
+    expect(result).toMatchObject({
+      ok: true,
+      names: {
+        windowName: "Configure PostgreSQL TLS",
+        sessionName: "Configure PostgreSQL TLS for OAuth",
+      },
+    });
+  });
+
+  it.each(["", "   ", 42, null])(
+    "ignores empty or non-string custom instructions (%s)",
+    async (namingInstructions) => {
+      const complete = mkComplete();
+      const result = await generateNames(
+        mkCtx({}, complete),
+        mkConfig({ namingInstructions: namingInstructions as string }),
+        mkContext(),
+        [],
+        "/p",
+        { exec: vi.fn() } as any,
+      );
+      expect(result.ok).toBe(true);
+      const { systemPrompt } = complete.mock.calls[0][1] as any;
+      expect(systemPrompt).not.toContain(EN.responseFormat);
+    },
+  );
+
+  it.each(["slug", "topic-project"] as const)(
+    "does not change %s prompts when namingCase is sentence",
+    async (namingStyle) => {
+      const prompts: unknown[] = [];
+      for (const namingCase of ["title", "sentence"] as const) {
+        const complete = mkComplete();
+        await generateNames(
+          mkCtx({}, complete),
+          mkConfig({ namingStyle, namingCase, namingInstructions: "   " }),
+          mkContext(),
+          [],
+          "/p",
+          { exec: vi.fn() } as any,
+        );
+        const { systemPrompt, messages } = complete.mock.calls[0][1] as any;
+        prompts.push([systemPrompt, messages[0].content[0].text]);
+      }
+      expect(prompts[1]).toEqual(prompts[0]);
+    },
+  );
 });
 
 describe("language directive ({language} → natural/slug system prompt)", () => {
