@@ -52,10 +52,11 @@ Inoltre，puoi anche configurarlo per rinominare continuamente man mano che la c
 
 ## Configurazione
 
-Salva la configurazione in：
+Fonti di configurazione, dalla priorità più alta alla più bassa. I valori si uniscono per campo:
 
-- Globalmente：`~/.config/pi-auto-name/config.json`（rispetta `XDG_CONFIG_HOME`）
-- Sovrascrittura per progetto：`.pi/pi-auto-name.json`
+1. Sovrascrittura per progetto：`.pi/pi-auto-name.json`
+2. Globalmente：`~/.pi/agent/pi-auto-name.json`（oppure `<PI_CODING_AGENT_DIR>/pi-auto-name.json` quando configurato）
+3. XDG: `~/.config/pi-auto-name/config.json` (`XDG_CONFIG_HOME`)
 
 Configurazione predefinita completa：
 

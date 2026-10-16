@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- Global configuration now prefers `getAgentDir()/pi-auto-name.json`, so it follows `PI_CODING_AGENT_DIR` and stays alongside other Pi configuration.
+
+- `~/.config/pi-auto-name/config.json` remains supported as the lowest-precedence configuration source.
+
 ## [2.0.0] - 2026-10-01
 
 ### Removed

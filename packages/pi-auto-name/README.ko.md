@@ -52,10 +52,11 @@ pi install npm:@normful/pi-auto-name
 
 ## 구성
 
-설정을 다음 위치에 저장합니다：
+우선순위가 높은 설정부터 나열합니다. 각 필드별로 병합합니다:
 
-- 전역：`~/.config/pi-auto-name/config.json`（`XDG_CONFIG_HOME` 준수）
-- 프로젝트별 오버라이드：`.pi/pi-auto-name.json`
+1. 프로젝트별 오버라이드：`.pi/pi-auto-name.json`
+2. 전역：`~/.pi/agent/pi-auto-name.json`（설정된 경우 `<PI_CODING_AGENT_DIR>/pi-auto-name.json`）
+3. XDG: `~/.config/pi-auto-name/config.json` (`XDG_CONFIG_HOME`)
 
 전체 기본 구성：
 
