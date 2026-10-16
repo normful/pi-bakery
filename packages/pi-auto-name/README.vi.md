@@ -54,11 +54,11 @@ Ngoài ra，bạn cũng có thể cấu hình để nó đổi tên liên tục 
 
 ## Cấu hình
 
-Lưu cấu hình vào：
+Nguồn cấu hình, từ ưu tiên cao đến thấp. Các giá trị được hợp nhất theo từng trường:
 
-- Toàn cục：`~/.pi/agent/pi-auto-name.json`（hoặc `<PI_CODING_AGENT_DIR>/pi-auto-name.json` khi được cấu hình）
-- Đường dẫn dự phòng đã lỗi thời：`~/.config/pi-auto-name/config.json` vẫn được đọc với mức ưu tiên thấp nhất
-- Ghi đè theo dự án：`.pi/pi-auto-name.json`
+1. Ghi đè theo dự án：`.pi/pi-auto-name.json`
+2. Toàn cục：`~/.pi/agent/pi-auto-name.json`（hoặc `<PI_CODING_AGENT_DIR>/pi-auto-name.json` khi được cấu hình）
+3. XDG: `~/.config/pi-auto-name/config.json` (`XDG_CONFIG_HOME`)
 
 Cấu hình mặc định đầy đủ：
 

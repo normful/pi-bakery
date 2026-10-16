@@ -74,7 +74,7 @@ export function validateConfig<T extends TObject>(schema: T, value: unknown): St
   return rpivValidateConfig(schema as TObject, value) as Static<T>;
 }
 
-const LEGACY_USER_CONFIG_PATH = configPath("pi-auto-name");
+const XDG_CONFIG_PATH = configPath("pi-auto-name"); // ~/.config/pi-auto-name/config.json
 
 function isPlainObject(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
@@ -97,18 +97,18 @@ function deepMerge(
 }
 
 /**
- * Load: legacy user base ← Pi user config ← project override (per-field, right wins).
+ * Load: XDG config, then Pi agent config, then project override (per-field, last wins).
  * Configuration comes only from the three JSON files read via rpiv-config;
  * there are no env-var overrides.
  */
 export function loadConfig(cwd: string): Config {
-  const legacyUserPath = LEGACY_USER_CONFIG_PATH;
+  const xdgPath = XDG_CONFIG_PATH;
   const userPath = join(getAgentDir(), "pi-auto-name.json");
   const projectPath = join(cwd, CONFIG_DIR_NAME, "pi-auto-name.json");
-  const legacyUser = loadJsonConfig<Record<string, unknown>>(legacyUserPath);
+  const xdg = loadJsonConfig<Record<string, unknown>>(xdgPath);
   const user = loadJsonConfig<Record<string, unknown>>(userPath);
   const project = loadJsonConfig<Record<string, unknown>>(projectPath);
-  const merged = deepMerge(deepMerge(legacyUser, user), project);
+  const merged = deepMerge(deepMerge(xdg, user), project);
   const validated = validateConfig(ConfigSchema, merged);
   // rpiv-config's merge is shallow (`{...defaults, ...cleaned}`) and TypeBox
   // Value.Create honors an object's own default over nested property defaults.
@@ -117,7 +117,7 @@ export function loadConfig(cwd: string): Config {
   const fullDefaults = validateConfig(ConfigSchema, {});
   const cfg = deepMerge(fullDefaults, validated) as Config;
   debug("loadConfig", {
-    legacyUserPath,
+    xdgPath,
     userPath,
     projectPath,
     enabled: cfg.enabled,

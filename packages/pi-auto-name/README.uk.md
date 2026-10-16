@@ -54,11 +54,11 @@ pi install npm:@normful/pi-auto-name
 
 ## Налаштування
 
-Збережіть конфігурацію в：
+Джерела конфігурації, від найвищого пріоритету. Значення об'єднуються за полями:
 
-- Глобально：`~/.pi/agent/pi-auto-name.json`（або `<PI_CODING_AGENT_DIR>/pi-auto-name.json`，якщо налаштовано）
-- Застарілий резервний шлях：`~/.config/pi-auto-name/config.json` усе ще читається з найнижчим пріоритетом
-- Перевизначення для проєкту：`.pi/pi-auto-name.json`
+1. Перевизначення для проєкту：`.pi/pi-auto-name.json`
+2. Глобально：`~/.pi/agent/pi-auto-name.json`（або `<PI_CODING_AGENT_DIR>/pi-auto-name.json`，якщо налаштовано）
+3. XDG: `~/.config/pi-auto-name/config.json` (`XDG_CONFIG_HOME`)
 
 Повна конфігурація за замовчуванням：
 

@@ -54,11 +54,11 @@ Ayrıca，`reRenameEveryNTurns` yapılandırarak konuşma geliştikçe eklentini
 
 ## Yapılandırma
 
-Yapılandırmayı şuraya kaydedin：
+Yapılandırma kaynakları, en yüksek öncelik ilk sırada. Ayarlar alan bazında birleştirilir:
 
-- Global：`~/.pi/agent/pi-auto-name.json`（veya yapılandırılmışsa `<PI_CODING_AGENT_DIR>/pi-auto-name.json`）
-- Kullanımdan kaldırılmış yedek yol：`~/.config/pi-auto-name/config.json` en düşük öncelikle okunmaya devam eder
-- Proje başına geçersiz kılma：`.pi/pi-auto-name.json`
+1. Proje başına geçersiz kılma：`.pi/pi-auto-name.json`
+2. Global：`~/.pi/agent/pi-auto-name.json`（veya yapılandırılmışsa `<PI_CODING_AGENT_DIR>/pi-auto-name.json`）
+3. XDG: `~/.config/pi-auto-name/config.json` (`XDG_CONFIG_HOME`)
 
 Tam varsayılan yapılandırma：
 

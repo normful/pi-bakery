@@ -54,11 +54,11 @@ Além disso, você também pode configurá-lo para renomear continuamente confor
 
 ## Configuração
 
-Salve a configuração em：
+Fontes de configuração, da maior para a menor prioridade. Os valores são combinados por campo:
 
-- Globalmente：`~/.pi/agent/pi-auto-name.json`（ou `<PI_CODING_AGENT_DIR>/pi-auto-name.json` quando configurado）
-- Alternativa obsoleta：`~/.config/pi-auto-name/config.json` ainda é lido com a prioridade mais baixa
-- Substituição por projeto：`.pi/pi-auto-name.json`
+1. Substituição por projeto：`.pi/pi-auto-name.json`
+2. Globalmente：`~/.pi/agent/pi-auto-name.json`（ou `<PI_CODING_AGENT_DIR>/pi-auto-name.json` quando configurado）
+3. XDG: `~/.config/pi-auto-name/config.json` (`XDG_CONFIG_HOME`)
 
 Configuração padrão completa：
 

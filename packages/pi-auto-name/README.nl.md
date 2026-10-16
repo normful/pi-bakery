@@ -54,11 +54,11 @@ Bovendien kun je ook configureren dat het blijven hernoemen terwijl het gesprek 
 
 ## Configuratie
 
-Sla de configuratie op in：
+Configuratiebronnen, hoogste prioriteit eerst. Instellingen worden per veld samengevoegd:
 
-- Globaal：`~/.pi/agent/pi-auto-name.json`（of `<PI_CODING_AGENT_DIR>/pi-auto-name.json` indien geconfigureerd）
-- Verouderde terugval：`~/.config/pi-auto-name/config.json` wordt nog steeds met de laagste prioriteit gelezen
-- Per-project overschrijving：`.pi/pi-auto-name.json`
+1. Per-project overschrijving：`.pi/pi-auto-name.json`
+2. Globaal：`~/.pi/agent/pi-auto-name.json`（of `<PI_CODING_AGENT_DIR>/pi-auto-name.json` indien geconfigureerd）
+3. XDG: `~/.config/pi-auto-name/config.json` (`XDG_CONFIG_HOME`)
 
 Volledige standaardconfiguratie：
 
