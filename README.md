@@ -88,9 +88,13 @@ Dims text so it's hidden while agent is running. Helps break a bad habit of read
 
 The `/parrot` command opens the last AI response in your external editor — save and exit to send the edited text back to the chat.
 
+[![pi-parrot screenshot](./screenshots/parrot.png)](https://github.com/normful/pi-bakery/tree/main/packages/pi-parrot)
+
 ## [`@normful/pi-socrates`](./packages/pi-socrates)
 
 When Pi needs your input, it asks with an interactive picker instead of making you type a free-form reply. A single question shows a quick picker; multiple questions show tabs with a Submit tab to review everything before sending.
+
+[![pi-socrates screenshot](./screenshots/socrates.png)](https://github.com/normful/pi-bakery/tree/main/packages/pi-socrates)
 
 ## [`@normful/pi-auto-suggest-skill`](./packages/pi-auto-suggest-skill)
 
