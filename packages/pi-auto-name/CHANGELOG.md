@@ -11,23 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
-- `/rename` to regenerate session and surface names on demand using the configured naming pipeline and protection policies.
-- Optional `namingCase: "sentence"` for natural-style names, preserving Title Case by default.
-- `namingInstructions` to supplement the naming model's system prompt without replacing built-in context or response formatting.
-- Russian naming prompts for `ru` and regional variants, with a Russian README.
+- `/rename` to regenerate session and surface names on demand using the configured naming pipeline and protection policies. Thanks to [@AdamsGH](https://github.com/AdamsGH).
+- Optional `namingCase: "sentence"` for natural-style names, preserving Title Case by default. Thanks to [@AdamsGH](https://github.com/AdamsGH).
+- `namingInstructions` to supplement the naming model's system prompt without replacing built-in context or response formatting. Thanks to [@AdamsGH](https://github.com/AdamsGH).
+- Russian naming prompts for `ru` and regional variants, with a Russian README. Thanks to [@AdamsGH](https://github.com/AdamsGH).
 
 ### Changed
 
-- Global configuration now prefers `getAgentDir()/pi-auto-name.json`, so it follows `PI_CODING_AGENT_DIR` and stays alongside other Pi configuration.
-- `~/.config/pi-auto-name/config.json` remains supported as the lowest-precedence configuration source.
+- Global configuration now prefers `getAgentDir()/pi-auto-name.json`, so it follows `PI_CODING_AGENT_DIR` and stays alongside other Pi configuration. Thanks to [@marcoscale98](https://github.com/marcoscale98).
+- `~/.config/pi-auto-name/config.json` remains supported as the lowest-precedence configuration source. Thanks to [@marcoscale98](https://github.com/marcoscale98) and [@AdamsGH](https://github.com/AdamsGH).
 
 ### Fixed
 
 - herdr pane and tab renames now verify that the pane belongs to the session before naming it: when `HERDR_PANE_ID` is missing, the `herdr pane current` fallback no longer relabels whichever pane happens to be focused. The pane must report this session's own transcript path — a matching working directory is accepted only when this session has no transcript of its own (an in-memory session) and the pane reports no session path. Any other payload (foreign agent, foreign directory, another pi session, or fields herdr could not resolve) skips the pane and tab rename, and the debug log (`PI_AUTO_NAME_DEBUG=1`) records what was compared or why the pane could not be checked.
-
-### Contributors
-
-Thanks to [@AdamsGH](https://github.com/AdamsGH) for the `/rename` command, sentence case and custom instructions, the Russian localization, and the review fixes, and to [@marcoscale98](https://github.com/marcoscale98) for using Pi's agent config directory.
 
 ## [2.0.0] - 2026-10-01
 
