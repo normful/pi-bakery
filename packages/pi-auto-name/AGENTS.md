@@ -21,6 +21,7 @@ registered in the `LOCALE_STRINGS` map. This file documents the conventions.
 | `tr` | Turkish | `tr`, `tr-TR` |
 | `pl` | Polish | `pl`, `pl-PL` |
 | `uk` | Ukrainian | `uk`, `uk-UA` |
+| `ru` | Russian | `ru`, `ru-RU`, `ru-BY` |
 | `fa` | Persian (Farsi) | `fa`, `fa-IR` |
 | `ar` | Arabic | `ar`, `ar-SA` |
 | `hi` | Hindi | `hi`, `hi-IN` |
@@ -90,7 +91,7 @@ runs in this order:
 ## Language-specific guidance
 
 - **Word vs character sizing.** English, Brazilian Portuguese, Spanish, German,
-  French, Indonesian, Vietnamese, Turkish, Polish, Ukrainian, Persian, Arabic,
+  French, Indonesian, Vietnamese, Turkish, Polish, Ukrainian, Russian, Persian, Arabic,
   Hindi, Italian and Dutch size names in words (`WINDOW` 2-4, `SESSION` 8-12).
   CJK and Thai have no whitespace word boundaries, so those tables size by
   character count (`WINDOW` ≈ 4-12, `SESSION` ≈ 15-40). Scripts without

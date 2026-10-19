@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - `/rename` to regenerate session and surface names on demand using the configured naming pipeline and protection policies.
 - Optional `namingCase: "sentence"` for natural-style names, preserving Title Case by default.
 - `namingInstructions` to supplement the naming model's system prompt without replacing built-in context or response formatting.
+- Russian naming prompts for `ru` and regional variants, with a Russian README.
 
 ### Changed
 

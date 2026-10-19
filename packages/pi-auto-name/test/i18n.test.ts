@@ -152,6 +152,10 @@ describe("buildLocale", () => {
     expect(buildLocale("pl-PL")).toBe(LOCALE_STRINGS.pl);
   });
 
+  it.each(["ru", "ru-RU", "ru-BY", "RU-ru"])("resolves %s to the Russian table", (tag) => {
+    expect(buildLocale(tag)).toBe(LOCALE_STRINGS.ru);
+  });
+
   it("resolves Ukrainian to the uk table", () => {
     expect(buildLocale("uk")).toBe(LOCALE_STRINGS.uk);
     expect(buildLocale("uk-UA")).toBe(LOCALE_STRINGS.uk);
