@@ -6,6 +6,7 @@ import type { RenameState } from "./state.js";
 import { compactWindowName } from "./sanitize.js";
 import { recordAutoRename } from "./state.js";
 import { debug } from "./debug.js";
+import { samePath } from "./paths.js";
 
 /**
  * Apply the session name (gated by `renamePiSession`), then record provenance
@@ -56,11 +57,16 @@ export function windowNameForSync(
  * The terminal title is intentionally absent: pi formats `Pi - <name> - <cwd>`
  * from the session name on every session_info_changed, so the session-name
  * surface already drives it (§4 rule 5).
+ *
+ * `sessionFile` is this session's transcript path, forwarded to the herdr
+ * ownership check so it can recognize its own pane; absent only when the host
+ * has no session file.
  */
 export async function syncSurfaces(
   pi: ExtensionAPI,
   cfg: Config,
   windowName: string | undefined,
+  sessionFile?: string,
 ): Promise<void> {
   if (!windowName) {
     debug("syncSurfaces: skipped (no window name)");
@@ -70,10 +76,10 @@ export async function syncSurfaces(
   const always = cfg.replaceExistingName === "always";
   debug("syncSurfaces", { windowName, always });
   if (cfg.surfaces.renameHerdrPane) {
-    await renameHerdrPane(pi, windowName, always);
+    await renameHerdrPane(pi, windowName, always, sessionFile);
   }
   if (cfg.surfaces.renameHerdrTab) {
-    await renameHerdrTab(pi, windowName, always);
+    await renameHerdrTab(pi, windowName, always, sessionFile);
   }
   if (cfg.surfaces.renameTmuxWindow) {
     await renameTmuxWindow(pi, windowName);
@@ -134,6 +140,13 @@ export function logSurfacesEnv(): void {
   });
 }
 
+/** herdr's read-only native-session identity for the agent occupying a pane. */
+interface HerdrAgentSession {
+  agent?: string;
+  kind?: string;
+  source?: string;
+  value?: string;
+}
 interface HerdrPaneInfo {
   pane?: {
     pane_id?: string;
@@ -141,21 +154,54 @@ interface HerdrPaneInfo {
     pane_label?: string;
     manual_label?: string;
     tab_id?: string;
+    agent?: string;
+    cwd?: string;
+    foreground_cwd?: string;
+    agent_session?: HerdrAgentSession;
   };
 }
+/** The pane fields `herdr pane current` reports — the same payload as `pane get`. */
+type HerdrPane = NonNullable<HerdrPaneInfo["pane"]>;
 interface HerdrTabInfo {
   tab?: { tab_id?: string; label?: string; number?: number };
 }
 
 /**
+ * Ownership check for the `pane current` fallback. Without a caller pane id
+ * herdr returns the pane focused in the client — which can belong to the user,
+ * another client, or another pi — so the payload is trusted only on positive
+ * evidence:
+ *
+ * 1. it reports THIS session's transcript path (`agent_session`, kind "path"),
+ *    the identity herdr's own `herdr:pi` integration publishes; or
+ * 2. it hosts a pi (`agent === "pi"`) whose tracked or foreground cwd resolves
+ *    to this process's cwd, and it reports no other pi session's path.
+ *
+ * A missing `agent`/`cwd` (herdr omits both when it cannot resolve them), a
+ * foreign cwd, and a path-kind session naming a different session all fail
+ * closed: the pane and tab renames are skipped, never another pane's label.
+ */
+function isOurPane(pane: HerdrPane | undefined, sessionFile: string | undefined): boolean {
+  if (!pane) return false;
+  const reported = pane.agent_session;
+  const reportedPath = reported?.kind === "path" ? reported.value : undefined;
+  if (samePath(reportedPath, sessionFile)) return true;
+  if (pane.agent !== "pi") return false;
+  if (reportedPath && !samePath(reportedPath, sessionFile)) return false;
+  const ownCwd = process.cwd();
+  return samePath(pane.foreground_cwd, ownCwd) || samePath(pane.cwd, ownCwd);
+}
+
+/**
  * Resolve the pane (and tab) this pi process runs in. Prefers the herdr env
  * vars; when `HERDR_PANE_ID` is missing (pi launched from a shell herdr did
- * not inject env into), falls back to `herdr pane current` — herdr identifies
- * pi's pane via its `herdr:pi` agent integration, so the call returns the pane
- * pi is running in without any env hints.
+ * not inject env into), falls back to `herdr pane current`, which answers with
+ * the *focused* pane rather than this process's pane — so the payload is
+ * trusted only after `isOurPane` (see there) finds positive ownership evidence.
  */
 async function herdrCurrentIds(
   pi: ExtensionAPI,
+  sessionFile: string | undefined,
 ): Promise<{ paneId: string; tabId?: string } | undefined> {
   const env = getSurfacesEnv();
   if (env.HERDR_PANE_ID) {
@@ -163,9 +209,18 @@ async function herdrCurrentIds(
   }
   try {
     const r = await pi.exec("herdr", ["pane", "current"], { timeout: 5000 });
-    const pane = JSON.parse(r.stdout)?.result?.pane as
-      | { pane_id?: string; tab_id?: string }
-      | undefined;
+    const pane = JSON.parse(r.stdout)?.result?.pane as HerdrPane | undefined;
+    if (!isOurPane(pane, sessionFile)) {
+      debug("herdrCurrentIds: `pane current` is not this pi's pane — ignoring", {
+        agent: pane?.agent,
+        cwd: pane?.cwd,
+        foregroundCwd: pane?.foreground_cwd,
+        agentSession: pane?.agent_session,
+        ownCwd: process.cwd(),
+        ownSessionFile: sessionFile,
+      });
+      return undefined;
+    }
     const paneId = pane?.pane_id;
     if (!paneId) {
       debug("herdrCurrentIds: `pane current` returned no pane_id");
@@ -182,14 +237,10 @@ async function herdrCurrentIds(
   }
 }
 
-async function herdrPaneInfo(pi: ExtensionAPI): Promise<HerdrPaneInfo | undefined> {
-  const ids = await herdrCurrentIds(pi);
-  if (!ids) {
-    debug("herdrPaneInfo: skipped (could not resolve current pane)");
-    return undefined;
-  }
+/** Read one pane's labels and tab id. Callers pass an id that is already resolved. */
+async function herdrPaneInfo(pi: ExtensionAPI, paneId: string): Promise<HerdrPaneInfo | undefined> {
   try {
-    const r = await pi.exec("herdr", ["pane", "get", ids.paneId], { timeout: 5000 });
+    const r = await pi.exec("herdr", ["pane", "get", paneId], { timeout: 5000 });
     return JSON.parse(r.stdout) as HerdrPaneInfo;
   } catch (error) {
     debug("herdrPaneInfo: failed", String(error));
@@ -204,14 +255,19 @@ function isDefaultLabel(label: string | undefined, number: number | undefined): 
   return false;
 }
 
-async function renameHerdrPane(pi: ExtensionAPI, name: string, always: boolean): Promise<void> {
-  const ids = await herdrCurrentIds(pi);
+async function renameHerdrPane(
+  pi: ExtensionAPI,
+  name: string,
+  always: boolean,
+  sessionFile: string | undefined,
+): Promise<void> {
+  const ids = await herdrCurrentIds(pi, sessionFile);
   if (!ids) {
     debug("renameHerdrPane: skipped (could not resolve current pane)");
     return;
   }
   const paneId = ids.paneId;
-  const info = await herdrPaneInfo(pi);
+  const info = await herdrPaneInfo(pi, paneId);
   const label = info?.pane?.label ?? info?.pane?.pane_label ?? info?.pane?.manual_label;
   if (!always && !isDefaultLabel(label, undefined)) {
     debug("renameHerdrPane: skipped (non-default label)", { label });
@@ -224,11 +280,16 @@ async function renameHerdrPane(pi: ExtensionAPI, name: string, always: boolean):
   }
 }
 
-async function renameHerdrTab(pi: ExtensionAPI, name: string, always: boolean): Promise<void> {
-  const ids = await herdrCurrentIds(pi);
+async function renameHerdrTab(
+  pi: ExtensionAPI,
+  name: string,
+  always: boolean,
+  sessionFile: string | undefined,
+): Promise<void> {
+  const ids = await herdrCurrentIds(pi, sessionFile);
   let tabId = ids?.tabId;
-  if (!tabId) {
-    const pane = await herdrPaneInfo(pi);
+  if (!tabId && ids) {
+    const pane = await herdrPaneInfo(pi, ids.paneId);
     tabId = pane?.pane?.tab_id;
   }
   if (!tabId) {

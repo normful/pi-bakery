@@ -259,7 +259,7 @@ export default function (pi: ExtensionAPI): void {
 
     // Step 4: sync surfaces to the generated window name.
     try {
-      await syncSurfaces(pi, c, result.names.windowName);
+      await syncSurfaces(pi, c, result.names.windowName, p.sessionFile);
     } catch (error) {
       debug("renameOnce: syncSurfaces failed", String(error));
       throw error;
@@ -350,7 +350,9 @@ export default function (pi: ExtensionAPI): void {
     }
     debug("session_start: syncing surfaces", { currentName });
     logSurfacesEnv();
-    await syncSurfaces(pi, c, windowNameForSync(state, currentName));
+    // Ownership evidence for the herdr fallback: this session's transcript path.
+    const sessionFile = ctx.sessionManager.getSessionFile();
+    await syncSurfaces(pi, c, windowNameForSync(state, currentName), sessionFile);
   });
 
   pi.on("input", async (event, ctx) => {
@@ -480,7 +482,8 @@ export default function (pi: ExtensionAPI): void {
     handleSessionInfoChanged(state, event.name, c.respectExternalRenames);
     // Echoes of our own rename already synced surfaces inside renameOnce;
     // only external renames (user /name, RPC, other extensions) re-sync here.
-    if (!isEcho) await syncSurfaces(pi, c, windowNameForSync(state, event.name));
+    const sessionFile = ctx.sessionManager.getSessionFile();
+    if (!isEcho) await syncSurfaces(pi, c, windowNameForSync(state, event.name), sessionFile);
   });
 
   pi.on("session_shutdown", async () => {

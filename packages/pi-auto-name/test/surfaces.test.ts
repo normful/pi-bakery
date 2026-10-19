@@ -308,7 +308,17 @@ describe("surfaces absent (no env)", () => {
     const exec = vi.fn((command: string, args: string[]): any => {
       if (command === "herdr" && args[0] === "pane" && args[1] === "current") {
         return {
-          stdout: JSON.stringify({ result: { pane: { pane_id: "w44:p9", tab_id: "w44:t9" } } }),
+          // the fallback trusts a pane only on positive ownership evidence
+          stdout: JSON.stringify({
+            result: {
+              pane: {
+                pane_id: "w44:p9",
+                tab_id: "w44:t9",
+                agent: "pi",
+                cwd: process.cwd(),
+              },
+            },
+          }),
           stderr: "",
           code: 0,
           killed: false,
@@ -327,6 +337,159 @@ describe("surfaces absent (no env)", () => {
     expect(calls).toContainEqual(["herdr", ["pane", "current"]]);
     expect(calls).toContainEqual(["herdr", ["pane", "rename", "w44:p9", "My Window"]]);
     expect(calls).toContainEqual(["herdr", ["tab", "rename", "w44:t9", "My Window"]]);
+    vi.unstubAllEnvs();
+  });
+});
+
+/** Exec mock that answers the `pane current` fallback; `pane` is the payload under `result.pane`. */
+function herdrCurrentExec(pane: unknown) {
+  return vi.fn((command: string, args: string[]) => {
+    if (command === "herdr" && args[0] === "pane" && args[1] === "current") {
+      return JSON.stringify({ result: { pane } });
+    }
+    if (command === "herdr" && args[0] === "pane" && args[1] === "get") return HERDR_PANE_JSON;
+    if (command === "herdr" && args[0] === "tab" && args[1] === "get") return HERDR_TAB_JSON;
+    return { stdout: "", stderr: "", code: 0, killed: false };
+  });
+}
+
+/** Run one fallback sync with `HERDR_PANE_ID` unset and return the exec call list. */
+async function fallbackCalls(pane: unknown, sessionFile?: string) {
+  vi.stubEnv("HERDR_PANE_ID", "");
+  vi.stubEnv("HERDR_TAB_ID", "");
+  try {
+    const exec = herdrCurrentExec(pane);
+    const { pi } = mkPi(exec);
+    await syncSurfaces(pi, mkConfig(), "My Window", sessionFile);
+    return exec.mock.calls.map((c) => [c[0], c[1]] as [string, string[]]);
+  } finally {
+    vi.unstubAllEnvs();
+  }
+}
+
+const PANE_RENAMED: [string, string[]] = ["herdr", ["pane", "rename", "w44:p9", "My Window"]];
+const TAB_RENAMED: [string, string[]] = ["herdr", ["tab", "rename", "w44:t9", "My Window"]];
+
+describe("syncSurfaces (herdr pane-current fallback ownership)", () => {
+  it("renames when the focused pane hosts pi in this directory", async () => {
+    const calls = await fallbackCalls({
+      pane_id: "w44:p9",
+      tab_id: "w44:t9",
+      agent: "pi",
+      cwd: process.cwd(),
+    });
+    expect(calls).toContainEqual(PANE_RENAMED);
+    expect(calls).toContainEqual(TAB_RENAMED);
+  });
+
+  it("renames when the pane's cwd is spelled differently", async () => {
+    const calls = await fallbackCalls({
+      pane_id: "w44:p9",
+      tab_id: "w44:t9",
+      agent: "pi",
+      cwd: `${process.cwd()}/`,
+    });
+    expect(calls).toContainEqual(PANE_RENAMED);
+  });
+
+  it("renames when only the foreground cwd matches", async () => {
+    const calls = await fallbackCalls({
+      pane_id: "w44:p9",
+      tab_id: "w44:t9",
+      agent: "pi",
+      cwd: "/elsewhere",
+      foreground_cwd: process.cwd(),
+    });
+    expect(calls).toContainEqual(PANE_RENAMED);
+  });
+
+  it("renames when the pane reports this session's transcript", async () => {
+    const calls = await fallbackCalls(
+      {
+        pane_id: "w44:p9",
+        tab_id: "w44:t9",
+        agent_session: { kind: "path", value: "/sessions/ours.jsonl" },
+      },
+      "/sessions/ours.jsonl",
+    );
+    expect(calls).toContainEqual(PANE_RENAMED);
+    expect(calls).toContainEqual(TAB_RENAMED);
+  });
+
+  it("skips a pane that hosts another agent", async () => {
+    const calls = await fallbackCalls({
+      pane_id: "w44:p9",
+      tab_id: "w44:t9",
+      agent: "codex",
+      cwd: process.cwd(),
+    });
+    expect(calls).toContainEqual(["herdr", ["pane", "current"]]);
+    expect(calls).not.toContainEqual(PANE_RENAMED);
+    expect(calls).not.toContainEqual(TAB_RENAMED);
+  });
+
+  it("skips a pi pane in another directory", async () => {
+    const calls = await fallbackCalls({
+      pane_id: "w44:p9",
+      tab_id: "w44:t9",
+      agent: "pi",
+      cwd: "/elsewhere",
+    });
+    expect(calls).not.toContainEqual(PANE_RENAMED);
+    expect(calls).not.toContainEqual(TAB_RENAMED);
+  });
+
+  it("skips a pi pane that reports another pi session", async () => {
+    const calls = await fallbackCalls(
+      {
+        pane_id: "w44:p9",
+        tab_id: "w44:t9",
+        agent: "pi",
+        cwd: process.cwd(),
+        agent_session: {
+          agent: "pi",
+          kind: "path",
+          source: "herdr:pi",
+          value: "/sessions/other.jsonl",
+        },
+      },
+      "/sessions/ours.jsonl",
+    );
+    expect(calls).not.toContainEqual(PANE_RENAMED);
+    expect(calls).not.toContainEqual(TAB_RENAMED);
+  });
+
+  it("skips a payload without agent and cwd", async () => {
+    const calls = await fallbackCalls({ pane_id: "w44:p9", tab_id: "w44:t9" });
+    expect(calls).toContainEqual(["herdr", ["pane", "current"]]);
+    expect(calls).not.toContainEqual(PANE_RENAMED);
+    expect(calls).not.toContainEqual(TAB_RENAMED);
+  });
+
+  it("logs the refusal with the observed pane fields", async () => {
+    vi.stubEnv("HERDR_PANE_ID", "");
+    vi.stubEnv("HERDR_TAB_ID", "");
+    vi.stubEnv("PI_AUTO_NAME_DEBUG", "1");
+    vi.resetModules();
+    const { syncSurfaces: freshSyncSurfaces } = await import("../src/surfaces.js");
+    const { initDebug } = await import("../src/debug.js");
+    const exec = herdrCurrentExec({
+      pane_id: "w44:p9",
+      tab_id: "w44:t9",
+      agent: "codex",
+      cwd: "/elsewhere",
+    });
+    const { pi, appendEntry } = mkPi(exec);
+    pi.registerEntryRenderer = vi.fn(); // debug() registers its renderer lazily
+    initDebug(pi);
+
+    await freshSyncSurfaces(pi, mkConfig(), "My Window");
+
+    const refusal = appendEntry.mock.calls.find(([, entry]) =>
+      String(entry?.msg ?? "").includes("is not this pi's pane"),
+    );
+    expect(refusal).toBeDefined();
+    expect(refusal?.[1]?.data).toMatchObject({ agent: "codex", cwd: "/elsewhere" });
     vi.unstubAllEnvs();
   });
 });
