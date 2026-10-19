@@ -104,15 +104,11 @@ Thanks to everyone who has contributed to pi-bakery.
 <table>
   <tbody>
     <tr>
-      <td align="center" valign="top" width="14.28%">
-        <a href="https://github.com/normful"><img src="https://avatars.githubusercontent.com/u/2453169?v=4" width="100px;" alt="normful"/><br /><sub><b>Norman Sue</b></sub></a><br />
-        <sub>maintainer</sub>
-      </td>
-      <td align="center" valign="top" width="14.28%">
+      <td align="center" valign="top" width="21.42%">
         <a href="https://github.com/AdamsGH"><img src="https://avatars.githubusercontent.com/u/19850062?v=4" width="100px;" alt="AdamsGH"/><br /><sub><b>AdamsGH</b></sub></a><br />
         <sub>code, i18n</sub>
       </td>
-      <td align="center" valign="top" width="14.28%">
+      <td align="center" valign="top" width="21.42%">
         <a href="https://github.com/marcoscale98"><img src="https://avatars.githubusercontent.com/u/43850400?v=4" width="100px;" alt="marcoscale98"/><br /><sub><b>marcoscale98</b></sub></a><br />
         <sub>code</sub>
       </td>
