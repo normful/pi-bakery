@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-10-19
+
 ### Added
 
 - `/rename` to regenerate session and surface names on demand using the configured naming pipeline and protection policies.
@@ -22,6 +24,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Fixed
 
 - herdr pane and tab renames now verify that the pane belongs to the session before naming it: when `HERDR_PANE_ID` is missing, the `herdr pane current` fallback no longer relabels whichever pane happens to be focused. The pane must report this session's own transcript path — a matching working directory is accepted only when this session has no transcript of its own (an in-memory session) and the pane reports no session path. Any other payload (foreign agent, foreign directory, another pi session, or fields herdr could not resolve) skips the pane and tab rename, and the debug log (`PI_AUTO_NAME_DEBUG=1`) records what was compared or why the pane could not be checked.
+
+### Contributors
+
+Thanks to [@AdamsGH](https://github.com/AdamsGH) for the `/rename` command, sentence case and custom instructions, the Russian localization, and the review fixes, and to [@marcoscale98](https://github.com/marcoscale98) for using Pi's agent config directory.
 
 ## [2.0.0] - 2026-10-01
 
@@ -73,6 +79,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - First public release: automatically names the Pi session and the containing tmux window, herdr pane and tab, and zellij pane and tab from the conversation, in your language (26 options) and one of three styles (`natural`, `slug`, `topic-project`), configurable via `~/.config/pi-auto-name/config.json` or a per-project `.pi/pi-auto-name.json` with per-surface toggles, length limits, duplicate-name avoidance, and optional re-renaming every N turns.
 
 [Unreleased]: https://github.com/normful/pi-bakery/commits/main/packages/pi-auto-name
+[2.1.0]: https://www.npmjs.com/package/@normful/pi-auto-name/v/2.1.0
 [2.0.0]: https://www.npmjs.com/package/@normful/pi-auto-name/v/2.0.0
 [1.1.1]: https://www.npmjs.com/package/@normful/pi-auto-name/v/1.1.1
 [1.1.0]: https://www.npmjs.com/package/@normful/pi-auto-name/v/1.1.0

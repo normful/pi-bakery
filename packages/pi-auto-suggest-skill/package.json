@@ -1,6 +1,6 @@
 {
   "name": "@normful/pi-auto-suggest-skill",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": false,
   "description": "Strip Pi's skill list and route each prompt to at most one skill with a decision model",
   "keywords": [
