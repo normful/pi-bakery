@@ -96,6 +96,27 @@ When Pi needs your input, it asks with an interactive picker instead of making y
 
 Removes Pi's inlined skill list and asks a classifier model which skill the turn needs, then suggests at most one. `/auto-suggest-skill:status` reports what it decided and what it cost.
 
+## Contributors
+
+Thanks to everyone who has contributed to pi-bakery.
+
+<!-- readme: contributors -start -->
+<table>
+  <tbody>
+    <tr>
+      <td align="center" valign="top" width="21.42%">
+        <a href="https://github.com/AdamsGH"><img src="https://avatars.githubusercontent.com/u/19850062?v=4" width="100px;" alt="AdamsGH"/><br /><sub><b>AdamsGH</b></sub></a><br />
+        <sub>code, i18n</sub>
+      </td>
+      <td align="center" valign="top" width="21.42%">
+        <a href="https://github.com/marcoscale98"><img src="https://avatars.githubusercontent.com/u/43850400?v=4" width="100px;" alt="marcoscale98"/><br /><sub><b>marcoscale98</b></sub></a><br />
+        <sub>code</sub>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<!-- readme: contributors -end -->
+
 ## Development
 
 See [`AGENTS.md`](./AGENTS.md) for the workspace layout and commands, and [`CONTRIBUTING.md`](./CONTRIBUTING.md) for contribution expectations.

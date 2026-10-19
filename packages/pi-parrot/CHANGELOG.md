@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-10-19
+
+### Fixed
+
+- The user config path is resolved each time it is read rather than captured once at module load, so the file that is actually used follows `XDG_CONFIG_HOME` as it changes. The invalid-shortcut warning reports the same path.
+
 ## [0.2.0] - 2026-10-01
 
 ### Changed
@@ -22,5 +28,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - The editor is spawned directly with no shell, so file paths with spaces work and editor values containing shell metacharacters cannot inject extra commands.
 
 [Unreleased]: https://github.com/normful/pi-bakery/commits/main/packages/pi-parrot
+[0.2.1]: https://www.npmjs.com/package/@normful/pi-parrot/v/0.2.1
 [0.2.0]: https://www.npmjs.com/package/@normful/pi-parrot/v/0.2.0
 [0.1.0]: https://www.npmjs.com/package/@normful/pi-parrot/v/0.1.0

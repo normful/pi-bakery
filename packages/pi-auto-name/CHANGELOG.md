@@ -7,17 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-10-19
+
 ### Added
 
-- `/rename` to regenerate session and surface names on demand using the configured naming pipeline and protection policies.
-- Optional `namingCase: "sentence"` for natural-style names, preserving Title Case by default.
-- `namingInstructions` to supplement the naming model's system prompt without replacing built-in context or response formatting.
-- Russian naming prompts for `ru` and regional variants, with a Russian README.
+- `/rename` to regenerate session and surface names on demand using the configured naming pipeline and protection policies. Thanks to [@AdamsGH](https://github.com/AdamsGH).
+- Optional `namingCase: "sentence"` for natural-style names, preserving Title Case by default. Thanks to [@AdamsGH](https://github.com/AdamsGH).
+- `namingInstructions` to supplement the naming model's system prompt without replacing built-in context or response formatting. Thanks to [@AdamsGH](https://github.com/AdamsGH).
+- Russian naming prompts for `ru` and regional variants, with a Russian README. Thanks to [@AdamsGH](https://github.com/AdamsGH).
 
 ### Changed
 
-- Global configuration now prefers `getAgentDir()/pi-auto-name.json`, so it follows `PI_CODING_AGENT_DIR` and stays alongside other Pi configuration.
-- `~/.config/pi-auto-name/config.json` remains supported as the lowest-precedence configuration source.
+- Global configuration now prefers `getAgentDir()/pi-auto-name.json`, so it follows `PI_CODING_AGENT_DIR` and stays alongside other Pi configuration. Thanks to [@marcoscale98](https://github.com/marcoscale98).
+- `~/.config/pi-auto-name/config.json` remains supported as the lowest-precedence configuration source. Thanks to [@marcoscale98](https://github.com/marcoscale98) and [@AdamsGH](https://github.com/AdamsGH).
 
 ### Fixed
 
@@ -73,6 +75,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - First public release: automatically names the Pi session and the containing tmux window, herdr pane and tab, and zellij pane and tab from the conversation, in your language (26 options) and one of three styles (`natural`, `slug`, `topic-project`), configurable via `~/.config/pi-auto-name/config.json` or a per-project `.pi/pi-auto-name.json` with per-surface toggles, length limits, duplicate-name avoidance, and optional re-renaming every N turns.
 
 [Unreleased]: https://github.com/normful/pi-bakery/commits/main/packages/pi-auto-name
+[2.1.0]: https://www.npmjs.com/package/@normful/pi-auto-name/v/2.1.0
 [2.0.0]: https://www.npmjs.com/package/@normful/pi-auto-name/v/2.0.0
 [1.1.1]: https://www.npmjs.com/package/@normful/pi-auto-name/v/1.1.1
 [1.1.0]: https://www.npmjs.com/package/@normful/pi-auto-name/v/1.1.0

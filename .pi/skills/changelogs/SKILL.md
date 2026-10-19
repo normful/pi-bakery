@@ -1,6 +1,6 @@
 ---
 name: changelogs
-description: Use when creating or updating a changelog, bootstrapping a new CHANGELOG.md, adding entries under an Unreleased section as code changes land, cutting a release (turning Unreleased into a dated version), or handling yanked releases and deprecation/removal cycles.
+description: Use when creating or updating a changelog, bootstrapping a new CHANGELOG.md, adding entries under an Unreleased section as code changes land, cutting a release (turning Unreleased into a dated version), crediting outside contributors, or handling yanked releases and deprecation/removal cycles.
 modified: 2026-08-08T13:36:15+0900
 ---
 
@@ -201,6 +201,27 @@ A yanked release is a version pulled because of a serious bug or security issue.
 
 The brackets make the tag easy to notice and easy to parse. A short plain-language reason and a pointer to the fixed release are welcome additions.
 
+## Crediting Outside Contributors
+
+Credit the person whose work produced the entry, inline, at the end of that entry.
+Do not collect credits into a separate `Contributors` section or list them only in a
+release announcement: a reader scanning one entry should see who wrote it.
+
+```markdown
+- `/rename` to regenerate session and surface names on demand. Thanks to [@AdamsGH](https://github.com/AdamsGH).
+```
+
+- Name the GitHub login, not the name in the commit's `Author:` header. Resolve it when they differ: `gh api repos/<owner>/<repo>/commits/<sha> --jq '.author.login'`.
+- Do not credit the maintainer's own work, and do not credit bots such as `dependabot[bot]`.
+- When one entry has several authors, credit them in the order their commits landed: `Thanks to [@a](https://github.com/a) and [@b](https://github.com/b).`
+- Find the author from the code, not from whichever commit last edited `CHANGELOG.md`. A maintainer's documentation commit can record a fix authored elsewhere, and crediting it is wrong:
+
+      git log --since=<last-release> --format='%h|%an|%ae|%s' -- CHANGELOG.md
+      git show --format='' <sha> -- CHANGELOG.md | grep '^+' | grep '^- '
+
+  The first command finds candidate commits; the second shows which entry each one
+  introduced. Then check the code commit behind that entry before crediting anyone.
+
 ## Changelogs vs Release Notes
 
 The changelog is the complete, ongoing record: every notable change across every version, kept in one file in the repository, written plainly. Release notes are an announcement for a single release, drawn from the changelog when that version ships. Do not maintain two sources of truth. At release time, the version's section is already the draft: copy it into the release and expand it only if the announcement wants more. A host's generated release notes live in the host's database and are lost if the project moves; the changelog travels with the repository. Keep `CHANGELOG.md` canonical.
@@ -236,6 +257,7 @@ The changelog is the complete, ongoing record: every notable change across every
 - **Missing or wrong links:** versions without reference links, or a version compared against the wrong previous release.
 - **Missing or wrong dates:** no date, or a non-ISO date format.
 - **Invented facts:** versions, dates, CVEs, tags, or URLs that were not supplied. Placeholder and flag, never fabricate.
+- **Uncredited or misattributed work:** an entry written by an outside contributor with no credit, or credit given to whoever last edited the changelog rather than to whoever wrote the code.
 
 ## Quick Reference Checklist
 
@@ -251,6 +273,7 @@ The changelog is the complete, ongoing record: every notable change across every
 - [ ] Only notable changes; nothing trivial padded in
 - [ ] No em dashes, no en dashes
 - [ ] No invented versions, dates, tags, or URLs; placeholders flagged
+- [ ] Outside contributors credited inline, by GitHub login, on the entry their work produced
 - [ ] Each entry states the outcome from the user's view and names the thing
 - [ ] Payoff clause ("so", "since", "to") present when the reason is not obvious
 - [ ] One tense and roughly one length across each section
