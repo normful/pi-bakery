@@ -492,4 +492,38 @@ describe("syncSurfaces (herdr pane-current fallback ownership)", () => {
     expect(refusal?.[1]?.data).toMatchObject({ agent: "codex", cwd: "/elsewhere" });
     vi.unstubAllEnvs();
   });
+
+  const SAME_CWD_PI = {
+    pane_id: "w44:p9",
+    tab_id: "w44:t9",
+    agent: "pi",
+    cwd: process.cwd(),
+  };
+
+  // A matching cwd cannot separate two pi sessions in one directory, so with a
+  // transcript of our own it is not evidence of anything.
+  it("skips a same-cwd pi pane when this session has a transcript", async () => {
+    const calls = await fallbackCalls(SAME_CWD_PI, "/sessions/ours.jsonl");
+    expect(calls).toContainEqual(["herdr", ["pane", "current"]]);
+    expect(calls).not.toContainEqual(PANE_RENAMED);
+    expect(calls).not.toContainEqual(TAB_RENAMED);
+  });
+
+  it("skips a path-kind session whose value is empty", async () => {
+    const calls = await fallbackCalls(
+      { ...SAME_CWD_PI, agent_session: { kind: "path", value: "" } },
+      "/sessions/ours.jsonl",
+    );
+    expect(calls).not.toContainEqual(PANE_RENAMED);
+    expect(calls).not.toContainEqual(TAB_RENAMED);
+  });
+
+  it("skips a pane reporting a transcript when this session has none", async () => {
+    const calls = await fallbackCalls({
+      ...SAME_CWD_PI,
+      agent_session: { kind: "path", value: "/sessions/other.jsonl" },
+    });
+    expect(calls).not.toContainEqual(PANE_RENAMED);
+    expect(calls).not.toContainEqual(TAB_RENAMED);
+  });
 });

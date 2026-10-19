@@ -174,20 +174,26 @@ interface HerdrTabInfo {
  *
  * 1. it reports THIS session's transcript path (`agent_session`, kind "path"),
  *    the identity herdr's own `herdr:pi` integration publishes; or
- * 2. it hosts a pi (`agent === "pi"`) whose tracked or foreground cwd resolves
- *    to this process's cwd, and it reports no other pi session's path.
+ * 2. this session has no transcript of its own (an in-memory host session), and
+ *    the pane hosts a pi (`agent === "pi"`) whose tracked or foreground cwd
+ *    resolves to this process's cwd and which reports no session path.
  *
  * A missing `agent`/`cwd` (herdr omits both when it cannot resolve them), a
- * foreign cwd, and a path-kind session naming a different session all fail
- * closed: the pane and tab renames are skipped, never another pane's label.
+ * foreign cwd, any path-kind session other than this one's, and a path reported
+ * to a host that has none of its own all fail closed: the pane and tab renames
+ * are skipped, never another pane's label.
  */
 function isOurPane(pane: HerdrPane | undefined, sessionFile: string | undefined): boolean {
   if (!pane) return false;
   const reported = pane.agent_session;
   const reportedPath = reported?.kind === "path" ? reported.value : undefined;
   if (samePath(reportedPath, sessionFile)) return true;
+  // With a transcript of our own, only that transcript proves ownership: a
+  // matching cwd cannot separate two pi sessions in one directory, and a
+  // path-kind session we cannot match belongs to somebody else.
+  if (sessionFile) return false;
   if (pane.agent !== "pi") return false;
-  if (reportedPath && !samePath(reportedPath, sessionFile)) return false;
+  if (reportedPath) return false; // a path we cannot compare is another session's
   const ownCwd = process.cwd();
   return samePath(pane.foreground_cwd, ownCwd) || samePath(pane.cwd, ownCwd);
 }
