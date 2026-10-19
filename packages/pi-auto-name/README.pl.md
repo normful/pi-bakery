@@ -36,9 +36,7 @@ pi install npm:@normful/pi-auto-name
 
 ## Użycie
 
-Rozszerzenie jest w pełni automatyczne; nie ma nic do uruchomienia。
-
-Skonfiguruj raz i gotowe。Ustaw i zapomnij。
+Nazwy są tworzone automatycznie. Skonfiguruj raz i gotowe.
 
 [Ręczna zmiana nazwy](#manual-rename)
 

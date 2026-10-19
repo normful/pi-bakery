@@ -36,9 +36,7 @@ pi install npm:@normful/pi-auto-name
 
 ## 使用方法
 
-该扩展完全自动，无需运行任何内容。
-
-配置一次，即可完成。设置后无需再管。
+命名会自动进行。配置一次即可完成。
 
 [手动重命名](#manual-rename)
 

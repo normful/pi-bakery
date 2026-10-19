@@ -36,9 +36,7 @@ pi install npm:@normful/pi-auto-name
 
 ## Gebruik
 
-De extensie is volledig automatisch; er is niets te draaien。
-
-Configureer een keer，en klaar。Stel in en vergeet het。
+Het benoemen gebeurt automatisch. Eenmal instellen en klaar.
 
 [Handmatig hernoemen](#manual-rename)
 

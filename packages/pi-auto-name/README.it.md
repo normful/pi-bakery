@@ -36,9 +36,7 @@ pi install npm:@normful/pi-auto-name
 
 ## Utilizzo
 
-L'estensione è completamente automatica; non c'è nulla da eseguire。
-
-Configuralo una volta e basta。Impostalo e dimenticalo。
+La denominazione è automatica. Configurala una volta e basta.
 
 [Rinomina manuale](#manual-rename)
 

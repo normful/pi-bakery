@@ -36,9 +36,7 @@ pi install npm:@normful/pi-auto-name
 
 ## Verwendung
 
-Die Erweiterung ist vollständig automatisch; es gibt nichts auszuführen。
-
-Einmal konfigurieren，fertig。Einrichten und vergessen。
+Die Benennung läuft automatisch. Einmal konfigurieren, das war's.
 
 [Manuell umbenennen](#manual-rename)
 

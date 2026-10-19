@@ -36,9 +36,7 @@ pi install npm:@normful/pi-auto-name
 
 ## Sử dụng
 
-Tiện ích mở rộng này hoàn toàn tự động; không có gì cần chạy。
-
-Cấu hình một lần，là xong。Thiết lập và quên đi。
+Tên được tạo tự động. Cấu hình một lần là xong.
 
 [Đổi tên thủ công](#manual-rename)
 

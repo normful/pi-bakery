@@ -36,9 +36,7 @@ pi install npm:@normful/pi-auto-name
 
 ## Penggunaan
 
-Ekstensi ini sepenuhnya otomatis; tidak ada yang perlu dijalankan。
-
-Konfigurasikan sekali，dan selesai。Atur dan lupakan。
+Penamaan berjalan otomatis. Konfigurasikan sekali saja.
 
 [Penggantian nama manual](#manual-rename)
 
