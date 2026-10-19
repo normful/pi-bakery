@@ -1,0 +1,31 @@
+version = 1
+[defaults]
+size = "84x30"
+timeout = "90s"
+output_dir = ".."
+formats = ["png"]
+scale = 2
+fallback_fonts = [
+  "/Users/norman/Library/Fonts/HackNerdFontMono-Regular.ttf",
+  "/Users/norman/Library/Fonts/HackNerdFontMono-Bold.ttf",
+  "/System/Library/Fonts/Apple Symbols.ttf",
+]
+[[scene]]
+name = "auto-suggest-skill"
+command = ["node_modules/.bin/pi", "--no-context-files", "--tui-mode", "fullscreen", "--offline"]
+cwd = "../.."
+[[scene.step]]
+wait_text = "pi-bakery"
+timeout = "60s"
+[[scene.step]]
+wait_stable = "3s"
+[[scene.step]]
+type = "/auto-suggest-skill:status"
+[[scene.step]]
+key = "enter"
+[[scene.step]]
+wait_text = "lifetime"
+timeout = "20s"
+[[scene.step]]
+shot = "auto-suggest-skill"
+crop = { x = 0, y = 9, width = 84, height = 21 }

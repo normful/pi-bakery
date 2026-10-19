@@ -1,0 +1,64 @@
+version = 1
+[defaults]
+size = "100x30"
+timeout = "120s"
+output_dir = ".."
+formats = ["png"]
+scale = 2
+fallback_fonts = [
+  "/Users/norman/Library/Fonts/HackNerdFontMono-Regular.ttf",
+  "/Users/norman/Library/Fonts/HackNerdFontMono-Bold.ttf",
+  "/System/Library/Fonts/Apple Symbols.ttf",
+]
+[[scene]]
+name = "parrot-editor"
+# pi-parrot is not installed globally, so -e is the only way it loads. The path is
+# an argument, so it resolves against `cwd` (the repo root), not this file's directory.
+command = [
+  "node_modules/.bin/pi",
+  "--no-extensions",
+  "-e",
+  "packages/pi-parrot/src/index.ts",
+  "--session",
+  "/tmp/shots/seed/sessions/seed.jsonl",
+  "--session-dir",
+  "/tmp/shots/seed/sessions",
+  "--offline",
+  "--no-context-files",
+  "--tui-mode",
+  "fullscreen",
+]
+cwd = "../.."
+env = { TERM = "xterm-256color", COLORTERM = "truecolor", LANG = "en_US.UTF-8" }
+[[scene.step]]
+wait_text = "herdr pane-ownership guard"
+timeout = "60s"
+[[scene.step]]
+wait_stable = "2s"
+[[scene.step]]
+type = "/parrot"
+[[scene.step]]
+key = "enter"
+[[scene.step]]
+wait_text = "Why"
+timeout = "45s"
+[[scene.step]]
+wait_stable = "1s"
+[[scene.step]]
+key = "G"
+[[scene.step]]
+wait_stable = "300ms"
+[[scene.step]]
+key = "o"
+[[scene.step]]
+wait_stable = "300ms"
+[[scene.step]]
+type = "Also add a regression test for two sessions racing on one pane."
+[[scene.step]]
+wait_stable = "500ms"
+[[scene.step]]
+key = "escape"
+[[scene.step]]
+wait_stable = "1s"
+[[scene.step]]
+shot = "parrot"
