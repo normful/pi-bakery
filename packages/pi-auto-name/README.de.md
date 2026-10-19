@@ -54,10 +54,11 @@ Darüber hinaus kannst du auch konfigurieren，dass es kontinuierlich umbenennt�
 
 ## Konfiguration
 
-Speichere die Konfiguration in：
+Konfigurationsquellen, höchste Priorität zuerst. Einstellungen werden pro Feld zusammengeführt:
 
-- Global：`~/.config/pi-auto-name/config.json`（beachtet `XDG_CONFIG_HOME`）
-- Projektüberschreibung：`.pi/pi-auto-name.json`
+1. Projektüberschreibung：`.pi/pi-auto-name.json`
+2. Global：`~/.pi/agent/pi-auto-name.json`（oder `<PI_CODING_AGENT_DIR>/pi-auto-name.json`，wenn konfiguriert）
+3. XDG: `~/.config/pi-auto-name/config.json` (`XDG_CONFIG_HOME`)
 
 Volle Standardkonfiguration：
 

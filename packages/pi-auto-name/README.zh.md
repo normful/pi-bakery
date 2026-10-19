@@ -54,10 +54,11 @@ pi install npm:@normful/pi-auto-name
 
 ## 配置
 
-将配置保存到以下位置：
+配置来源按优先级从高到低排列,各字段分别合并:
 
-- 全局：`~/.config/pi-auto-name/config.json`（遵循 `XDG_CONFIG_HOME`）
-- 项目级覆盖：`.pi/pi-auto-name.json`
+1. 项目级覆盖：`.pi/pi-auto-name.json`
+2. 全局：`~/.pi/agent/pi-auto-name.json`（或已配置的 `<PI_CODING_AGENT_DIR>/pi-auto-name.json`）
+3. XDG: `~/.config/pi-auto-name/config.json` (`XDG_CONFIG_HOME`)
 
 完整默认配置：
 

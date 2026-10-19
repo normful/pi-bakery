@@ -54,10 +54,11 @@ pi install npm:@normful/pi-auto-name
 
 ## 構成
 
-設定を以下に保存します：
+設定元は優先度の高い順に次のとおりです. 項目ごとにマージします:
 
-- グローバル：`~/.config/pi-auto-name/config.json`（`XDG_CONFIG_HOME` を尊重）
-- プロジェクト別オーバーライド：`.pi/pi-auto-name.json`
+1. プロジェクト別オーバーライド：`.pi/pi-auto-name.json`
+2. グローバル：`~/.pi/agent/pi-auto-name.json`（設定されている場合は `<PI_CODING_AGENT_DIR>/pi-auto-name.json`）
+3. XDG: `~/.config/pi-auto-name/config.json` (`XDG_CONFIG_HOME`)
 
 完全なデフォルト構成：
 

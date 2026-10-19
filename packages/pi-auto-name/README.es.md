@@ -54,10 +54,11 @@ Además，también puedes configurarlo para cambiar el nombre continuamente a me
 
 ## Configuración
 
-Guarda la configuración en：
+Fuentes de configuración, de mayor a menor prioridad. Los valores se combinan por campo:
 
-- Globalmente：`~/.config/pi-auto-name/config.json`（respeta `XDG_CONFIG_HOME`）
-- Anulación por proyecto：`.pi/pi-auto-name.json`
+1. Anulación por proyecto：`.pi/pi-auto-name.json`
+2. Globalmente：`~/.pi/agent/pi-auto-name.json`（o `<PI_CODING_AGENT_DIR>/pi-auto-name.json` cuando esté configurado）
+3. XDG: `~/.config/pi-auto-name/config.json` (`XDG_CONFIG_HOME`)
 
 Configuración predeterminada completa：
 

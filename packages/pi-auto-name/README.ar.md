@@ -54,10 +54,11 @@ pi install npm:@normful/pi-auto-name
 
 ## التكوين
 
-احفظ التكوين في：
+مصادر الإعدادات من الأعلى أولوية. تُدمج القيم لكل حقل:
 
-- عام：`~/.config/pi-auto-name/config.json`（يحترم `XDG_CONFIG_HOME`）
-- تجاوز لكل مشروع：`.pi/pi-auto-name.json`
+1. تجاوز لكل مشروع：`.pi/pi-auto-name.json`
+2. عام：`~/.pi/agent/pi-auto-name.json`（أو `<PI_CODING_AGENT_DIR>/pi-auto-name.json` عند تعيينه）
+3. XDG: `~/.config/pi-auto-name/config.json` (`XDG_CONFIG_HOME`)
 
 التكوين الافتراضي الكامل：
 
