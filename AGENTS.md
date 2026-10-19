@@ -118,6 +118,12 @@ A commit fails if typecheck/lint/test fail, so run `npm run typecheck`, `npm tes
 - Use Conventional Commits with an optional scope, matching the existing history: `feat`, `fix`, `chore`, `docs`, `refactor`, `test` (e.g. `feat(pi-stop-secrets-leaks): scaffold new extension`, `docs(AGENTS): note committing practice`).
 - The hk hooks run typecheck/lint/test on every commit, so make sure those pass before committing.
 
+## Crediting contributors
+
+When a change came from an outside contributor, credit them by GitHub login — not the name in the commit's `Author:` header — inline in the changelog entry that change produced. Never collect credits into a separate `Contributors` section, and never credit the maintainer or a bot. The full rule, including how to resolve a login, is in `.pi/skills/changelogs/SKILL.md` under "Crediting Outside Contributors".
+
+The top-level `README.md` carries a `## Contributors` avatar table for outside contributors only, between `<!-- readme: contributors -start -->` and `<!-- readme: contributors -end -->`. Source it from the GitHub contributors API rather than `git log`, and leave the maintainer out.
+
 ## Testing
 
 Tests are written with [vitest](https://vitest.dev) and run via [Vite Plus](https://viteplus.dev) (`vp`). No additional setup is needed — `vp` wraps vitest and is already in the root workspace.
