@@ -36,9 +36,7 @@ pi install npm:@normful/pi-auto-name
 
 ## Kullanım
 
-Eklenti tamamen otomatiktir; çalıştırılacak bir şey yoktur。
-
-Bir kez yapılandırın，bu kadar。Ayarlayın ve unutun。
+Adlandırma otomatik çalışır. Bir kez yapılandırın, hepsi bu.
 
 [Elle yeniden adlandırma](#manual-rename)
 

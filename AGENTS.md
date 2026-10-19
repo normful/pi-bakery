@@ -77,6 +77,27 @@ every request of the session. Write the shortest text that still changes what th
   and its `*SystemPrompt` tables are that case. Code comments, README and CHANGELOG keep their detail
   too; no reader pays for those per request.
 
+## Text humans read
+
+A README is read by a human skimming, and only secondarily by an agent. Write the 90% path and cut
+the rest.
+
+- **Order by usage share, not by feature.** The majority case owns the main sections. A minority
+  feature goes below the reference material and earns one link from the section it belongs to, so a
+  reader can jump to it without meeting it first.
+- **One home per fact.** Per-property detail lives in the Configuration Reference table. Do not
+  paraphrase it in prose above; duplicated docs drift.
+- **Delete the common sense.** If a competent user expects the behavior, stating it costs the reader
+  attention and makes the page read as machine-written for a machine.
+- **Alphabetical keys.** Config examples and reference tables list keys alphabetically, so a reader
+  finds one by name instead of by memory.
+- **Localizations ship with the change.** When `README.md` changes, update every `README.<lang>.md`
+  beside it in the same commit: same sections, same order, and an `<a id="...">` anchor wherever a
+  translated heading would otherwise break a link into it.
+
+The maintainer-only structural checklist — installation line, slash-prefixed commands, no Keywords
+section — is in `MAINTAINER_AGENTS.md` under "Package README conventions".
+
 ## Common commands
 
 ```bash

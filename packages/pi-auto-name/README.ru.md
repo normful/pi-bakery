@@ -16,9 +16,11 @@ pi install npm:@normful/pi-auto-name
 
 ## Использование
 
-Расширение работает автоматически. Достаточно настроить его один раз.
+Названия создаются автоматически. Достаточно настроить один раз.
 
 Название создается после первого сообщения пользователя или первого события `agent_settled`, в зависимости от `initialRenameTrigger`. Параметр `reRenameEveryNTurns` позволяет обновлять названия по мере развития беседы.
+
+[Ручное переименование](#ручное-переименование)
 
 ## Настройка
 
@@ -82,12 +84,19 @@ pi install npm:@normful/pi-auto-name
 | `surfaces.renameZellijTab`  | `boolean` | `true`                   | Переименовывать вкладку zellij, в которой запущен Pi.                                                                                                                                                                                                                     |
 | `windowNameMaxLength`       | `integer` | `30`                     | Максимальное число символов в названиях окон, панелей и вкладок терминала.                                                                                                                                                                                                |
 
+<a id="ручное-переименование"></a>
+
+## Ручное переименование
+
+Запустите `/rename` без аргументов, чтобы создать названия заново по текущей беседе с вашими настройками. Чтобы задать произвольное название, используйте команду Pi `/name`.
+
 ## Отладка
 
 При `PI_AUTO_NAME_DEBUG=1` расширение записывает диагностические события `pi-auto-name:debug` в журнал сессии и показывает их в TUI. Эти записи не передаются модели.
 
 ## Источники идей
 
+- Ручное переименование по команде `/rename` вдохновлено [pi-session-rename](https://github.com/Mieluoxxx/pi-ext/tree/main/extensions/pi-session-rename).
 - <https://github.com/ssdiwu/pi-autoname>
 - <https://github.com/byteowlz/pi-agent-extensions/tree/main/pi-auto-rename>
 - <https://github.com/mkioutcc/pi-title-renamer>
