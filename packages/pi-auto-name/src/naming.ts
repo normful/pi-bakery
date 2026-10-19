@@ -152,6 +152,7 @@ function systemPromptFor(style: Config["namingStyle"], locale: LocaleStrings, cf
   const lengthVariables = {
     windowMaxChars: windowNameBudget(cfg),
     sessionMaxChars: sessionNameBudget(cfg),
+    nameCase: cfg.namingCase === "sentence" ? (locale.sentenceCase ?? "") : "Title Case",
   };
   let base: string;
   switch (style) {
@@ -174,7 +175,12 @@ function systemPromptFor(style: Config["namingStyle"], locale: LocaleStrings, cf
     const directive = fill(locale.languageDirective, {
       language: normalizeLanguageTag(cfg.language),
     });
-    return `${directive}\n\n${base}`;
+    base = `${directive}\n\n${base}`;
+  }
+  const namingInstructions =
+    typeof cfg.namingInstructions === "string" ? cfg.namingInstructions.trim() : "";
+  if (namingInstructions) {
+    base += `\n\n${namingInstructions}\n\n${locale.responseFormat}`;
   }
   return base;
 }
@@ -276,6 +282,10 @@ function renderPrompt(
   const rules = fill(locale.naturalRules, {
     windowMaxChars: windowNameBudget(cfg),
     sessionMaxChars: sessionNameBudget(cfg),
+    nameCase:
+      style === "natural" && cfg.namingCase === "sentence"
+        ? (locale.sentenceCase ?? "")
+        : "Title Case",
   });
 
   // Reinforce the output language in the user turn too — weak models attend to

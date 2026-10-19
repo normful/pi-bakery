@@ -30,6 +30,10 @@ export const ConfigSchema = Type.Object({
     default: "always",
   }),
   respectExternalRenames: Type.Boolean({ default: true }),
+  namingCase: Type.Union([Type.Literal("title"), Type.Literal("sentence")], {
+    default: "title",
+  }),
+  namingInstructions: Type.String({ default: "" }),
   namingStyle: Type.Union(
     [Type.Literal("natural"), Type.Literal("slug"), Type.Literal("topic-project")],
     { default: "natural" },
@@ -115,6 +119,7 @@ export function loadConfig(cwd: string): Config {
     projectPath,
     enabled: cfg.enabled,
     namingStyle: cfg.namingStyle,
+    namingCase: cfg.namingCase,
     initialRenameTrigger: cfg.initialRenameTrigger,
     reRenameEveryNTurns: cfg.reRenameEveryNTurns,
     replaceExistingName: cfg.replaceExistingName,

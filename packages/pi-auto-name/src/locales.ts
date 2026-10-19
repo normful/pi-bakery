@@ -11,6 +11,8 @@ export interface LocaleStrings {
   topicProjectSystemPrompt: string;
   /** Natural style — user-side rules block (prepended to the naming context). */
   naturalRules: string;
+  /** Replacement for {nameCase}; undefined for scripts without letter case. */
+  sentenceCase: string | undefined;
   /** Full user-prompt templates; labels are baked in, values are {placeholders}. */
   topicProjectPromptTemplate: string; // {language} {windowMaxChars} {sessionMaxChars} {topicBudget} {projectName} {separator} {projectLines} {projectLine} {cwd} {firstUserBlock} {firstAssistantBlock} {conversationBlock}
   namingContextTemplate: string; // {firstUserMessageLabel} {first} {recent}
@@ -36,10 +38,11 @@ export interface LocaleStrings {
 // off these exact ASCII labels via WINDOW_LABEL_RE / SESSION_LABEL_RE.
 
 const EN: LocaleStrings = {
+  sentenceCase: "sentence case, preserving proper nouns and acronyms",
   naturalSystemPrompt:
     "You create session names for AI chat sessions. Return exactly two lines.\n" +
-    "WINDOW: a short 2-4 word label in Title Case for a terminal tab bar (up to {windowMaxChars} characters).\n" +
-    "SESSION: a descriptive 8-12 word name in Title Case for a session list (up to {sessionMaxChars} characters).\n" +
+    "WINDOW: a short 2-4 word label in {nameCase} for a terminal tab bar (up to {windowMaxChars} characters).\n" +
+    "SESSION: a descriptive 8-12 word name in {nameCase} for a session list (up to {sessionMaxChars} characters).\n" +
     'Anchor the WINDOW name on a specific entity — a file, function, service, subsystem, or branch concern — so it stays distinguishable from sibling sessions working on related tasks. Prefer "OAuth token refresh" over "Fix OAuth issue".\n' +
     "For task-oriented sessions, foreground the action being done and its goal — lead with a verb or the intent, not just the bare subject.\n" +
     "No quotes, no punctuation at the end, no extra text.",
@@ -62,8 +65,8 @@ Use plain text, no quotes, no markdown, no trailing punctuation, no extra text.`
   naturalRules: [
     "Name this session based on the context below.",
     "Return exactly two lines: WINDOW and SESSION.",
-    "WINDOW: 2-4 words in Title Case (a terminal tab label), up to {windowMaxChars} characters.",
-    "SESSION: 8-12 words in Title Case (a session name), up to {sessionMaxChars} characters.",
+    "WINDOW: 2-4 words in {nameCase} (a terminal tab label), up to {windowMaxChars} characters.",
+    "SESSION: 8-12 words in {nameCase} (a session name), up to {sessionMaxChars} characters.",
     "Pick a WINDOW name different from existing session names.",
     "Be concise and specific.",
     "Focus on the main topic or intent.",
@@ -104,6 +107,7 @@ Use plain text, no quotes, no markdown, no trailing punctuation, no extra text.`
 };
 
 const ZH: LocaleStrings = {
+  sentenceCase: undefined,
   naturalSystemPrompt:
     "你为 AI 聊天会话创建会话名称。请恰好返回两行。\n" +
     "WINDOW: 用于终端标签栏的简短名称，约 4-12 个字（不超过 {windowMaxChars} 个字符）。\n" +
@@ -171,6 +175,7 @@ SESSION: 不超过 {sessionMaxChars} 个字符、用连字符分隔的名称。
 };
 
 const ZH_HANT: LocaleStrings = {
+  sentenceCase: undefined,
   naturalSystemPrompt:
     "你為 AI 聊天會話建立會話名稱。請恰好回傳兩行。\n" +
     "WINDOW: 用於終端機標籤列的簡短名稱，約 4-12 個字（不超過 {windowMaxChars} 個字元）。\n" +
@@ -238,6 +243,7 @@ SESSION: 不超過 {sessionMaxChars} 個字元、用連字號分隔的名稱。
 };
 
 const JA: LocaleStrings = {
+  sentenceCase: undefined,
   naturalSystemPrompt:
     "あなたはAIチャットセッションにセッション名を付ける係です。正確に2行だけ返してください。\n" +
     "WINDOW: ターミナルのタブバー用の短い名前（約4〜12文字、{windowMaxChars}文字以内）。\n" +
@@ -306,6 +312,7 @@ WINDOWは具体的な対象（ファイル・関数・サービス・サブシ�
 };
 
 const KO: LocaleStrings = {
+  sentenceCase: undefined,
   naturalSystemPrompt:
     "AI 채팅 세션의 이름을 만듭니다. 정확히 두 줄을 반환하세요.\n" +
     "WINDOW: 터미널 탭 바용 짧은 이름(약 4~12자, {windowMaxChars}자 이내).\n" +
@@ -373,10 +380,11 @@ WINDOW를 구체적인 대상(파일·함수·서비스·하위 시스템·브�
 };
 
 const PT_BR: LocaleStrings = {
+  sentenceCase: "maiúscula inicial de frase, preservando nomes próprios e siglas",
   naturalSystemPrompt:
     "Você cria nomes de sessão para sessões de chat de IA. Retorne exatamente duas linhas.\n" +
-    "WINDOW: um rótulo curto de 2 a 4 palavras em Title Case para a barra de abas do terminal (até {windowMaxChars} caracteres).\n" +
-    "SESSION: um nome descritivo de 8 a 12 palavras em Title Case para a lista de sessões (até {sessionMaxChars} caracteres).\n" +
+    "WINDOW: um rótulo curto de 2 a 4 palavras em {nameCase} para a barra de abas do terminal (até {windowMaxChars} caracteres).\n" +
+    "SESSION: um nome descritivo de 8 a 12 palavras em {nameCase} para a lista de sessões (até {sessionMaxChars} caracteres).\n" +
     'Ancore o nome WINDOW em uma entidade específica — um arquivo, função, serviço, subsistema ou questão de branch — para que ele se diferencie de sessões irmãs trabalhando em tarefas relacionadas. Prefira "atualização de token OAuth" em vez de "corrigir problema OAuth".\n' +
     "Para sessões orientadas a tarefas, destaque a ação em andamento e seu objetivo — comece com um verbo ou a intenção, não apenas o assunto.\n" +
     "Sem aspas, sem pontuação no final, sem texto extra.",
@@ -399,8 +407,8 @@ Use texto simples, sem aspas, sem markdown, sem pontuação final, sem texto ext
   naturalRules: [
     "Nomeie esta sessão com base no contexto abaixo.",
     "Retorne exatamente duas linhas: WINDOW e SESSION.",
-    "WINDOW: 2 a 4 palavras em Title Case (um rótulo de aba do terminal), até {windowMaxChars} caracteres.",
-    "SESSION: 8 a 12 palavras em Title Case (um nome de sessão), até {sessionMaxChars} caracteres.",
+    "WINDOW: 2 a 4 palavras em {nameCase} (um rótulo de aba do terminal), até {windowMaxChars} caracteres.",
+    "SESSION: 8 a 12 palavras em {nameCase} (um nome de sessão), até {sessionMaxChars} caracteres.",
     "Escolha um nome para o WINDOW diferente dos nomes de sessões existentes.",
     "Seja conciso e específico.",
     "Concentre-se no tópico ou intenção principal.",
@@ -442,10 +450,11 @@ Use texto simples, sem aspas, sem markdown, sem pontuação final, sem texto ext
 };
 
 const ES: LocaleStrings = {
+  sentenceCase: "mayúscula inicial de oración, conservando nombres propios y siglas",
   naturalSystemPrompt:
     "Usted crea nombres de sesión para sesiones de chat de IA. Devuelva exactamente dos líneas.\n" +
-    "WINDOW: una etiqueta corta de 2 a 4 palabras en Title Case para la barra de pestañas del terminal (hasta {windowMaxChars} caracteres).\n" +
-    "SESSION: un nombre descriptivo de 8 a 12 palabras en Title Case para la lista de sesiones (hasta {sessionMaxChars} caracteres).\n" +
+    "WINDOW: una etiqueta corta de 2 a 4 palabras en {nameCase} para la barra de pestañas del terminal (hasta {windowMaxChars} caracteres).\n" +
+    "SESSION: un nombre descriptivo de 8 a 12 palabras en {nameCase} para la lista de sesiones (hasta {sessionMaxChars} caracteres).\n" +
     'Ancle el nombre WINDOW en una entidad específica — un archivo, función, servicio, subsistema o asunto de rama — para que se distinga de sesiones hermanas que trabajan en tareas relacionadas. Prefiera "actualización de token OAuth" sobre "arreglar problema OAuth".\n' +
     "Para sesiones orientadas a tareas, resalte la acción en curso y su objetivo — comience con un verbo o la intención, no solo el tema.\n" +
     "Sin comillas, sin puntuación al final, sin texto adicional.",
@@ -468,8 +477,8 @@ Use texto sin formato, sin comillas, sin markdown, sin puntuación final, sin te
   naturalRules: [
     "Ponga nombre a esta sesión según el contexto siguiente.",
     "Devuelva exactamente dos líneas: WINDOW y SESSION.",
-    "WINDOW: 2 a 4 palabras en Title Case (una etiqueta de pestaña del terminal), hasta {windowMaxChars} caracteres.",
-    "SESSION: 8 a 12 palabras en Title Case (un nombre de sesión), hasta {sessionMaxChars} caracteres.",
+    "WINDOW: 2 a 4 palabras en {nameCase} (una etiqueta de pestaña del terminal), hasta {windowMaxChars} caracteres.",
+    "SESSION: 8 a 12 palabras en {nameCase} (un nombre de sesión), hasta {sessionMaxChars} caracteres.",
     "Elija un nombre para WINDOW diferente de los nombres de sesiones existentes.",
     "Sea conciso y específico.",
     "Concéntrese en el tema o la intención principal.",
@@ -511,10 +520,11 @@ Use texto sin formato, sin comillas, sin markdown, sin puntuación final, sin te
 };
 
 const DE: LocaleStrings = {
+  sentenceCase: "Satzstil, unter Beibehaltung von Eigennamen, Substantiven und Akronymen",
   naturalSystemPrompt:
     "Sie erstellen Sitzungsnamen für KI-Chatsitzungen. Geben Sie genau zwei Zeilen zurück.\n" +
-    "WINDOW: ein kurzes Label mit 2 bis 4 Wörtern im Title Case für die Terminal-Tab-Leiste (bis zu {windowMaxChars} Zeichen).\n" +
-    "SESSION: ein beschreibender Name mit 8 bis 12 Wörtern im Title Case für die Sitzungsliste (bis zu {sessionMaxChars} Zeichen).\n" +
+    "WINDOW: ein kurzes Label mit 2 bis 4 Wörtern im {nameCase} für die Terminal-Tab-Leiste (bis zu {windowMaxChars} Zeichen).\n" +
+    "SESSION: ein beschreibender Name mit 8 bis 12 Wörtern im {nameCase} für die Sitzungsliste (bis zu {sessionMaxChars} Zeichen).\n" +
     'Verankern Sie den WINDOW-Namen an einer konkreten Einheit — einer Datei, Funktion, einem Dienst, Subsystem oder Branch-Anliegen — damit er sich von Schwester-Sitzungen unterscheidet, die an verwandten Aufgaben arbeiten. Bevorzugen Sie "OAuth-Token-Aktualisierung" gegenüber "OAuth-Problem beheben".\n' +
     "Stellen Sie bei aufgabenorientierten Sitzungen die ausgeführte Aktion und ihr Ziel in den Vordergrund — beginnen Sie mit einem Verb oder der Absicht, nicht nur mit dem Thema.\n" +
     "Keine Anführungszeichen, keine Satzzeichen am Ende, kein zusätzlicher Text.",
@@ -537,8 +547,8 @@ Verwenden Sie Klartext, keine Anführungszeichen, kein Markdown, keine Satzzeich
   naturalRules: [
     "Benennen Sie diese Sitzung anhand des untenstehenden Kontexts.",
     "Geben Sie genau zwei Zeilen zurück: WINDOW und SESSION.",
-    "WINDOW: 2 bis 4 Wörter im Title Case (ein Terminal-Tab-Label), bis zu {windowMaxChars} Zeichen.",
-    "SESSION: 8 bis 12 Wörter im Title Case (ein Sitzungsname), bis zu {sessionMaxChars} Zeichen.",
+    "WINDOW: 2 bis 4 Wörter im {nameCase} (ein Terminal-Tab-Label), bis zu {windowMaxChars} Zeichen.",
+    "SESSION: 8 bis 12 Wörter im {nameCase} (ein Sitzungsname), bis zu {sessionMaxChars} Zeichen.",
     "Wählen Sie einen WINDOW-Namen, der sich von bestehenden Sitzungsnamen unterscheidet.",
     "Seien Sie prägnant und spezifisch.",
     "Konzentrieren Sie sich auf das Hauptthema oder die Absicht.",
@@ -580,10 +590,11 @@ Verwenden Sie Klartext, keine Anführungszeichen, kein Markdown, keine Satzzeich
 };
 
 const FR: LocaleStrings = {
+  sentenceCase: "casse de phrase, en préservant les noms propres et les sigles",
   naturalSystemPrompt:
     "Vous créez des noms de session pour des sessions de chat IA. Renvoyez exactement deux lignes.\n" +
-    "WINDOW: une étiquette courte de 2 à 4 mots en Title Case pour la barre d'onglets du terminal (jusqu'à {windowMaxChars} caractères).\n" +
-    "SESSION: un nom descriptif de 8 à 12 mots en Title Case pour la liste des sessions (jusqu'à {sessionMaxChars} caractères).\n" +
+    "WINDOW: une étiquette courte de 2 à 4 mots en {nameCase} pour la barre d'onglets du terminal (jusqu'à {windowMaxChars} caractères).\n" +
+    "SESSION: un nom descriptif de 8 à 12 mots en {nameCase} pour la liste des sessions (jusqu'à {sessionMaxChars} caractères).\n" +
     "Ancrez le nom WINDOW sur une entité spécifique — un fichier, une fonction, un service, un sous-système ou un sujet de branche — afin qu'il se distingue des sessions sœurs travaillant sur des tâches liées. Préférez « actualisation du jeton OAuth » à « corriger le problème OAuth ».\n" +
     "Pour les sessions orientées tâche, mettez en avant l'action en cours et son objectif — commencez par un verbe ou l'intention, pas seulement le sujet.\n" +
     "Sans guillemets, sans ponctuation à la fin, sans texte supplémentaire.",
@@ -606,8 +617,8 @@ Utilisez du texte brut, sans guillemets, sans markdown, sans ponctuation finale,
   naturalRules: [
     "Nommez cette session en fonction du contexte ci-dessous.",
     "Renvoyez exactement deux lignes : WINDOW et SESSION.",
-    "WINDOW: 2 à 4 mots en Title Case (une étiquette d'onglet du terminal), jusqu'à {windowMaxChars} caractères.",
-    "SESSION: 8 à 12 mots en Title Case (un nom de session), jusqu'à {sessionMaxChars} caractères.",
+    "WINDOW: 2 à 4 mots en {nameCase} (une étiquette d'onglet du terminal), jusqu'à {windowMaxChars} caractères.",
+    "SESSION: 8 à 12 mots en {nameCase} (un nom de session), jusqu'à {sessionMaxChars} caractères.",
     "Choisissez un nom WINDOW différent des noms de sessions existantes.",
     "Soyez concis et spécifique.",
     "Concentrez-vous sur le sujet ou l'intention principal.",
@@ -649,10 +660,11 @@ Utilisez du texte brut, sans guillemets, sans markdown, sans ponctuation finale,
 };
 
 const ID: LocaleStrings = {
+  sentenceCase: "huruf kapital di awal kalimat, dengan mempertahankan nama diri dan akronim",
   naturalSystemPrompt:
     "Anda membuat nama sesi untuk sesi obrolan AI. Kembalikan tepat dua baris.\n" +
-    "WINDOW: label pendek 2-4 kata dalam Title Case untuk bilah tab terminal (hingga {windowMaxChars} karakter).\n" +
-    "SESSION: nama deskriptif 8-12 kata dalam Title Case untuk daftar sesi (hingga {sessionMaxChars} karakter).\n" +
+    "WINDOW: label pendek 2-4 kata dalam {nameCase} untuk bilah tab terminal (hingga {windowMaxChars} karakter).\n" +
+    "SESSION: nama deskriptif 8-12 kata dalam {nameCase} untuk daftar sesi (hingga {sessionMaxChars} karakter).\n" +
     'Ancarkan nama WINDOW pada entitas spesifik — file, fungsi, layanan, subsistem, atau hal terkait cabang — sehingga tetap dapat dibedakan dari sesi lain yang mengerjakan tugas terkait. Utamakan "pembaruan token OAuth" daripada "memperbaiki masalah OAuth".\n' +
     "Untuk sesi berorientasi tugas, tonjolkan tindakan yang sedang dilakukan dan tujuannya — awali dengan kata kerja atau maksud, bukan hanya subjeknya.\n" +
     "Tanpa tanda kutip, tanpa tanda baca di akhir, tanpa teks tambahan.",
@@ -675,8 +687,8 @@ Gunakan teks biasa, tanpa tanda kutip, tanpa markdown, tanpa tanda baca di akhir
   naturalRules: [
     "Beri nama sesi ini berdasarkan konteks di bawah ini.",
     "Kembalikan tepat dua baris: WINDOW dan SESSION.",
-    "WINDOW: 2-4 kata dalam Title Case (label tab terminal), hingga {windowMaxChars} karakter.",
-    "SESSION: 8-12 kata dalam Title Case (nama sesi), hingga {sessionMaxChars} karakter.",
+    "WINDOW: 2-4 kata dalam {nameCase} (label tab terminal), hingga {windowMaxChars} karakter.",
+    "SESSION: 8-12 kata dalam {nameCase} (nama sesi), hingga {sessionMaxChars} karakter.",
     "Pilih nama WINDOW yang berbeda dari nama sesi yang sudah ada.",
     "Ringkas dan spesifik.",
     "Fokus pada topik atau maksud utama.",
@@ -717,10 +729,11 @@ Gunakan teks biasa, tanpa tanda kutip, tanpa markdown, tanpa tanda baca di akhir
 };
 
 const VI: LocaleStrings = {
+  sentenceCase: "viết hoa đầu câu, giữ nguyên tên riêng và từ viết tắt",
   naturalSystemPrompt:
     "Bạn tạo tên phiên cho các phiên trò chuyện AI. Chỉ trả về chính xác hai dòng.\n" +
-    "WINDOW: nhãn ngắn 2-4 từ ở dạng Title Case cho thanh tab của thiết bị đầu cuối (tối đa {windowMaxChars} ký tự).\n" +
-    "SESSION: tên mô tả 8-12 từ ở dạng Title Case cho danh sách phiên (tối đa {sessionMaxChars} ký tự).\n" +
+    "WINDOW: nhãn ngắn 2-4 từ ở dạng {nameCase} cho thanh tab của thiết bị đầu cuối (tối đa {windowMaxChars} ký tự).\n" +
+    "SESSION: tên mô tả 8-12 từ ở dạng {nameCase} cho danh sách phiên (tối đa {sessionMaxChars} ký tự).\n" +
     'Gắn tên WINDOW vào một thực thể cụ thể — tệp, hàm, dịch vụ, hệ thống con hoặc vấn đề của nhánh — để dễ phân biệt với các phiên cùng cấp xử lý các tác vụ liên quan. Ưu tiên "cập nhật token OAuth" thay vì "sửa sự cố OAuth".\n' +
     "Đối với phiên hướng tác vụ, hãy làm nổi bật hành động đang thực hiện và mục tiêu của nó — bắt đầu bằng động từ hoặc ý định, không chỉ chủ ngữ.\n" +
     "Không dùng dấu ngoặc kép, không có dấu câu ở cuối, không thêm văn bản nào khác.",
@@ -743,8 +756,8 @@ Dùng văn bản thuần, không dấu ngoặc kép, không markdown, không d�
   naturalRules: [
     "Đặt tên cho phiên này dựa trên ngữ cảnh bên dưới.",
     "Chỉ trả về chính xác hai dòng: WINDOW và SESSION.",
-    "WINDOW: 2-4 từ ở dạng Title Case (nhãn tab thiết bị đầu cuối), tối đa {windowMaxChars} ký tự.",
-    "SESSION: 8-12 từ ở dạng Title Case (tên phiên), tối đa {sessionMaxChars} ký tự.",
+    "WINDOW: 2-4 từ ở dạng {nameCase} (nhãn tab thiết bị đầu cuối), tối đa {windowMaxChars} ký tự.",
+    "SESSION: 8-12 từ ở dạng {nameCase} (tên phiên), tối đa {sessionMaxChars} ký tự.",
     "Chọn tên WINDOW khác với tên các phiên hiện có.",
     "Ngắn gọn và cụ thể.",
     "Tập trung vào chủ đề hoặc ý định chính.",
@@ -786,10 +799,11 @@ Dùng văn bản thuần, không dấu ngoặc kép, không markdown, không d�
 };
 
 const TR: LocaleStrings = {
+  sentenceCase: "cümle düzeni, özel adlar ve kısaltmalar korunarak",
   naturalSystemPrompt:
     "AI sohbet oturumları için oturum adları oluşturursunuz. Tam olarak iki satır döndürün.\n" +
-    "WINDOW: terminal sekme çubuğu için Title Case biçiminde 2-4 kelimelik kısa bir etiket (en fazla {windowMaxChars} karakter).\n" +
-    "SESSION: oturum listesi için Title Case biçiminde 8-12 kelimelik açıklayıcı bir ad (en fazla {sessionMaxChars} karakter).\n" +
+    "WINDOW: terminal sekme çubuğu için {nameCase} biçiminde 2-4 kelimelik kısa bir etiket (en fazla {windowMaxChars} karakter).\n" +
+    "SESSION: oturum listesi için {nameCase} biçiminde 8-12 kelimelik açıklayıcı bir ad (en fazla {sessionMaxChars} karakter).\n" +
     'WINDOW adını belirli bir varlığa — bir dosya, işlev, hizmet, alt sistem veya dal konusuna — sabitleyin; böylece ilgili görevlerde çalışan kardeş oturumlardan ayırt edilebilir. "OAuth sorununu düzeltmek" yerine "OAuth belirteci yenileme"yi tercih edin.\n' +
     "Görev odaklı oturumlarda, yürütülen eylemi ve amacını öne çıkarın — yalnızca konuyla değil, bir fiil veya niyetle başlayın.\n" +
     "Tırnak işareti yok, sonda noktalama yok, fazladan metin yok.",
@@ -812,8 +826,8 @@ Düz metin kullanın; tırnak işareti, markdown, sonda noktalama veya fazladan 
   naturalRules: [
     "Bu oturumu aşağıdaki bağlama göre adlandırın.",
     "Tam olarak iki satır döndürün: WINDOW ve SESSION.",
-    "WINDOW: Title Case biçiminde 2-4 kelime (bir terminal sekme etiketi), en fazla {windowMaxChars} karakter.",
-    "SESSION: Title Case biçiminde 8-12 kelime (bir oturum adı), en fazla {sessionMaxChars} karakter.",
+    "WINDOW: {nameCase} biçiminde 2-4 kelime (bir terminal sekme etiketi), en fazla {windowMaxChars} karakter.",
+    "SESSION: {nameCase} biçiminde 8-12 kelime (bir oturum adı), en fazla {sessionMaxChars} karakter.",
     "Mevcut oturum adlarından farklı bir WINDOW adı seçin.",
     "Kısa ve belirli olun.",
     "Ana konuya veya amaca odaklanın.",
@@ -853,10 +867,11 @@ Düz metin kullanın; tırnak işareti, markdown, sonda noktalama veya fazladan 
 };
 
 const PL: LocaleStrings = {
+  sentenceCase: "zapisie zdaniowym, zachowując nazwy własne i skrótowce",
   naturalSystemPrompt:
     "Tworzysz nazwy sesji dla sesji czatu AI. Zwróć dokładnie dwie linie.\n" +
-    "WINDOW: krótka etykieta 2-4 słów w Title Case dla paska kart terminala (do {windowMaxChars} znaków).\n" +
-    "SESSION: opisowa nazwa 8-12 słów w Title Case dla listy sesji (do {sessionMaxChars} znaków).\n" +
+    "WINDOW: krótka etykieta 2-4 słów w {nameCase} dla paska kart terminala (do {windowMaxChars} znaków).\n" +
+    "SESSION: opisowa nazwa 8-12 słów w {nameCase} dla listy sesji (do {sessionMaxChars} znaków).\n" +
     'Zakotwicz nazwę WINDOW na konkretnym bycie — pliku, funkcji, usłudze, podsystemie lub kwestii gałęzi — aby odróżnić ją od sesji siostrzanych pracujących nad powiązanymi zadaniami. Preferuj "odświeżanie tokenu OAuth" zamiast "naprawianie problemu z OAuth".\n' +
     "W przypadku sesji zorientowanych na zadania wysuń na pierwszy plan wykonywaną akcję i jej cel — zacznij od czasownika lub intencji, nie tylko od tematu.\n" +
     "Bez cudzysłowów, bez interpunkcji na końcu, bez dodatkowego tekstu.",
@@ -879,8 +894,8 @@ Użyj zwykłego tekstu: bez cudzysłowów, bez markdownu, bez interpunkcji na ko
   naturalRules: [
     "Nadaj tej sesji nazwę na podstawie poniższego kontekstu.",
     "Zwróć dokładnie dwie linie: WINDOW i SESSION.",
-    "WINDOW: 2-4 słowa w Title Case (etykieta karty terminala), do {windowMaxChars} znaków.",
-    "SESSION: 8-12 słów w Title Case (nazwa sesji), do {sessionMaxChars} znaków.",
+    "WINDOW: 2-4 słowa w {nameCase} (etykieta karty terminala), do {windowMaxChars} znaków.",
+    "SESSION: 8-12 słów w {nameCase} (nazwa sesji), do {sessionMaxChars} znaków.",
     "Wybierz nazwę WINDOW inną niż istniejące nazwy sesji.",
     "Bądź zwięzły i konkretny.",
     "Skup się na głównym temacie lub intencji.",
@@ -922,10 +937,11 @@ Użyj zwykłego tekstu: bez cudzysłowów, bez markdownu, bez interpunkcji na ko
 };
 
 const UK: LocaleStrings = {
+  sentenceCase: "регістрі речення зі збереженням власних назв і абревіатур",
   naturalSystemPrompt:
     "Ви створюєте назви сесій для AI-чатів. Поверніть рівно два рядки.\n" +
-    "WINDOW: короткий ярлик 2-4 слів у форматі Title Case для панелі вкладок термінала (до {windowMaxChars} символів).\n" +
-    "SESSION: описова назва 8-12 слів у форматі Title Case для списку сесій (до {sessionMaxChars} символів).\n" +
+    "WINDOW: короткий ярлик 2-4 слів у форматі {nameCase} для панелі вкладок термінала (до {windowMaxChars} символів).\n" +
+    "SESSION: описова назва 8-12 слів у форматі {nameCase} для списку сесій (до {sessionMaxChars} символів).\n" +
     'Прив\'яжіть назву WINDOW до конкретної сутності — файлу, функції, служби, підсистеми або питання гілки — щоб її можна було відрізнити від сусідніх сесій, що працюють над суміжними завданнями. Надавайте перевагу "оновленню токена OAuth", а не "виправленню проблеми з OAuth".\n' +
     "Для сесій, орієнтованих на завдання, виводьте на перший план дію, що виконується, та її мету — починайте з дієслова або наміру, а не лише з теми.\n" +
     "Без лапок, без пунктуації в кінці, без зайвого тексту.",
@@ -948,8 +964,8 @@ SESSION: назва в нижньому регістрі, розділена д�
   naturalRules: [
     "Назвіть цю сесію на основі контексту нижче.",
     "Поверніть рівно два рядки: WINDOW і SESSION.",
-    "WINDOW: 2-4 слова у форматі Title Case (ярлик вкладки термінала), до {windowMaxChars} символів.",
-    "SESSION: 8-12 слів у форматі Title Case (назва сесії), до {sessionMaxChars} символів.",
+    "WINDOW: 2-4 слова у форматі {nameCase} (ярлик вкладки термінала), до {windowMaxChars} символів.",
+    "SESSION: 8-12 слів у форматі {nameCase} (назва сесії), до {sessionMaxChars} символів.",
     "Виберіть назву WINDOW, відмінну від існуючих назв сесій.",
     "Будьте стислими й конкретними.",
     "Зосередьтеся на головній темі або намірі.",
@@ -991,6 +1007,7 @@ SESSION: назва в нижньому регістрі, розділена д�
 };
 
 const FA: LocaleStrings = {
+  sentenceCase: undefined,
   naturalSystemPrompt:
     "شما برای جلسات چت هوش مصنوعی نام جلسه می‌سازید. دقیقاً دو خط برگردانید.\n" +
     "WINDOW: برچسب کوتاه 2 تا 4 کلمه برای نوار تب پایانه (حداکثر {windowMaxChars} کاراکتر).\n" +
@@ -1058,6 +1075,7 @@ WINDOW را به یک موجودیت مشخص (فایل، تابع، سرویس�
 };
 
 const AR: LocaleStrings = {
+  sentenceCase: undefined,
   naturalSystemPrompt:
     "أنت تنشئ أسماء جلسات لمحادثات الذكاء الاصطناعي. أعد سطرين بالضبط.\n" +
     "WINDOW: تسمية قصيرة من 2 إلى 4 كلمات لشريط علامات التبويب في الطرفية (حتى {windowMaxChars} حرفًا).\n" +
@@ -1125,6 +1143,7 @@ SESSION: اسم مفصول بشرطات أقل من {sessionMaxChars} حرفًا
 };
 
 const HI: LocaleStrings = {
+  sentenceCase: undefined,
   naturalSystemPrompt:
     "आप AI चैट सत्रों के लिए सत्र नाम बनाते हैं। ठीक दो पंक्तियाँ लौटाएँ।\n" +
     "WINDOW: टर्मिनल टैब बार के लिए 2 से 4 शब्दों का छोटा लेबल (अधिकतम {windowMaxChars} वर्ण)।\n" +
@@ -1192,10 +1211,11 @@ WINDOW को किसी विशिष्ट इकाई (फ़ाइल, 
 };
 
 const IT: LocaleStrings = {
+  sentenceCase: "maiuscola iniziale di frase, preservando nomi propri e acronimi",
   naturalSystemPrompt:
     "Creai nomi di sessione per sessioni di chat IA. Restituisci esattamente due righe.\n" +
-    "WINDOW: un'etichetta breve di 2-4 parole in Title Case per la barra delle schede del terminale (fino a {windowMaxChars} caratteri).\n" +
-    "SESSION: un nome descrittivo di 8-12 parole in Title Case per l'elenco delle sessioni (fino a {sessionMaxChars} caratteri).\n" +
+    "WINDOW: un'etichetta breve di 2-4 parole in {nameCase} per la barra delle schede del terminale (fino a {windowMaxChars} caratteri).\n" +
+    "SESSION: un nome descrittivo di 8-12 parole in {nameCase} per l'elenco delle sessioni (fino a {sessionMaxChars} caratteri).\n" +
     "Ancora il nome WINDOW a un'entità specifica — un file, una funzione, un servizio, un sottosistema o una questione di ramo — così da distinguerlo dalle sessioni sorelle che lavorano su attività correlate. Preferisci «aggiornamento token OAuth» rispetto a «correggere problema OAuth».\n" +
     "Per le sessioni orientate alle attività, metti in primo piano l'azione in corso e il suo obiettivo — inizia con un verbo o con l'intenzione, non solo con l'argomento.\n" +
     "Niente virgolette, niente punteggiatura alla fine, nessun testo extra.",
@@ -1218,8 +1238,8 @@ Usa testo semplice, niente virgolette, niente markdown, niente punteggiatura fin
   naturalRules: [
     "Nomina questa sessione in base al contesto sottostante.",
     "Restituisci esattamente due righe: WINDOW e SESSION.",
-    "WINDOW: 2-4 parole in Title Case (un'etichetta di scheda del terminale), fino a {windowMaxChars} caratteri.",
-    "SESSION: 8-12 parole in Title Case (un nome di sessione), fino a {sessionMaxChars} caratteri.",
+    "WINDOW: 2-4 parole in {nameCase} (un'etichetta di scheda del terminale), fino a {windowMaxChars} caratteri.",
+    "SESSION: 8-12 parole in {nameCase} (un nome di sessione), fino a {sessionMaxChars} caratteri.",
     "Scegli un nome WINDOW diverso dai nomi delle sessioni esistenti.",
     "Sii conciso e specifico.",
     "Concentrati sull'argomento o sull'intenzione principale.",
@@ -1261,10 +1281,11 @@ Usa testo semplice, niente virgolette, niente markdown, niente punteggiatura fin
 };
 
 const NL: LocaleStrings = {
+  sentenceCase: "zinskapitalisatie, met behoud van eigennamen en acroniemen",
   naturalSystemPrompt:
     "U maakt sessienamen voor AI-chatsessies. Geef exact twee regels terug.\n" +
-    "WINDOW: een kort label van 2-4 woorden in Title Case voor de tabbalk van de terminal (tot {windowMaxChars} tekens).\n" +
-    "SESSION: een beschrijvende naam van 8-12 woorden in Title Case voor de sessielijst (tot {sessionMaxChars} tekens).\n" +
+    "WINDOW: een kort label van 2-4 woorden in {nameCase} voor de tabbalk van de terminal (tot {windowMaxChars} tekens).\n" +
+    "SESSION: een beschrijvende naam van 8-12 woorden in {nameCase} voor de sessielijst (tot {sessionMaxChars} tekens).\n" +
     "Veranker de WINDOW-naam aan een specifieke entiteit — een bestand, functie, service, subsysteem of branch-kwestie — zodat hij zich onderscheidt van zustersessies die aan gerelateerde taken werken. Geef de voorkeur aan «OAuth-token vernieuwen» boven «OAuth-probleem oplossen».\n" +
     "Zet bij taakgerichte sessies de lopende actie en het doel voorop — begin met een werkwoord of de bedoeling, niet alleen met het onderwerp.\n" +
     "Geen aanhalingstekens, geen leestekens aan het einde, geen extra tekst.",
@@ -1287,8 +1308,8 @@ Gebruik gewone tekst: geen aanhalingstekens, geen markdown, geen leestekens aan 
   naturalRules: [
     "Geef deze sessie een naam op basis van de onderstaande context.",
     "Geef exact twee regels terug: WINDOW en SESSION.",
-    "WINDOW: 2-4 woorden in Title Case (een label van een terminaltabblad), tot {windowMaxChars} tekens.",
-    "SESSION: 8-12 woorden in Title Case (een sessienaam), tot {sessionMaxChars} tekens.",
+    "WINDOW: 2-4 woorden in {nameCase} (een label van een terminaltabblad), tot {windowMaxChars} tekens.",
+    "SESSION: 8-12 woorden in {nameCase} (een sessienaam), tot {sessionMaxChars} tekens.",
     "Kies een WINDOW-naam die verschilt van bestaande sessienamen.",
     "Wees beknopt en specifiek.",
     "Richt je op het hoofdonderwerp of de bedoeling.",
@@ -1330,6 +1351,7 @@ Gebruik gewone tekst: geen aanhalingstekens, geen markdown, geen leestekens aan 
 };
 
 const TH: LocaleStrings = {
+  sentenceCase: undefined,
   naturalSystemPrompt:
     "คุณสร้างชื่อเซสชันสำหรับเซสชันแชท AI โปรดคืนค่าสองบรรทัดเท่านั้น\n" +
     "WINDOW: ป้ายกำกับสั้นประมาณ 4-12 ตัวอักษรสำหรับแถบแท็บเทอร์มินัล (ไม่เกิน {windowMaxChars} ตัวอักษร)\n" +

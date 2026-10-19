@@ -42,6 +42,8 @@ function defaultCfg(): Config {
     replaceExistingName: "always",
     respectExternalRenames: true,
     namingStyle: "natural",
+    namingCase: "title",
+    namingInstructions: "",
     namingContextDepth: "recent-user-messages",
     skipSessionNameDedup: false,
     namingModel: "",
@@ -59,6 +61,7 @@ const NAMING_CONTEXT: NamingContext = {
 interface Harness {
   pi: any;
   handlers: Map<string, (event: any, ctx: any) => Promise<unknown>>;
+  commands: Map<string, (args: string, ctx: any) => Promise<void>>;
   setCfg: (cfg: Partial<Config>) => void;
   setSessionName: (name: string | undefined) => void;
   currentName: () => string | undefined;
@@ -67,9 +70,11 @@ interface Harness {
 
 function setup(): Harness {
   const handlers = new Map<string, (event: any, ctx: any) => Promise<unknown>>();
+  const commands = new Map<string, (args: string, ctx: any) => Promise<void>>();
   let current: string | undefined;
   const pi = {
     on: vi.fn((event: string, handler: any) => handlers.set(event, handler)),
+    registerCommand: vi.fn((name: string, options: any) => commands.set(name, options.handler)),
     setSessionName: vi.fn((name: string) => {
       current = name;
     }),
@@ -81,6 +86,8 @@ function setup(): Harness {
   const ctx = {
     cwd: "/project",
     hasUI: false,
+    isIdle: vi.fn(() => true),
+    ui: { notify: vi.fn() },
     sessionManager: {
       getEntries: () => [],
       getSessionFile: () => "/sessions/current.md",
@@ -98,6 +105,7 @@ function setup(): Harness {
   return {
     pi,
     handlers,
+    commands,
     ctx,
     setCfg: (overrides) => mocks.loadConfig.mockReturnValue({ ...defaultCfg(), ...overrides }),
     setSessionName: (name) => {
@@ -112,7 +120,7 @@ beforeEach(() => {
 });
 
 describe("extension registration", () => {
-  it("subscribes to all lifecycle events and registers no manual command", () => {
+  it("subscribes to all lifecycle events and registers /rename", () => {
     const { pi } = setup();
     const events = pi.on.mock.calls.map((c: string[]) => c[0]);
     expect(events).toContain("session_start");
@@ -123,7 +131,252 @@ describe("extension registration", () => {
     // turn_end / agent_end are not used — agent_settled is the sole turn boundary.
     expect(events).not.toContain("turn_end");
     expect(events).not.toContain("agent_end");
-    expect(pi.registerCommand).toBeUndefined();
+    expect(pi.registerCommand).toHaveBeenCalledWith(
+      "rename",
+      expect.objectContaining({ handler: expect.any(Function) }),
+    );
+  });
+});
+
+describe("/rename command", () => {
+  it("reuses the configured pipeline after automatic naming and on repeated invocations", async () => {
+    const h = setup();
+    h.setCfg({
+      namingStyle: "slug",
+      namingCase: "sentence",
+      namingInstructions: "Mention OAuth.",
+      namingModel: "provider/model",
+      language: "de",
+      namingContextDepth: "full-conversation",
+      sessionNameMaxLength: 60,
+      windowNameMaxLength: 20,
+    });
+    await h.handlers.get("input")!({ source: "interactive", text: "Fix OAuth" }, h.ctx);
+    await h.commands.get("rename")!("", h.ctx);
+    await h.commands.get("rename")!("", h.ctx);
+    expect(mocks.generateNames).toHaveBeenCalledTimes(3);
+    const [, cfg, context, titles, cwd, pi] = mocks.generateNames.mock.calls[2];
+    expect(cfg).toMatchObject({
+      namingStyle: "slug",
+      namingCase: "sentence",
+      namingInstructions: "Mention OAuth.",
+      namingModel: "provider/model",
+      language: "de",
+      namingContextDepth: "full-conversation",
+      sessionNameMaxLength: 60,
+      windowNameMaxLength: 20,
+    });
+    expect(context).toBe(NAMING_CONTEXT);
+    expect(titles).toEqual([]);
+    expect(cwd).toBe("/project");
+    expect(pi).toBe(h.pi);
+    expect(mocks.buildContext).toHaveBeenLastCalledWith(h.ctx, cfg, undefined);
+    expect(h.pi.setSessionName).toHaveBeenCalledTimes(3);
+    expect(h.pi.appendEntry).toHaveBeenCalledWith(
+      "pi-auto-name",
+      expect.objectContaining({ sessionName: "Fix the OAuth callback" }),
+    );
+    expect(h.ctx.ui.notify).toHaveBeenLastCalledWith("Session naming completed.", "info");
+  });
+
+  it("uses the UI timeout and waits for completion", async () => {
+    const h = setup();
+    h.ctx.hasUI = true;
+    await h.commands.get("rename")!("", h.ctx);
+    expect(mocks.generateNames.mock.calls[0][6]).toMatchObject({ timeoutMs: 10_000 });
+    expect(h.pi.setSessionName).toHaveBeenCalled();
+  });
+
+  it("rejects arguments instead of silently treating them as a name or instructions", async () => {
+    const h = setup();
+    await h.commands.get("rename")!("My chosen name", h.ctx);
+    expect(mocks.generateNames).not.toHaveBeenCalled();
+    expect(h.ctx.ui.notify).toHaveBeenCalledWith(expect.stringContaining("/name"), "warning");
+  });
+
+  it("rejects a busy agent without consuming the initial rename", async () => {
+    const h = setup();
+    h.ctx.isIdle.mockReturnValue(false);
+    await h.commands.get("rename")!("", h.ctx);
+    expect(mocks.generateNames).not.toHaveBeenCalled();
+    expect(h.ctx.ui.notify).toHaveBeenCalledWith(expect.stringContaining("idle"), "warning");
+    h.ctx.isIdle.mockReturnValue(true);
+    await h.handlers.get("input")!({ source: "interactive", text: "Fix OAuth" }, h.ctx);
+    expect(mocks.generateNames).toHaveBeenCalledTimes(1);
+  });
+
+  it("respects enabled: false", async () => {
+    const h = setup();
+    h.setCfg({ enabled: false });
+    await h.commands.get("rename")!("", h.ctx);
+    expect(mocks.generateNames).not.toHaveBeenCalled();
+    expect(h.ctx.ui.notify).toHaveBeenCalledWith("pi-auto-name is disabled.", "warning");
+  });
+
+  it("respects replaceExistingName: never", async () => {
+    const h = setup();
+    h.setCfg({ replaceExistingName: "never" });
+    h.setSessionName("Keep this name");
+    await h.commands.get("rename")!("", h.ctx);
+    expect(mocks.generateNames).not.toHaveBeenCalled();
+    expect(h.currentName()).toBe("Keep this name");
+    expect(h.ctx.ui.notify).toHaveBeenCalledWith(
+      expect.stringContaining("replaceExistingName"),
+      "warning",
+    );
+  });
+
+  it("preserves the external-rename lock", async () => {
+    const h = setup();
+    h.setSessionName("External name");
+    await h.handlers.get("session_info_changed")!({ name: "External name" }, h.ctx);
+    await h.commands.get("rename")!("", h.ctx);
+    expect(mocks.generateNames).not.toHaveBeenCalled();
+    expect(h.ctx.ui.notify).toHaveBeenCalledWith(expect.stringContaining("locked"), "warning");
+  });
+
+  it("can rename an external name when respectExternalRenames is false", async () => {
+    const h = setup();
+    h.setCfg({ respectExternalRenames: false });
+    h.setSessionName("External name");
+    await h.handlers.get("session_info_changed")!({ name: "External name" }, h.ctx);
+    await h.commands.get("rename")!("", h.ctx);
+    expect(h.currentName()).toBe("Fix the OAuth callback");
+  });
+
+  it("reports missing context and leaves the initial rename armed", async () => {
+    const h = setup();
+    mocks.buildContext.mockReturnValueOnce(undefined);
+    await h.commands.get("rename")!("", h.ctx);
+    expect(h.ctx.ui.notify).toHaveBeenCalledWith(
+      expect.stringContaining("No conversation"),
+      "warning",
+    );
+    await h.handlers.get("input")!({ source: "interactive", text: "Fix OAuth" }, h.ctx);
+    expect(mocks.generateNames).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports context failures without applying a name", async () => {
+    const h = setup();
+    mocks.buildContext.mockImplementationOnce(() => {
+      throw new Error("unreadable");
+    });
+    await h.commands.get("rename")!("", h.ctx);
+    expect(h.pi.setSessionName).not.toHaveBeenCalled();
+    expect(h.ctx.ui.notify).toHaveBeenCalledWith(
+      expect.stringContaining("Could not read"),
+      "warning",
+    );
+  });
+
+  it("does not race another rename", async () => {
+    const h = setup();
+    let release!: (result: unknown) => void;
+    mocks.generateNames.mockReturnValueOnce(
+      new Promise((resolve) => {
+        release = resolve;
+      }),
+    );
+    const pending = h.commands.get("rename")!("", h.ctx);
+    await vi.waitFor(() => expect(mocks.generateNames).toHaveBeenCalledTimes(1));
+    await h.commands.get("rename")!("", h.ctx);
+    expect(mocks.generateNames).toHaveBeenCalledTimes(1);
+    expect(h.ctx.ui.notify).toHaveBeenCalledWith("A rename is already in progress.", "warning");
+    release({ ok: true, names: { windowName: "W", sessionName: "S" } });
+    await pending;
+  });
+
+  it("reports generation failure and permits a manual retry", async () => {
+    const h = setup();
+    mocks.generateNames.mockResolvedValueOnce({ ok: false, reason: "missing_model" });
+    await h.commands.get("rename")!("", h.ctx);
+    expect(h.ctx.ui.notify).toHaveBeenCalledWith(
+      "Name generation failed: missing_model.",
+      "warning",
+    );
+    expect(h.pi.setSessionName).not.toHaveBeenCalled();
+    await h.commands.get("rename")!("", h.ctx);
+    expect(h.pi.setSessionName).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports unexpected failure and clears inflight for the next command", async () => {
+    const h = setup();
+    mocks.generateNames.mockRejectedValueOnce(new Error("provider failed"));
+    await h.commands.get("rename")!("", h.ctx);
+    expect(h.ctx.ui.notify).toHaveBeenCalledWith(expect.stringContaining("Rename failed"), "error");
+    await h.commands.get("rename")!("", h.ctx);
+    expect(h.pi.setSessionName).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not overwrite a name changed during generation", async () => {
+    const h = setup();
+    mocks.generateNames.mockImplementationOnce(async () => {
+      h.setSessionName("Changed while naming");
+      return { ok: true, names: { windowName: "W", sessionName: "S" } };
+    });
+    await h.commands.get("rename")!("", h.ctx);
+    expect(h.currentName()).toBe("Changed while naming");
+    expect(h.pi.setSessionName).not.toHaveBeenCalled();
+    expect(h.ctx.ui.notify).toHaveBeenCalledWith(
+      expect.stringContaining("changed during"),
+      "warning",
+    );
+  });
+
+  it("leaves automatic turn intervals unchanged", async () => {
+    const h = setup();
+    h.setCfg({ reRenameEveryNTurns: 2 });
+    await h.handlers.get("input")!({ source: "interactive", text: "Fix OAuth" }, h.ctx);
+    await h.handlers.get("agent_settled")!({}, h.ctx);
+    await h.commands.get("rename")!("", h.ctx);
+    expect(mocks.generateNames).toHaveBeenCalledTimes(2);
+    await h.handlers.get("agent_settled")!({}, h.ctx);
+    expect(mocks.generateNames).toHaveBeenCalledTimes(3);
+    await h.handlers.get("input")!({ source: "interactive", text: "More context" }, h.ctx);
+    expect(mocks.generateNames).toHaveBeenCalledTimes(3);
+  });
+
+  it("does not touch an already invalidated command context", async () => {
+    const h = setup();
+    await h.handlers.get("session_shutdown")!({}, h.ctx);
+    const staleCtx = new Proxy(
+      {},
+      {
+        get() {
+          throw new Error("stale context");
+        },
+      },
+    );
+    await expect(h.commands.get("rename")!("", staleCtx)).resolves.toBeUndefined();
+    expect(mocks.generateNames).not.toHaveBeenCalled();
+  });
+
+  it("does not apply names or notify a replaced session", async () => {
+    const h = setup();
+    let release!: (result: unknown) => void;
+    mocks.generateNames.mockReturnValueOnce(
+      new Promise((resolve) => {
+        release = resolve;
+      }),
+    );
+    let stale = false;
+    const guardedCtx = new Proxy(h.ctx, {
+      get(target, key) {
+        if (stale) throw new Error(`stale ctx.${String(key)}`);
+        return target[key];
+      },
+    });
+    const pending = h.commands.get("rename")!("", guardedCtx);
+    await vi.waitFor(() => expect(mocks.generateNames).toHaveBeenCalledTimes(1));
+    await h.handlers.get("session_shutdown")!({}, h.ctx);
+    await h.handlers.get("session_start")!({ reason: "new" }, h.ctx);
+    stale = true;
+    release({ ok: true, names: { windowName: "Old", sessionName: "Old session" } });
+    await expect(pending).resolves.toBeUndefined();
+    expect(h.pi.setSessionName).not.toHaveBeenCalled();
+    expect(h.ctx.ui.notify).not.toHaveBeenCalled();
+    await h.commands.get("rename")!("", h.ctx);
+    expect(h.currentName()).toBe("Fix the OAuth callback");
   });
 });
 
