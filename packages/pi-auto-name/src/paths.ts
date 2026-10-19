@@ -1,13 +1,6 @@
 // paths.ts — filesystem path identity for ownership checks.
 import { realpathSync } from "node:fs";
-import { homedir } from "node:os";
-import { join, resolve } from "node:path";
-
-/** Expand a leading `~` so a home-relative spelling compares as the same file. */
-function expandHome(value: string): string {
-  if (value === "~") return homedir();
-  return value.startsWith("~/") ? join(homedir(), value.slice(2)) : value;
-}
+import { resolve } from "node:path";
 
 /**
  * Canonical spelling of a path: `realpathSync.native` resolves symlinks,
@@ -18,14 +11,20 @@ function expandHome(value: string): string {
  * without touching the filesystem; any other failure (EACCES, ELOOP, ENOTDIR)
  * is rethrown, because there the on-disk identity is unknown and the caller
  * treats "unknown" as "not mine".
+ *
+ * No `~` expansion on purpose: every operand already arrives absolute. herdr
+ * stores a reported session path only when `Path::new(value).is_absolute()`
+ * (`src/agent_resume.rs`) and filters the pane `cwd`/`foreground_cwd` the same
+ * way, so it cannot emit a home-relative spelling; pi's own session file is
+ * built from an absolute session directory. A relative operand fails closed
+ * rather than matching the wrong directory.
  */
 function canonicalPath(value: string): string {
-  const expanded = expandHome(value);
   try {
-    return realpathSync.native(expanded);
+    return realpathSync.native(value);
   } catch (error) {
     if ((error as NodeJS.ErrnoException)?.code !== "ENOENT") throw error;
-    return resolve(expanded);
+    return resolve(value);
   }
 }
 

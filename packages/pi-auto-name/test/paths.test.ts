@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { mkdtempSync, realpathSync, rmSync, symlinkSync } from "node:fs";
-import { tmpdir, homedir } from "node:os";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { samePath } from "../src/paths.js";
 
@@ -73,11 +73,6 @@ describe("samePath", () => {
       symlinkSync(ping, pong); // symlink loop → ELOOP, not ENOENT
       expect(() => samePath(ping, dir)).toThrow();
     });
-  });
-
-  it("expands a leading ~ before comparing", () => {
-    expect(samePath("~", homedir())).toBe(true);
-    expect(samePath("~/", homedir())).toBe(true);
   });
 
   it.skipIf(!caseInsensitiveFs())("folds case when the volume does not distinguish it", () => {
