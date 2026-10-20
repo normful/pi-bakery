@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- The `socrates` tool is registered with `exposure: "model-only"`, so it is no longer callable from another tool through `ctx.executeTool()` — as a `codemode` script could. The model still sees and calls it directly while it is active.
+- The `socrates` tool declares `executionMode: "sequential"`, so concurrent calls in one assistant message run one at a time instead of racing for the same terminal UI.
+- The `socrates` tool declares `annotations: { readOnlyHint: true }`, so permission extensions can tell it changes nothing.
+
 ## [0.1.1] - 2026-10-01
 
 ### Changed

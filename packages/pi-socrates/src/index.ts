@@ -169,6 +169,11 @@ export default function askExtension(pi: ExtensionAPI) {
     label: ASK_TOOL_NAME,
     description: ASK_TOOL_DESCRIPTION,
     parameters: AskParamsSchema,
+    // Asking the user is not something another tool may do on the model's behalf.
+    exposure: "model-only",
+    annotations: { readOnlyHint: true },
+    // One prompt at a time: concurrent calls would race for the same terminal UI.
+    executionMode: "sequential",
 
     async execute(_toolCallId, params: AskParams, _signal, _onUpdate, ctx) {
       if (!ctx.hasUI) {
