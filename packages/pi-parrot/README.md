@@ -2,6 +2,10 @@
 
 Edit the last AI response in your editor. Saving and exiting your editor will automatically send your next as the next chat message.
 
+<p align="center">
+  <img src="https://media.githubusercontent.com/media/normful/pi-bakery/main/screenshots/parrot.png" alt="pi-parrot screenshot" width="800">
+</p>
+
 ## Installation
 
 ```bash

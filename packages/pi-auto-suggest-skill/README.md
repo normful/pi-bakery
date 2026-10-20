@@ -18,6 +18,10 @@ as Pi built it.
 
 Routing is always on. There is no on-demand tool: the model cannot ask for a skill, it is told.
 
+<p align="center">
+  <img src="https://media.githubusercontent.com/media/normful/pi-bakery/main/screenshots/auto-suggest-skill.png" alt="pi-auto-suggest-skill screenshot" width="800">
+</p>
+
 ## Installation
 
 ```bash

@@ -2,6 +2,10 @@
 
 When Pi needs your input, it asks with an interactive picker instead of making you type a free-form reply.
 
+<p align="center">
+  <img src="https://media.githubusercontent.com/media/normful/pi-bakery/main/screenshots/socrates.png" alt="pi-socrates screenshot" width="800">
+</p>
+
 ## Installation
 
 ```bash
