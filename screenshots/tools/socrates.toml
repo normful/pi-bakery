@@ -1,0 +1,49 @@
+version = 1
+[defaults]
+size = "110x40"
+timeout = "180s"
+output_dir = ".."
+formats = ["png"]
+scale = 2
+fallback_fonts = [
+  "/Users/norman/Library/Fonts/HackNerdFontMono-Regular.ttf",
+  "/Users/norman/Library/Fonts/HackNerdFontMono-Bold.ttf",
+  "/System/Library/Fonts/Apple Symbols.ttf",
+]
+[[scene]]
+name = "socrates-picker"
+# cwd stays outside the repo on purpose: inside a checkout the model investigates it
+# and the question ends up describing this repository instead of a generic task list.
+# That is also why the command is absolute — a relative program resolves against this
+# scene's `cwd`, not against the scene file's directory.
+# The prompt is the only nondeterministic input, and this scene costs one model call.
+command = [
+  "/Users/norman/code/pi-bakery/node_modules/.bin/pi",
+  "--offline",
+  "--no-context-files",
+  "--tui-mode",
+  "fullscreen",
+  "--thinking",
+  "off",
+  "--system-prompt",
+  "You are a concise coding assistant.",
+]
+cwd = "/tmp/shots/demo"
+env = { TERM = "xterm-256color", COLORTERM = "truecolor", LANG = "en_US.UTF-8" }
+[[scene.step]]
+wait_text = "demo"
+timeout = "60s"
+[[scene.step]]
+wait_stable = "3s"
+[[scene.step]]
+type = "I have three things left: the auth bug, the docs update, and the release cut. Ask me which to start with."
+[[scene.step]]
+key = "enter"
+[[scene.step]]
+wait_text = "Other (type your own)"
+timeout = "120s"
+[[scene.step]]
+wait_stable = "2s"
+[[scene.step]]
+shot = "socrates"
+crop = { x = 0, y = 20, width = 110, height = 20 }
