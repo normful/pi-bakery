@@ -4,11 +4,13 @@ Opinionated, information-rich status line widgets for Pi.
 
 Adds footer lines that show context usage, live streaming metrics, cost, model info, and more — all in real time.
 
-[![pi-statusline screenshot](../../screenshots/statusline3.png)](https://github.com/normful/pi-bakery/tree/main/packages/pi-statusline)
+<p align="center">
+  <img src="https://media.githubusercontent.com/media/normful/pi-bakery/main/screenshots/statusline3.png" alt="pi-statusline screenshot" width="800">
+</p>
 
 <p align="center">
   <a href="https://github.com/normful/pi-bakery/tree/main/packages/pi-statusline">
-    <img src="../../videos/statusline-demo.gif" alt="pi-statusline-demo" width="800">
+    <img src="https://media.githubusercontent.com/media/normful/pi-bakery/main/videos/statusline-demo.gif" alt="pi-statusline-demo" width="800">
   </a>
 </p>
 

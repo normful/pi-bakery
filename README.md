@@ -100,6 +100,8 @@ When Pi needs your input, it asks with an interactive picker instead of making y
 
 Removes Pi's inlined skill list and asks a classifier model which skill the turn needs, then suggests at most one. `/auto-suggest-skill:status` reports what it decided and what it cost.
 
+[![pi-auto-suggest-skill screenshot](./screenshots/auto-suggest-skill.png)](https://github.com/normful/pi-bakery/tree/main/packages/pi-auto-suggest-skill)
+
 ## Contributors
 
 Thanks to everyone who has contributed to pi-bakery.
