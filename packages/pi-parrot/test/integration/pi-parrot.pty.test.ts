@@ -15,7 +15,8 @@ import { createRequire } from "node:module";
  *
  * Gates (both must hold, otherwise skipped):
  *   1. `node-pty` resolvable (native module; installed via npm).
- *   2. `PI_PARROT_PTY=1` in the environment (set in CI; opt-in locally).
+ *   2. `PI_PARROT_PTY=1` in the environment (set in CI; opt-in locally). When
+ *      set, a missing `node-pty` is an error rather than a skip.
  *
  * Isolation: fresh HOME + session dir + cwd per run, `--offline`,
  * `--approve`, `--no-context-files`. No model call is expected to succeed —
@@ -46,6 +47,18 @@ function loadPty(): null | {
 }
 
 const pty = loadPty();
+
+// `PI_PARROT_PTY=1` means "this environment must run the Tier-2 test" (it is
+// set in CI). Without this guard a missing native module silently downgrades
+// the run to a skip, so a green CI would prove nothing.
+if (pty === null && process.env.PI_PARROT_PTY === "1") {
+  throw new Error(
+    "PI_PARROT_PTY=1 but node-pty is unavailable: run `npm install`, and on macOS also " +
+      "`chmod +x node_modules/node-pty/prebuilds/darwin-*/spawn-helper` (node-pty 1.1.0 " +
+      "ships that helper without the execute bit).",
+  );
+}
+
 const RUN_PTY = pty !== null && process.env.PI_PARROT_PTY === "1";
 
 function makeRunDir(): string {
