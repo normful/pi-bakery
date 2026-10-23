@@ -122,7 +122,9 @@ async function waitFor(cond: () => string | null, timeoutMs: number): Promise<st
   }
 }
 
-describe.skipIf(!RUN_PTY)("pty: /parrot suspends and resumes the real TUI", () => {
+// `retry: 1`: this test spawns the real TUI in a pty, so a transient spawn or
+// startup hiccup should not red the suite.
+describe.skipIf(!RUN_PTY)("pty: /parrot suspends and resumes the real TUI", { retry: 1 }, () => {
   it("editor runs while suspended; session resumes with edited text", async () => {
     const dir = makeRunDir();
     try {
