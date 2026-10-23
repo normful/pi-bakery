@@ -181,3 +181,5 @@ npx vp test run packages/pi-<name>/
 ```
 
 `npm test -- --project pi-<name>` fails with `No projects matched the filter "<name>"`, because the workspace projects are not named after the package directories.
+
+`packages/pi-parrot`'s Tier-2 PTY test (`PI_PARROT_PTY=1`) drives a real terminal through `node-pty`, which is pinned to `1.2.0-beta.17` because 1.1.0 publishes the macOS `prebuilds/darwin-*/spawn-helper` without its execute bit. Move the pin to `1.2.0` once that releases.
