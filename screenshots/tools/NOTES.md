@@ -73,4 +73,4 @@ Expect 1744x904, 2064x1264 and 2264x864. Two traps:
 - **herdr for the run half plus a separate renderer** — unnecessary, tuishot does
   both.
 - **A node-pty harness** — the local node-pty path fails with `posix_spawnp
-failed` on this host.
+  failed` on this host.

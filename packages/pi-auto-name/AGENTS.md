@@ -61,7 +61,7 @@ runs in this order:
   strings.
 - Every `{placeholder}` used by the naming templates is preserved verbatim:
   `{language} {windowMaxChars} {sessionMaxChars} {topicBudget} {projectName} {separator} {maxChars} {projectLines} {projectLine} {cwd} {firstUserBlock}
-{firstAssistantBlock}` in `topicProjectPromptTemplate` (where `{maxChars}` is the legacy alias for `{sessionMaxChars}`),
+  {firstAssistantBlock}` in `topicProjectPromptTemplate` (where `{maxChars}` is the legacy alias for `{sessionMaxChars}`),
   `{firstUserMessageLabel} {first} {recent}` in `namingContextTemplate`,
   `{conversation}` in `conversationSection`,
   `{separator} {projectName}` in `projectSuffixLines`, and

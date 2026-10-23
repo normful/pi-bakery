@@ -153,10 +153,7 @@ Tests are written with [vitest](https://vitest.dev) and run via [Vite Plus](http
 # Run all tests across all packages
 npm test
 
-# Run tests for a specific package (project filter)
-npm test -- --project pi-show-theme-colors
-
-# Run tests matching a file pattern
+# Run tests for a single package (path filter)
 npm test -- packages/pi-show-theme-colors/
 ```
 
