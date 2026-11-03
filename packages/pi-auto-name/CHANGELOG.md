@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- herdr-core and herdr-app support: inside a herdr-core terminal (`HC_TERMINAL_ID` is set), `surfaces.renameHerdrTab` renames the herdr-app tab that holds the terminal, using `herdr-app ls` and `herdr-app do tab.rename`. Without `replaceExistingName: "always"`, only a tab still named by its position in its space is replaced. herdr-app panes have no label, so `surfaces.renameHerdrPane` does nothing there. The legacy `herdr` CLI (`HERDR_PANE_ID`) keeps working as before. Thanks to [@bailob](https://github.com/bailob).
+
 ## [2.1.0] - 2026-10-19
 
 ### Added

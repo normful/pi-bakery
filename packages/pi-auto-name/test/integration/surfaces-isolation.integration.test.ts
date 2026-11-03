@@ -16,6 +16,7 @@ afterEach(() => {
 });
 
 const SURFACE_ENV_KEYS = [
+  "HC_TERMINAL_ID",
   "HERDR_ENV",
   "HERDR_PANE_ID",
   "HERDR_TAB_ID",
@@ -98,6 +99,31 @@ describe("integration: surface isolation", () => {
       delete process.env.TMUX;
       delete process.env.TMUX_PANE;
       delete process.env.ZELLIJ_PANE_ID;
+    }
+  });
+
+  it("herdr-core terminals route to herdr-app only, and the spawns stay blocked", async () => {
+    const h = await createHarness({
+      config: {
+        initialRenameTrigger: "first-input",
+        surfaces: { renameHerdrPane: true, renameHerdrTab: true },
+      },
+    });
+    harnesses.push(h);
+    process.env.HC_TERMINAL_ID = "poison-terminal";
+    process.env.HERDR_PANE_ID = "poison-pane"; // a leftover legacy id must not win
+    try {
+      h.faux.setResponses([
+        fauxWindowSession("OAuth fix", "Fix the OAuth callback"),
+        mainResponse(),
+      ]);
+      await h.session.prompt("fix oauth please");
+      expect(h.sessionManager.getSessionName()).toBe("Fix the OAuth callback");
+      expect(h.execCalls.map((call) => call.command)).toContain("herdr-app");
+      for (const call of h.execCalls) expect(call.command).toBe("herdr-app");
+    } finally {
+      delete process.env.HC_TERMINAL_ID;
+      delete process.env.HERDR_PANE_ID;
     }
   });
 });
