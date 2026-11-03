@@ -1,9 +1,10 @@
-import { describe, it, expect, vi, afterAll } from "vitest";
+import { describe, it, expect, vi, afterAll, beforeEach, afterEach } from "vitest";
 import type { Config } from "../src/config.js";
 import type { RenameState } from "../src/state.js";
 
 // Env vars are captured at module scope, so set them before the static import.
 const ORIG_ENV = vi.hoisted(() => ({
+  hcTerminal: process.env.HC_TERMINAL_ID,
   herdr: process.env.HERDR_PANE_ID,
   herdrTab: process.env.HERDR_TAB_ID,
   tmux: process.env.TMUX,
@@ -12,6 +13,7 @@ const ORIG_ENV = vi.hoisted(() => ({
 }));
 
 vi.hoisted(() => {
+  delete process.env.HC_TERMINAL_ID; // clear ambient env: the legacy herdr path is the default here
   process.env.HERDR_PANE_ID = "pane-1";
   process.env.HERDR_TAB_ID = ""; // clear ambient env so tests exercise the pane-get path
   process.env.TMUX = "tmux";
@@ -23,6 +25,8 @@ import { applySessionName, windowNameForSync, syncSurfaces } from "../src/surfac
 import { ENTRY_TYPE } from "../src/state.js";
 
 afterAll(() => {
+  if (ORIG_ENV.hcTerminal === undefined) delete process.env.HC_TERMINAL_ID;
+  else process.env.HC_TERMINAL_ID = ORIG_ENV.hcTerminal;
   process.env.HERDR_PANE_ID = ORIG_ENV.herdr;
   process.env.HERDR_TAB_ID = ORIG_ENV.herdrTab;
   process.env.TMUX = ORIG_ENV.tmux;
@@ -271,6 +275,154 @@ describe("syncSurfaces (herdr + tmux + zellij present)", () => {
     });
     const { pi } = mkPi(exec);
     await expect(syncSurfaces(pi, mkConfig(), "My Window")).resolves.toBeUndefined();
+  });
+});
+
+/** `herdr-app ls` payload: one space, tabs "1" and "Docs" (custom), terminals t1 / t7. */
+function herdrAppLs(terminalOverride?: string) {
+  return JSON.stringify({
+    spaces: [
+      {
+        id: "sp-1",
+        name: "repo",
+        tabs: [
+          { id: "tb-a", name: "1", terminals: [{ terminal: "t1" }] },
+          { id: "tb-b", name: "Docs", terminals: [{ terminal: terminalOverride ?? "t7" }] },
+        ],
+      },
+      {
+        id: "sp-2",
+        name: "remote",
+        machine: "box",
+        tabs: [{ id: "box/tb-c", name: "1", terminals: [{ terminal: "box/t7" }] }],
+      },
+    ],
+    recent: [],
+  });
+}
+
+describe("syncSurfaces (herdr-core + herdr-app)", () => {
+  beforeEach(() => {
+    process.env.HC_TERMINAL_ID = "t7";
+  });
+  afterEach(() => {
+    delete process.env.HC_TERMINAL_ID; // back to the legacy default set at the top of the file
+  });
+
+  /** The first argument of every `herdr-app` call, in order. */
+  function appVerbs(exec: ReturnType<typeof vi.fn>): string[] {
+    return exec.mock.calls.filter((c) => c[0] === "herdr-app").map((c) => c[1][0]);
+  }
+
+  function appExec(ls: string | (() => unknown) = herdrAppLs()) {
+    return vi.fn((command: string, args: string[]) => {
+      if (command === "herdr-app" && args[0] === "ls") return typeof ls === "string" ? ls : ls();
+      return { stdout: "", stderr: "", code: 0, killed: false };
+    });
+  }
+
+  it("renames the tab that holds this terminal with `herdr-app do tab.rename`", async () => {
+    const exec = appExec();
+    const { pi } = mkPi(exec);
+    await syncSurfaces(pi, mkConfig(), "My Window");
+
+    expect(exec).toHaveBeenCalledWith("herdr-app", ["ls"]);
+    expect(exec).toHaveBeenCalledWith("herdr-app", [
+      "do",
+      "tab.rename",
+      JSON.stringify({ id: "tb-b", name: "My Window" }),
+    ]);
+  });
+
+  it("never calls the legacy herdr CLI, even when HERDR_PANE_ID is set", async () => {
+    const exec = appExec();
+    const { pi } = mkPi(exec);
+    expect(process.env.HERDR_PANE_ID).toBe("pane-1");
+    await syncSurfaces(pi, mkConfig(), "My Window");
+    expect(exec.mock.calls.map((c) => c[0])).not.toContain("herdr");
+  });
+
+  it("does not rename a pane: herdr-app panes have no label", async () => {
+    const exec = appExec();
+    const { pi } = mkPi(exec);
+    await syncSurfaces(
+      pi,
+      mkConfig({ surfaces: { renameHerdrPane: true, renameHerdrTab: false } }),
+      "My Window",
+    );
+    expect(appVerbs(exec)).toEqual([]);
+  });
+
+  it("passes a name starting with a dash as a JSON value", async () => {
+    const exec = appExec();
+    const { pi } = mkPi(exec);
+    await syncSurfaces(pi, mkConfig(), "--rm -rf");
+    expect(exec).toHaveBeenCalledWith("herdr-app", [
+      "do",
+      "tab.rename",
+      JSON.stringify({ id: "tb-b", name: "--rm -rf" }),
+    ]);
+  });
+
+  it("with replaceExistingName never, keeps a custom tab name but replaces its number", async () => {
+    const custom = appExec();
+    await syncSurfaces(mkPi(custom).pi, mkConfig({ replaceExistingName: "never" }), "My Window");
+    expect(appVerbs(custom)).toEqual(["ls"]); // "Docs" is custom
+
+    process.env.HC_TERMINAL_ID = "t1"; // tab "1" at position 1: still the default number
+    const numbered = appExec();
+    await syncSurfaces(mkPi(numbered).pi, mkConfig({ replaceExistingName: "never" }), "My Window");
+    expect(numbered).toHaveBeenCalledWith("herdr-app", [
+      "do",
+      "tab.rename",
+      JSON.stringify({ id: "tb-a", name: "My Window" }),
+    ]);
+  });
+
+  it("treats a number that does not match the tab's position as a custom name", async () => {
+    const ls = JSON.stringify({
+      spaces: [{ tabs: [{ id: "tb-x", name: "3", terminals: [{ terminal: "t7" }] }] }],
+    });
+    const exec = appExec(ls);
+    const { pi } = mkPi(exec);
+    await syncSurfaces(pi, mkConfig({ replaceExistingName: "never" }), "My Window");
+    expect(appVerbs(exec)).toEqual(["ls"]);
+  });
+
+  it("skips when the terminal is in no tab (remote ids carry a machine prefix)", async () => {
+    const exec = appExec(herdrAppLs("t99"));
+    const { pi } = mkPi(exec);
+    await syncSurfaces(pi, mkConfig(), "My Window");
+    expect(appVerbs(exec)).toEqual(["ls"]);
+  });
+
+  it("skips quietly when the herdr-app window is unreachable or answers garbage", async () => {
+    for (const result of [
+      { stdout: "", stderr: "no Herdr window", code: 2, killed: false },
+      "not json",
+    ]) {
+      const exec = appExec(() => result);
+      const { pi } = mkPi(exec);
+      await expect(syncSurfaces(pi, mkConfig(), "My Window")).resolves.toBeUndefined();
+      expect(appVerbs(exec)).toEqual(["ls"]);
+    }
+  });
+
+  it("swallows a failing rename (non-fatal)", async () => {
+    const exec = vi.fn((command: string, args: string[]) => {
+      if (args[0] === "ls") return herdrAppLs();
+      if (command === "herdr-app") throw new Error("boom");
+      return { stdout: "", stderr: "", code: 0, killed: false };
+    });
+    const { pi } = mkPi(exec);
+    await expect(syncSurfaces(pi, mkConfig(), "My Window")).resolves.toBeUndefined();
+  });
+
+  it("still renames tmux and zellij alongside", async () => {
+    const exec = appExec();
+    const { pi } = mkPi(exec);
+    await syncSurfaces(pi, mkConfig(), "My Window");
+    expect(exec).toHaveBeenCalledWith("tmux", ["rename-window", "-t", "%3", "My Window"]);
   });
 });
 

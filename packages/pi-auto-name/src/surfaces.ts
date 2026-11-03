@@ -1,5 +1,7 @@
 // surfaces.ts — session name / herdr pane / herdr tab / tmux window / zellij
-// pane / zellij tab.
+// pane / zellij tab. "herdr" covers both stacks: herdr-core + herdr-app
+// (`hc` / `herdr-app`, identified by HC_TERMINAL_ID) and the legacy `herdr`
+// CLI (identified by HERDR_PANE_ID).
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import type { Config } from "./config.js";
 import type { RenameState } from "./state.js";
@@ -107,6 +109,7 @@ function envTrim(name: string): string | undefined {
 }
 
 export function getSurfacesEnv(): {
+  HC_TERMINAL_ID: string | undefined;
   HERDR_ENV: string | undefined;
   HERDR_PANE_ID: string | undefined;
   HERDR_TAB_ID: string | undefined;
@@ -116,6 +119,7 @@ export function getSurfacesEnv(): {
   ZELLIJ_PANE_ID: string | undefined;
 } {
   return {
+    HC_TERMINAL_ID: envTrim("HC_TERMINAL_ID"),
     HERDR_ENV: envTrim("HERDR_ENV"),
     HERDR_PANE_ID: envTrim("HERDR_PANE_ID"),
     HERDR_TAB_ID: envTrim("HERDR_TAB_ID"),
@@ -130,6 +134,7 @@ export function getSurfacesEnv(): {
 export function logSurfacesEnv(): void {
   const env = getSurfacesEnv();
   debug("surfaces env", {
+    herdrCore: { HC_TERMINAL_ID: env.HC_TERMINAL_ID },
     herdr: {
       HERDR_ENV: env.HERDR_ENV,
       HERDR_PANE_ID: env.HERDR_PANE_ID,
@@ -267,6 +272,12 @@ async function renameHerdrPane(
   always: boolean,
   sessionFile: string | undefined,
 ): Promise<void> {
+  if (getSurfacesEnv().HC_TERMINAL_ID) {
+    // herdr-app panes carry no label, and `hc` can name a terminal only when
+    // it starts one, so there is nothing to rename. The tab carries the name.
+    debug("renameHerdrPane: skipped (herdr-app panes have no label)");
+    return;
+  }
   const ids = await herdrCurrentIds(pi, sessionFile);
   if (!ids) {
     debug("renameHerdrPane: skipped (could not resolve current pane)");
@@ -292,6 +303,11 @@ async function renameHerdrTab(
   always: boolean,
   sessionFile: string | undefined,
 ): Promise<void> {
+  const terminalId = getSurfacesEnv().HC_TERMINAL_ID;
+  if (terminalId) {
+    await renameHerdrAppTab(pi, terminalId, name, always);
+    return;
+  }
   const ids = await herdrCurrentIds(pi, sessionFile);
   let tabId = ids?.tabId;
   if (!tabId && ids) {
@@ -318,6 +334,81 @@ async function renameHerdrTab(
     await pi.exec("herdr", ["tab", "rename", tabId, name], { timeout: 5000 });
   } catch (error) {
     debug("renameHerdrTab: failed", String(error)); // non-fatal
+  }
+}
+
+// ---- herdr-core + herdr-app -------------------------------------------------
+
+/** The tab fields `herdr-app ls` reports; `name` is the tab's number when unnamed. */
+interface HerdrAppTab {
+  id?: string;
+  name?: string;
+  terminals?: Array<{ terminal?: string }>;
+}
+interface HerdrAppLs {
+  spaces?: Array<{ tabs?: HerdrAppTab[] }>;
+}
+
+/**
+ * Find the herdr-app tab holding this process's terminal. `HC_TERMINAL_ID` is
+ * injected into the terminal by herdr-core, so unlike the legacy `pane
+ * current` fallback it needs no ownership check. A terminal on another
+ * machine is listed as `machine/tN`, so a local id never matches a remote one.
+ * `number` is the tab's 1-based position in its space, which is the name an
+ * unnamed tab shows.
+ */
+async function herdrAppTab(
+  pi: ExtensionAPI,
+  terminalId: string,
+): Promise<{ id: string; name?: string; number: number } | undefined> {
+  try {
+    const r = await pi.exec("herdr-app", ["ls"], { timeout: 5000 });
+    if (r.code !== 0) {
+      debug("herdrAppTab: `herdr-app ls` failed", { code: r.code, stderr: r.stderr });
+      return undefined;
+    }
+    for (const space of (JSON.parse(r.stdout) as HerdrAppLs).spaces ?? []) {
+      const tabs = space.tabs ?? [];
+      for (const [index, tab] of tabs.entries()) {
+        if (tab.id && tab.terminals?.some((t) => t.terminal === terminalId)) {
+          return { id: tab.id, name: tab.name, number: index + 1 };
+        }
+      }
+    }
+    debug("herdrAppTab: terminal not found in any tab", { terminalId });
+  } catch (error) {
+    debug("herdrAppTab: failed", String(error));
+  }
+  return undefined;
+}
+
+async function renameHerdrAppTab(
+  pi: ExtensionAPI,
+  terminalId: string,
+  name: string,
+  always: boolean,
+): Promise<void> {
+  const tab = await herdrAppTab(pi, terminalId);
+  if (!tab) {
+    debug("renameHerdrAppTab: skipped (no tab for terminal)", { terminalId });
+    return;
+  }
+  if (!always && !isDefaultLabel(tab.name, tab.number)) {
+    debug("renameHerdrAppTab: skipped (non-default label)", { label: tab.name });
+    return; // only replace default labels
+  }
+  try {
+    // One JSON object, not `--name <name>`: a name starting with "-" stays a value.
+    const r = await pi.exec(
+      "herdr-app",
+      ["do", "tab.rename", JSON.stringify({ id: tab.id, name })],
+      {
+        timeout: 5000,
+      },
+    );
+    if (r.code !== 0) debug("renameHerdrAppTab: failed", { code: r.code, stdout: r.stdout });
+  } catch (error) {
+    debug("renameHerdrAppTab: failed", String(error)); // non-fatal
   }
 }
 

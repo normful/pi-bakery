@@ -84,12 +84,14 @@ export interface ExecCall {
 /**
  * Multiplexer env vars that route surface renames at the real session.
  * src/surfaces.ts reads these live from process.env on every call and falls
- * back to `herdr pane current` when HERDR_PANE_ID is missing — so a harness
+ * back to `herdr pane current` when HERDR_PANE_ID is missing, and renames the
+ * herdr-app tab holding HC_TERMINAL_ID — so a harness
  * that inherits the developer's shell env renames the developer's real
  * herdr tab/pane when `npm run test` runs inside a multiplexer. Cleared for
  * the lifetime of any live harness (refcounted: tests may hold several).
  */
 const SURFACE_ENV_VARS = [
+  "HC_TERMINAL_ID",
   "HERDR_ENV",
   "HERDR_PANE_ID",
   "HERDR_TAB_ID",
@@ -127,7 +129,9 @@ function restoreSurfaceEnv(): void {
 
 /** Multiplexer binaries the extension shells out to via pi.exec. */
 function isMultiplexerCommand(command: string): boolean {
-  return command === "herdr" || command === "tmux" || command === "zellij";
+  return (
+    command === "herdr" || command === "herdr-app" || command === "tmux" || command === "zellij"
+  );
 }
 
 /**
